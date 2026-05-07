@@ -27,12 +27,14 @@ class ProductCard extends StatelessWidget {
       compactCart ? _buildCompact(context) : _buildFull(context);
 
   // ── Full card ──────────────────────────────────────────────────────────────
+  // Widget _buildFull(BuildContext context) {
+  //   return GestureDetector(
+  //     onTap: () => Navigator.push(context,
+  //         MaterialPageRoute(
+  //             builder: (_) => ProductDetailScreen(product: product))),
+  //     child: Container(
   Widget _buildFull(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.push(context,
-          MaterialPageRoute(
-              builder: (_) => ProductDetailScreen(product: product))),
-      child: Container(
+    return Container(
         margin: EdgeInsets.only(right: cardRightMargin),
         decoration: BoxDecoration(
           color:        Colors.white,
@@ -118,9 +120,16 @@ class ProductCard extends StatelessWidget {
             ),
 
             // ── Content (price / discount / name) ────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(7, 6, 7, 0),
-              child: Column(
+            // Padding(
+            //   padding: const EdgeInsets.fromLTRB(7, 6, 7, 0),
+            //   child: Column(
+    // ── Content (price / discount / name) ────────────────────
+    GestureDetector(
+    onTap: () {},
+    behavior: HitTestBehavior.opaque,
+    child: Padding(
+    padding: const EdgeInsets.fromLTRB(7, 6, 7, 0),
+    child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -198,8 +207,9 @@ class ProductCard extends StatelessWidget {
                       maxLines:  2,
                       overflow:  TextOverflow.ellipsis),
                 ],
-              ),
-            ),
+    ),
+    ),
+    ),
 
             // Spacer absorbs leftover space → ADD button always at bottom
             const Spacer(),
@@ -213,7 +223,6 @@ class ProductCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 
