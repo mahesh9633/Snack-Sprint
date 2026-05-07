@@ -9,6 +9,7 @@ class CategoryDataProduct {
   final String quantity;
   final String sku;
   final String parentId;
+  final String piece;   // ← ADD THIS
 
   CategoryDataProduct({
     required this.productId,
@@ -21,6 +22,7 @@ class CategoryDataProduct {
     required this.quantity,
     required this.sku,
     required this.parentId,
+    required this.piece,  // ← ADD THIS
   });
 
   // ── Convenience getters ──────────────────────────────────────────────────
@@ -68,6 +70,9 @@ class CategoryDataProduct {
       quantity:        resolvedQty,
       sku:             json['sku']?.toString() ?? '',
       parentId:        json['parent_id']?.toString() ?? '',
+      piece:           (json['piece']?.toString().isNotEmpty == true
+          ? json['piece'].toString()
+          : json['barcode_type']?.toString() ?? ''),
     );
   }
 

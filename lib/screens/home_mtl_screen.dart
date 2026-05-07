@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../config/app_color.dart';
 import '../model/cart_model.dart';
+import '../model/favorites_model.dart';
 import '../model/initial_model.dart';
 import '../model/product_model.dart';
 import '../products/product_card.dart';
@@ -191,6 +193,15 @@ class _MtlTabBodyState extends State<MtlTabBody> {
         _pendingData      = null;
       });
       _fetchRunningBanners();
+      _prefetchAllCategories(model); // ← add this
+
+      // Sync favourites stock status from home products
+      final favs = context.read<FavoritesModel>();
+      final liveProducts = model.randomProducts.map((p) => _toProduct(p)).toList();
+      await favs.syncWithBackend(
+        liveProducts.map((p) => p.id).toList(),
+        liveProducts: liveProducts,
+      );
     } else {
       setState(() {
         _error   = result['message']?.toString() ?? 'Unknown error';
@@ -200,14 +211,21 @@ class _MtlTabBodyState extends State<MtlTabBody> {
   }
 
   /// Pull-to-refresh handler — full reload.
+
   Future<void> _onRefresh() async {
     setState(() { _isRefreshing = true; });
-    _catCache.clear();
-    _subCache.clear();
-    _catLoading.clear();
-    _subLoading.clear();
     await _fetchInitialData();
     setState(() { _isRefreshing = false; });
+  }
+
+  Future<void> _prefetchAllCategories(InitialDataModel model) async {
+    for (final cat in model.categories) {
+      if (!mounted) return;
+      if (!_catCache.containsKey(cat.categoryId)) {
+        await _fetchCatDetail(cat.categoryId);
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
+    }
   }
 
   /// Called externally via GlobalKey to force a fresh server fetch.
@@ -480,6 +498,7 @@ class _MtlTabBodyState extends State<MtlTabBody> {
     sku:                p.sku,
     discountPercentage: p.discountPercent,
     quantity:           p.quantity,
+    posQuantity:        p.quantity,
   );
 
   ApiCategory? get _selectedCategory {
@@ -497,9 +516,8 @@ class _MtlTabBodyState extends State<MtlTabBody> {
     if (_loading) {
       return const SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.only(top: 60),
-          child: Center(child: CircularProgressIndicator(color: Color(0xFFB85C00))),
-        ),
+            padding: EdgeInsets.only(top: 60),
+            child: Center(child: CircularProgressIndicator(color: AppColors.buttonPrimary))),
       );
     }
     if (_error != null) return SliverToBoxAdapter(child: _buildError());
@@ -558,28 +576,28 @@ class _MtlTabBodyState extends State<MtlTabBody> {
         padding: const EdgeInsets.fromLTRB(12, 2, 12, 4),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildCategoryBox(
-            label: 'All', imageUrl: null, emoji: '🛍️',
-            isSelected: _selectedCatId.isEmpty,
-            onTap: () => setState(() { _selectedCatId = ''; _selectedSubId = ''; }),
-          ),
-          ...cats.map((cat) => _buildCategoryBox(
-            label:      cat.name,
-            imageUrl:   cat.imageUrl.isNotEmpty ? cat.imageUrl : null,
-            isSelected: _selectedCatId == cat.categoryId,
+          children: [
+            _buildCategoryBox(
+              label: 'All', imageUrl: null, emoji: '🛍️',
+              isSelected: _selectedCatId.isEmpty,
+              onTap: () => setState(() { _selectedCatId = ''; _selectedSubId = ''; }),
+            ),
+            ...cats.map((cat) => _buildCategoryBox(
+              label:      cat.name,
+              imageUrl:   cat.imageUrl.isNotEmpty ? cat.imageUrl : null,
+              isSelected: _selectedCatId == cat.categoryId,
 
-            onTap: () {
-              setState(() {
-                _selectedCatId = cat.categoryId;
-                _selectedSubId = '';
-                _fetchCatDetail(cat.categoryId);
-              });
-            },
-          )),
-        ],
-      ),
-    );
+              onTap: () {
+                setState(() {
+                  _selectedCatId = cat.categoryId;
+                  _selectedSubId = '';
+                  _fetchCatDetail(cat.categoryId);
+                });
+              },
+            )),
+          ],
+        ),
+      );
   }
 
   Widget _buildCategoryBox({
@@ -597,45 +615,45 @@ class _MtlTabBodyState extends State<MtlTabBody> {
               AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 width: 48, height: 48,
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? const Color(0xFFB85C00)
-                  : const Color(0xFFB85C00).withOpacity(0.08),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: isSelected
-                    ? const Color(0xFFB85C00)
-                    : const Color(0xFFB85C00).withOpacity(0.25),
-                width: 1.5,
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppColors.textMuted
+                      : AppColors.textMuted.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isSelected
+                        ? AppColors.textMuted
+                        : AppColors.textMuted.withOpacity(0.25),
+                    width: 1.5,
+                  ),
+                  boxShadow: isSelected
+                      ? [BoxShadow(
+                      color: AppColors.textMuted.withOpacity(0.4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3))]
+                      : [],
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: imageUrl != null
+                    ? Image.network(imageUrl, fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _catFallback(isSelected, emoji))
+                    : _catFallback(isSelected, emoji),
               ),
-              boxShadow: isSelected
-                  ? [BoxShadow(
-                  color: const Color(0xFFB85C00).withOpacity(0.4),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3))]
-                  : [],
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: imageUrl != null
-                ? Image.network(imageUrl, fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _catFallback(isSelected, emoji))
-                : _catFallback(isSelected, emoji),
-          ),
-          const SizedBox(height: 3),
+              const SizedBox(height: 3),
 
-          SizedBox(
-            width: 60,
-            child: Text(label,
-              style: TextStyle(
-                fontSize: 9, fontWeight: FontWeight.w600,
-                color: isSelected ? const Color(0xFFB85C00) : Colors.black87,
+              SizedBox(
+                width: 60,
+                child: Text(label,
+                  style: TextStyle(
+                    fontSize: 9, fontWeight: FontWeight.w600,
+                    color: isSelected ? AppColors.buttonPrimary: Colors.black87,
+                  ),
+                  textAlign: TextAlign.center, maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: true,
+                ),
               ),
-              textAlign: TextAlign.center, maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              softWrap: true,
-            ),
-          ),
-        ]),
+            ]),
       ),
     );
   }
@@ -644,7 +662,7 @@ class _MtlTabBodyState extends State<MtlTabBody> {
     child: emoji != null
         ? Text(emoji, style: const TextStyle(fontSize: 22))
         : Icon(Icons.category,
-        color: sel ? Colors.white : const Color(0xFFB85C00), size: 22),
+        color: sel ? Colors.white :AppColors.buttonPrimary, size: 22),
   );
 
   Widget _buildCategoryDetailSection() {
@@ -652,15 +670,17 @@ class _MtlTabBodyState extends State<MtlTabBody> {
     final isLoading = _catLoading[_selectedCatId] ?? false;
     final detail    = _catCache[_selectedCatId];
 
-    if (isLoading || (detail == null && cat != null)) {
+    // ✅ Show cached data immediately, don't block UI
+    if (detail == null && isLoading) {
       return Container(
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
         padding: const EdgeInsets.all(24),
         decoration: _cardDecoration(false),
         child: const Center(
-            child: CircularProgressIndicator(color: Color(0xFFB85C00))),
+            child: CircularProgressIndicator(color: AppColors.buttonPrimary)),
       );
     }
+    if (detail == null && cat == null) return const SizedBox.shrink();
     if (detail == null) return const SizedBox.shrink();
 
     final hasChildSubs   = detail.childSubs.isNotEmpty;
@@ -843,7 +863,7 @@ class _MtlTabBodyState extends State<MtlTabBody> {
             Container(
               width: 4, height: 16,
               decoration: BoxDecoration(
-                  color: const Color(0xFFB85C00),
+                  color: AppColors.buttonPrimary,
                   borderRadius: BorderRadius.circular(2)),
             ),
             const SizedBox(width: 8),
@@ -860,7 +880,7 @@ class _MtlTabBodyState extends State<MtlTabBody> {
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 24),
             child: Center(
-                child: CircularProgressIndicator(color: Color(0xFFB85C00))),
+                child: CircularProgressIndicator(color: AppColors.buttonPrimary)),
           )
         else if (products.isEmpty)
           Padding(
@@ -907,7 +927,7 @@ class _MtlTabBodyState extends State<MtlTabBody> {
               Container(
                 width: 4, height: 16,
                 decoration: BoxDecoration(
-                    color: const Color(0xFFB85C00),
+                    color:AppColors.lightBrown,
                     borderRadius: BorderRadius.circular(2)),
               ),
               const SizedBox(width: 8),
@@ -960,7 +980,7 @@ class _MtlTabBodyState extends State<MtlTabBody> {
       const Padding(
         padding: EdgeInsets.fromLTRB(16, 0, 16, 10),
         child: Row(children: [
-          Icon(Icons.auto_awesome, color: Color(0xFFB85C00), size: 18),
+          Icon(Icons.auto_awesome, color: AppColors.buttonPrimary, size: 18),
           SizedBox(width: 6),
           Text(title,
               style: TextStyle(
@@ -994,7 +1014,7 @@ class _MtlTabBodyState extends State<MtlTabBody> {
       const Padding(
         padding: EdgeInsets.fromLTRB(16, 0, 16, 10),
         child: Row(children: [
-          Icon(Icons.campaign, color: Color(0xFFB85C00), size: 18),
+          Icon(Icons.campaign, color: AppColors.buttonPrimary, size: 18),
           SizedBox(width: 6),
           Text('Promotions',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -1021,8 +1041,8 @@ class _MtlTabBodyState extends State<MtlTabBody> {
                   child: b.imageUrl.isNotEmpty
                       ? Image.network(b.imageUrl, fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) =>
-                          Container(color: const Color(0xFFFFF3E0)))
-                      : Container(color: const Color(0xFFFFF3E0)),
+                          Container(color: AppColors.warningLight))
+                      : Container(color: AppColors.warningLight),
                 ),
               ),
             );
@@ -1045,7 +1065,7 @@ class _MtlTabBodyState extends State<MtlTabBody> {
       const Padding(
         padding: EdgeInsets.fromLTRB(16, 0, 16, 10),
         child: Row(children: [
-          Icon(Icons.local_offer, color: Color(0xFFB85C00), size: 18),
+          Icon(Icons.local_offer, color: AppColors.buttonPrimary, size: 18),
           SizedBox(width: 6),
           Text(
             'Special Offers',
@@ -1074,7 +1094,7 @@ class _MtlTabBodyState extends State<MtlTabBody> {
                     TextSpan(
                       text: offer.name,
                       style: const TextStyle(
-                        color: Color(0xFF7B1FA2),
+                        color: AppColors.buttonPrimary,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1099,57 +1119,57 @@ class _MtlTabBodyState extends State<MtlTabBody> {
                     final bool isLast = i == previewProducts.length - 1 && offer.products.length > 4;
                     final product = _toProduct(previewProducts[i]);
                     return RepaintBoundary(
-                        key: ValueKey('offer_${offer.categoryId}_${product.id}'),
-                        child: SizedBox(
-                          width: cardW,
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 10),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Expanded(
-                                  child: ProductCard(
-                                    product: product,
-                                    imageHeight: imgH,
-                                  ),
+                      key: ValueKey('offer_${offer.categoryId}_${product.id}'),
+                      child: SizedBox(
+                        width: cardW,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 10),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Expanded(
+                                child: ProductCard(
+                                  product: product,
+                                  imageHeight: imgH,
                                 ),
-                            if (isLast)
-                              GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => OfferProductsScreen(
-                                        offerName: offer.name,
-                                        products: offer.products,
+                              ),
+                              if (isLast)
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => OfferProductsScreen(
+                                          offerName: offer.name,
+                                          products: offer.products,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: Container(
+                                    margin: const EdgeInsets.only(top: 4),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.warningLight,
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(color: AppColors.buttonPrimary, width: 1),
+                                    ),
+                                    child: const Text(
+                                      'View All',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: AppColors.buttonPrimary,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
-                                  );
-                                },
-                                child: Container(
-                                  margin: const EdgeInsets.only(top: 4),
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFFF3E0),
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(color: const Color(0xFFB85C00), width: 1),
                                   ),
-                                  child: const Text(
-                                    'View All',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Color(0xFFB85C00),
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              )
-                            else
-                              const SizedBox(height: 4),
-                          ],
-                          ),
+                                )
+                              else
+                                const SizedBox(height: 4),
+                            ],
                           ),
                         ),
+                      ),
                     );
                   },
                 );
@@ -1176,7 +1196,7 @@ class _MtlTabBodyState extends State<MtlTabBody> {
         ElevatedButton(
           onPressed: _fetchInitialData,
           style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFB85C00)),
+              backgroundColor: AppColors.buttonPrimary),
           child: const Text('Retry',
               style: TextStyle(color: Colors.white)),
         ),
@@ -1223,15 +1243,15 @@ class _NewDataBannerState extends State<_NewDataBanner>
         end:   Offset.zero,
       ).animate(_slide),
       child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+        margin: const EdgeInsets.fromLTRB(16, 4, 16, 2),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF7B3F00), Color(0xFFB85C00)],
+            colors: [AppColors.buttonPrimary, AppColors.buttonPrimary],
           ),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFB85C00).withOpacity(0.3),
+              color:AppColors.lightBrown.withOpacity(0.3),
               blurRadius: 8,
               offset: const Offset(0, 3),
             ),
@@ -1243,7 +1263,7 @@ class _NewDataBannerState extends State<_NewDataBanner>
             borderRadius: BorderRadius.circular(12),
             onTap: widget.onTap,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               child: Row(children: [
                 Container(
                   padding: const EdgeInsets.all(6),
@@ -1315,7 +1335,7 @@ class _HorizontalProductRow extends StatelessWidget {
       height: rowHeight,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 0), // ← bottom:0 so button isn't clipped
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
         itemCount: shown.length,
         itemBuilder: (_, i) {
           final isLastCard = i == lastIndex && hasSeeMore;
@@ -1323,51 +1343,40 @@ class _HorizontalProductRow extends StatelessWidget {
             width: cardW,
             child: Padding(
               padding: const EdgeInsets.only(right: 10),
-              child: isLastCard
-                  ? Column(
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // ── product card ─────────────────────────────
                   SizedBox(
                     height: cardH,
                     width:  cardW,
                     child:  _MtlProductCard(p: shown[i], imgH: imgH),
                   ),
-                  const SizedBox(height: 10),
-                  // ── View All pill BELOW card ──────────────────
-                  GestureDetector(
-                    onTap: onSeeMore,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF3E0),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                            color: const Color(0xFFB85C00), width: 1),
-                      ),
-                      child: const Text(
-                        'View All',
-                        style: TextStyle(
-                          fontSize:   10,
-                          color:      Color(0xFFB85C00),
-                          fontWeight: FontWeight.w600,
+                  if (isLastCard) ...[
+                    const SizedBox(height: 10),
+                    GestureDetector(
+                      onTap: onSeeMore,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: AppColors.warningLight,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                              color: AppColors.buttonPrimary, width: 1),
+                        ),
+                        child: const Text(
+                          'View All',
+                          style: TextStyle(
+                            fontSize:   10,
+                            color:      AppColors.buttonPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              )
-                  : Column(                         // ← non-last cards also use Column
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    height: cardH * 0.85,
-                    width:  cardW,
-                    child:  _MtlProductCard(p: shown[i], imgH: imgH),
-                  ),
-                  const SizedBox(height: seeMoreH), // ← empty space = same height as button
+                  ] else
+                    const SizedBox(height: seeMoreH),
                 ],
               ),
             ),
@@ -1500,12 +1509,12 @@ BoxDecoration _cardDecoration(bool highlighted) => BoxDecoration(
   borderRadius: BorderRadius.circular(14),
   border: highlighted
       ? Border.all(
-      color: const Color(0xFFB85C00).withOpacity(0.3), width: 1.5)
+      color:AppColors.lightBrown.withOpacity(0.3), width: 1.5)
       : null,
   boxShadow: [
     BoxShadow(
       color: highlighted
-          ? const Color(0xFFB85C00).withOpacity(0.08)
+          ? AppColors.lightBrown.withOpacity(0.08)
           : Colors.black.withOpacity(0.04),
       blurRadius: highlighted ? 10 : 6,
       offset: const Offset(0, 2),
@@ -1521,25 +1530,25 @@ class _MtlProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final product = p.toProduct();
-    return GestureDetector(
-      onTap: () => Navigator.push(context,
-          MaterialPageRoute(
-              builder: (_) => ProductDetailScreen(product: product))),
-      child: Container(
-        decoration: BoxDecoration(
-          color:        Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border:       Border.all(color: Colors.grey[200]!),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.04), blurRadius: 4)
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            Stack(children: [
+    return Container(
+      decoration: BoxDecoration(
+        color:        Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border:       Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.04), blurRadius: 4)
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(
+                    builder: (_) => ProductDetailScreen(product: product))),
+            child: Stack(children: [
               ClipRRect(
                 borderRadius:
                 const BorderRadius.vertical(top: Radius.circular(10)),
@@ -1560,7 +1569,7 @@ class _MtlProductCard extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                     decoration: BoxDecoration(
-                        color: const Color(0xFF1B5E20),
+                        color: AppColors.priceGreen,
                         borderRadius: BorderRadius.circular(4)),
                     child: Text('↓${p.discountPercent}%',
                         style: const TextStyle(
@@ -1575,109 +1584,119 @@ class _MtlProductCard extends StatelessWidget {
                     borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(10)),
                     child: Container(
-                      color:     Colors.black.withOpacity(0.35),
+                      color:     Colors.black.withOpacity(0.45),
                       alignment: Alignment.center,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 5, vertical: 2),
+                            horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                            color: Colors.red[700],
-                            borderRadius: BorderRadius.circular(4)),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [BoxShadow(
+                              color: Colors.black.withOpacity(0.15),
+                              blurRadius: 6,
+                            )]),
                         child: const Text('Out of Stock',
                             style: TextStyle(
-                                color:      Colors.white,
-                                fontSize:   8,
+                                color:      Colors.red,
+                                fontSize:   12,
                                 fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ),
                 ),
             ]),
-
-            Padding(
-              padding: const EdgeInsets.fromLTRB(6, 6, 6, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Flexible(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 5, vertical: 2),
-                              decoration: BoxDecoration(
-                                  color: const Color(0xFF388E3C),
-                                  borderRadius: BorderRadius.circular(4)),
-                              child: Text('₹${p.price.toInt()}',
-                                  style: const TextStyle(
-                                      color:      Colors.white,
-                                      fontSize:   10,
-                                      fontWeight: FontWeight.bold)),
+          ),
+    // ── Content ───────────────────────────────────────────────────
+    GestureDetector(
+    onTap: () {},
+    behavior: HitTestBehavior.opaque,
+    child: Padding(
+    padding: const EdgeInsets.fromLTRB(6, 6, 6, 0),
+    child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    mainAxisSize:       MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5, vertical: 2),
+                            decoration: BoxDecoration(
+                                color: AppColors.priceGreen,
+                                borderRadius: BorderRadius.circular(4)),
+                            child: Text('₹${p.price.toInt()}',
+                                style: const TextStyle(
+                                    color:      Colors.white,
+                                    fontSize:   9,
+                                    fontWeight: FontWeight.bold)),
+                          ),
+                          if (p.wholesale > p.price) ...[
+                            const SizedBox(width: 3),
+                            Flexible(
+                              child: Text('₹${p.wholesale.toInt()}',
+                                  style: TextStyle(
+                                      fontSize:   7,
+                                      color:      Colors.grey[500],
+                                      decoration: TextDecoration.lineThrough),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1),
                             ),
-                            if (p.wholesale > p.price) ...[
-                              const SizedBox(width: 3),
-                              Flexible(
-                                child: Text('₹${p.wholesale.toInt()}',
-                                    style: TextStyle(
-                                        fontSize:   8,
-                                        color:      Colors.grey[500],
-                                        decoration: TextDecoration.lineThrough),
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 1),
-                              ),
-                            ],
                           ],
-                        ),
+                        ],
                       ),
-                      if (p.unit.isNotEmpty) ...[
-                        const SizedBox(width: 3),
-                        Flexible(
-                          child: Text(p.unit,
-                              style: TextStyle(
-                                  fontSize: 8, color: Colors.grey[500]),
-                              maxLines:  1,
-                              overflow:  TextOverflow.ellipsis,
-                              textAlign: TextAlign.right),
-                        ),
-                      ],
+                    ),
+                    if (p.unit.isNotEmpty) ...[
+                      const SizedBox(width: 3),
+                      Flexible(
+                        child: Text(p.unit,
+                            style: TextStyle(
+                                fontSize: 8, color: Colors.black87),
+                            maxLines:  1,
+                            overflow:  TextOverflow.ellipsis,
+                            textAlign: TextAlign.right),
+                      ),
                     ],
-                  ),
-
-                  const SizedBox(height: 3),
-
-                  if (p.discountPercent > 0) ...[
-                    Text('${p.discountPercent}% off',
-                        style: const TextStyle(
-                            fontSize:   8,
-                            color:      Color(0xFF388E3C),
-                            fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 3),
                   ],
+                ),
 
-                  Text(p.name,
+                const SizedBox(height: 3),
+
+                if (p.discountPercent > 0) ...[
+                  Text('${p.discountPercent}% off',
                       style: const TextStyle(
-                          fontSize: 10, fontWeight: FontWeight.w500,
-                          color: Colors.black87, height: 1.3),
-                      maxLines:  2,
-                      overflow:  TextOverflow.ellipsis),
+                          fontSize:   8,
+                          color:      AppColors.priceGreen,
+                          fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 3),
                 ],
-              ),
-            ),
+                Text(p.name,
+                    style: const TextStyle(
+                        fontSize:   10,
+                        fontWeight: FontWeight.w500,
+                        color:      Colors.black87,
+                        height:     1.35),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
+              ],
+    ),
+    ),
+    ),
 
-            const Spacer(),
+          const Spacer(),
 
-            Padding(
-              padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
-              child: _CartBtn(product: product, isInStock: p.isInStock),
-            ),
-          ],
-        ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
+            // child: _CartBtn(product: product, isInStock: p.isInStock),
+            child: _CartBtn(product: product, isInStock: p.qty > 0),
+          ),
+        ],
       ),
     );
   }
@@ -1703,10 +1722,14 @@ class _CartBtn extends StatelessWidget {
         height:    30,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-            color:        Colors.grey[200],
-            borderRadius: BorderRadius.circular(6)),
-        child: Text('Unavailable',
-            style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+            color:        Colors.grey[100],
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: Colors.grey[300]!)),
+        child: const Text('Out of Stock',
+            style: TextStyle(
+                fontSize:   10,
+                color:      Colors.red,
+                fontWeight: FontWeight.bold)),
       );
     }
     return Consumer<CartModel>(
@@ -1723,11 +1746,11 @@ class _CartBtn extends StatelessWidget {
                 color:        Colors.white,
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
-                    color: const Color(0xFFFF0080), width: 1.2),
+                    color: AppColors.buttonPrimary, width: 1.2),
               ),
               child: const Text('ADD',
                   style: TextStyle(
-                      color:        Color(0xFFFF0080),
+                      color:        AppColors.buttonPrimary,
                       fontSize:     11,
                       fontWeight:   FontWeight.bold,
                       letterSpacing: 0.5)),
@@ -1737,7 +1760,7 @@ class _CartBtn extends StatelessWidget {
         return Container(
           height: 30,
           decoration: BoxDecoration(
-              color:  Color(0xFFFF0080),
+              color:  AppColors.buttonPrimary,
               borderRadius: BorderRadius.circular(6)),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1892,7 +1915,7 @@ class _CategoryFullPageState extends State<_CategoryFullPage> {
     final hasMore = _visible < prods.length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor: AppColors.white,
       floatingActionButton: const Padding(
         padding: EdgeInsets.only(bottom: 8),
         child: FloatingCartBar(),
@@ -1913,7 +1936,7 @@ class _CategoryFullPageState extends State<_CategoryFullPage> {
         actions: [
           // Manual refresh button
           IconButton(
-            icon: const Icon(Icons.refresh, color: Color(0xFFFF0080)),
+            icon: const Icon(Icons.refresh, color: AppColors.buttonPrimary),
             onPressed: _onRefresh,
             tooltip: 'Refresh',
           ),
@@ -1921,11 +1944,11 @@ class _CategoryFullPageState extends State<_CategoryFullPage> {
             margin:  const EdgeInsets.only(right: 14),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-                color: const Color(0xFFB85C00).withOpacity(0.1),
+                color:AppColors.lightBrown.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12)),
             child: Text('${prods.length}',
                 style: const TextStyle(
-                    color:      Color(0xFFB85C00),
+                    color:    AppColors.lightBrown,
                     fontSize:   12,
                     fontWeight: FontWeight.bold)),
           ),
@@ -1984,7 +2007,7 @@ class _CategoryFullPageState extends State<_CategoryFullPage> {
                     Container(
                         width: 3, height: 14,
                         decoration: BoxDecoration(
-                            color: const Color(0xFFB85C00),
+                            color: AppColors.buttonPrimary,
                             borderRadius: BorderRadius.circular(2))),
                     const SizedBox(width: 6),
                     Expanded(
@@ -1997,19 +2020,19 @@ class _CategoryFullPageState extends State<_CategoryFullPage> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 7, vertical: 3),
                       decoration: BoxDecoration(
-                          color: const Color(0xFFB85C00).withOpacity(0.1),
+                          color: AppColors.buttonPrimary.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8)),
                       child: Text('${prods.length}',
                           style: const TextStyle(
                               fontSize:   10,
-                              color:      Color(0xFFB85C00),
+                              color:      AppColors.lightBrown,
                               fontWeight: FontWeight.bold)),
                     ),
                   ]),
                 ),
                 Expanded(
                   child: RefreshIndicator(
-                    color: const Color(0xFFB85C00),
+                    color: AppColors.buttonPrimary,
                     onRefresh: _onRefresh,
                     child: GridView.builder(
                       controller: _rightScroll,
@@ -2029,7 +2052,7 @@ class _CategoryFullPageState extends State<_CategoryFullPage> {
                               child: Padding(
                                 padding: EdgeInsets.all(16),
                                 child: CircularProgressIndicator(
-                                    color: Color(0xFFB85C00)),
+                                    color:AppColors.buttonPrimary),
                               ));
                         }
                         return RepaintBoundary(
@@ -2073,7 +2096,7 @@ class _SidebarItem extends StatelessWidget {
           border: Border(
             left: BorderSide(
               color: isSelected
-                  ? const Color(0xFFB85C00)
+                  ? AppColors.lightBrown
                   : Colors.transparent,
               width: 3,
             ),
@@ -2085,8 +2108,8 @@ class _SidebarItem extends StatelessWidget {
             height: 52,
             decoration: BoxDecoration(
               color: isSelected
-                  ? const Color(0xFFB85C00).withOpacity(0.12)
-                  : Colors.grey[100],
+                  ? AppColors.white.withOpacity(0.12)
+                  : Colors.white,
               borderRadius: BorderRadius.circular(10),
             ),
             clipBehavior: Clip.antiAlias,
@@ -2095,13 +2118,13 @@ class _SidebarItem extends StatelessWidget {
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Icon(Icons.category,
                     color: isSelected
-                        ? const Color(0xFFB85C00)
+                        ? AppColors.lightBrown
                         : Colors.grey[400],
                     size: 22))
                 : Icon(Icons.category,
                 color: isSelected
-                    ? const Color(0xFFB85C00)
-                    : Colors.grey[400],
+                    ? AppColors.pink
+                    : Colors.white,
                 size: 22),
           ),
           const SizedBox(height: 5),
@@ -2109,7 +2132,7 @@ class _SidebarItem extends StatelessWidget {
             style: TextStyle(
               fontSize:   10,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              color: isSelected ? const Color(0xFFB85C00) : Colors.black87,
+              color: isSelected ? AppColors.pink : Colors.black87,
             ),
             textAlign: TextAlign.center,
             maxLines:  2,
@@ -2152,10 +2175,10 @@ class _SearchPopup extends StatelessWidget {
   });
 
   static const _typeColor = {
-    _SearchType.category:    Color(0xFF7B1FA2),
+    _SearchType.category:    AppColors.lightBrown,
     _SearchType.subcategory: Color(0xFF1565C0),
     _SearchType.product:     Color(0xFF2E7D32),
-    _SearchType.offer:       Color(0xFFB85C00),
+    _SearchType.offer:       AppColors.lightBrown,
   };
 
   static const _typeLabel = {
@@ -2325,7 +2348,7 @@ class _CategoryStripDelegate extends SliverPersistentHeaderDelegate {
   Widget build(
       BuildContext context, double shrinkOffset, bool overlapsContent) {
     return DecoratedBox(
-      decoration: const BoxDecoration(color: Color(0xFFFFFFFF)),
+      decoration: const BoxDecoration(color: AppColors.white),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

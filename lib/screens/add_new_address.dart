@@ -8,7 +8,8 @@ import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:mtl_groceriesapp/screens/select_location.dart';
 
-import '../services/pincode_service.dart'; // your existing PincodeService
+import '../config/app_color.dart';
+import '../services/pincode_service.dart';
 import '../services/pincode_zone_check_service.dart';
 
 class AddNewAddressScreen extends StatefulWidget {
@@ -22,11 +23,6 @@ class AddNewAddressScreen extends StatefulWidget {
 }
 
 class _AddNewAddressScreenState extends State<AddNewAddressScreen> {
-  // ── Theme ──────────────────────────────────────────────────────────────────
-  static const Color _brown       = Color(0xFFB85C00);
-  static const Color _accent      = Color(0xFFB85C00);
-  static const Color _pink        = Color(0xFFE91E63); // confirm button
-  static const Color _borderColor = Color(0xFFE0E0E0);
 
   // ── Controllers ────────────────────────────────────────────────────────────
   final TextEditingController _pincodeCtrl  = TextEditingController();
@@ -37,7 +33,7 @@ class _AddNewAddressScreenState extends State<AddNewAddressScreen> {
 
   // ── Map ────────────────────────────────────────────────────────────────────
   final MapController _mapCtrl = MapController();
-  LatLng _pin = const LatLng(17.6868, 83.2185); // default: Visakhapatnam
+  LatLng _pin = const LatLng(14.0446, 78.7432); // default: Rayachoty
 
   // ── Pincode state ──────────────────────────────────────────────────────────
   bool   _pincodeLoading = false;
@@ -293,7 +289,7 @@ class _AddNewAddressScreenState extends State<AddNewAddressScreen> {
                   child: ElevatedButton(
                     onPressed: () => Navigator.pop(context),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _pink,
+                      backgroundColor:  AppColors.buttonPrimary,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                       padding: const EdgeInsets.symmetric(vertical: 13),
@@ -337,22 +333,22 @@ class _AddNewAddressScreenState extends State<AddNewAddressScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor:  AppColors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: AppColors.appBarIcon),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text('Add New Address',
             style: TextStyle(
-                color: Colors.black,
+                color: AppColors.appBarText,
                 fontWeight: FontWeight.bold,
                 fontSize: 18)),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: Colors.grey[200]),
+          child: Container(height: 1, color: Colors.white),
         ),
       ),
       body: SingleChildScrollView(
@@ -372,7 +368,7 @@ class _AddNewAddressScreenState extends State<AddNewAddressScreen> {
                   border: Border.all(
                     color: _pincodeError.isNotEmpty
                         ? Colors.red
-                        : _borderColor,
+                        : AppColors.border,
                   ),
                 ),
                 child: Row(children: [
@@ -409,7 +405,7 @@ class _AddNewAddressScreenState extends State<AddNewAddressScreen> {
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: _accent),
+                            strokeWidth: 2, color: AppColors.loader),
                       ),
                     ),
                 ]),
@@ -423,7 +419,7 @@ class _AddNewAddressScreenState extends State<AddNewAddressScreen> {
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                    color: _pink,
+                    color: AppColors.buttonPrimary,
                     borderRadius: BorderRadius.circular(14)),
                 child: const Icon(Icons.search, color: Colors.white, size: 24),
               ),
@@ -434,10 +430,12 @@ class _AddNewAddressScreenState extends State<AddNewAddressScreen> {
           if (_pincodeError.isNotEmpty) ...[
             const SizedBox(height: 6),
             Row(children: [
-              Icon(Icons.error_outline, color: Colors.red[400], size: 14),
+              // Icon(Icons.error_outline, color: Colors.red[400], size: 14),
+              Icon(Icons.error_outline, color: AppColors.error, size: 14),
               const SizedBox(width: 6),
               Text(_pincodeError,
-                  style: TextStyle(color: Colors.red[400], fontSize: 12)),
+                  // style: TextStyle(color: Colors.red[400], fontSize: 12)),
+                  style: const TextStyle(color: AppColors.error, fontSize: 12)),
             ]),
           ],
           if (_resolvedCity.isNotEmpty) ...[
@@ -504,7 +502,8 @@ class _AddNewAddressScreenState extends State<AddNewAddressScreen> {
                           width:  48,
                           height: 48,
                           child: const Icon(Icons.location_pin,
-                              color: _pink, size: 48),
+                              // color: _pink, size: 48),
+                              color: AppColors.buttonPrimary, size: 48),
                         ),
                       ],
                     ),
@@ -529,7 +528,7 @@ class _AddNewAddressScreenState extends State<AddNewAddressScreen> {
                                 blurRadius: 6)
                           ]),
                       child: const Icon(Icons.my_location,
-                          color: _pink, size: 20),
+                          color: AppColors.buttonPrimary, size: 20),
                     ),
                   ),
                 ),
@@ -585,14 +584,14 @@ class _AddNewAddressScreenState extends State<AddNewAddressScreen> {
                 padding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
-                  color:        isSelected ? _accent : Colors.white,
+                  color:        isSelected ? AppColors.lightBrown : Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: isSelected ? _accent : _borderColor,
+                    color: isSelected ? AppColors.lightBrown : AppColors.border,
                   ),
                   boxShadow: isSelected
                       ? [BoxShadow(
-                      color: _accent.withOpacity(0.3),
+                      color: AppColors.lightBrown.withOpacity(0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 3))]
                       : [],
@@ -647,12 +646,12 @@ class _AddNewAddressScreenState extends State<AddNewAddressScreen> {
             child: ElevatedButton(
               onPressed: _saving ? null : _confirmAndSave,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _pink,
-                disabledBackgroundColor: Colors.grey[300],
+                backgroundColor: AppColors.buttonPrimary,
+                disabledBackgroundColor:  AppColors.buttonPrimaryDisabled,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16)),
                 elevation: 4,
-                shadowColor: _pink.withOpacity(0.4),
+                shadowColor: AppColors.buttonPrimary.withOpacity(0.4),
               ),
               child: _saving
                   ? const SizedBox(
@@ -691,7 +690,7 @@ class _AddNewAddressScreenState extends State<AddNewAddressScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _borderColor),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(children: [
         const SizedBox(width: 14),
@@ -703,7 +702,7 @@ class _AddNewAddressScreenState extends State<AddNewAddressScreen> {
             style: const TextStyle(fontSize: 14),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
+              hintStyle: TextStyle(color: Colors.white, fontSize: 13),
               border:         InputBorder.none,
               isDense:        true,
               contentPadding: const EdgeInsets.symmetric(vertical: 14),

@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-
+import '../config/app_color.dart';
 import '../model/address_model.dart';
 import '../services/add_address_service.dart';
 import '../services/delete_address_service.dart';
 import '../services/edit_address_service.dart';
 import '../services/get_address_service.dart';
 import '../services/pincode_zone_check_service.dart';
+
 class SavedAddressesScreen extends StatefulWidget {
   final bool   selectMode;
   final String token;
@@ -62,7 +63,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
       context: context,
       barrierDismissible: false,
       builder: (_) => const Center(
-        child: CircularProgressIndicator(color: Color(0xFFFF0080)),
+        child: CircularProgressIndicator(color: AppColors.loader),
       ),
     );
 
@@ -76,7 +77,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
         content: Text(apiResult.message.isNotEmpty
             ? apiResult.message
             : 'Failed to set default address.'),
-        backgroundColor: Colors.red,
+        backgroundColor: AppColors.error,
         behavior: SnackBarBehavior.floating,
       ));
       return;
@@ -106,10 +107,11 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
       content: Text('Default address updated!'),
-      backgroundColor: Color(0xFFFF0080),
+      backgroundColor: AppColors.success,
       behavior: SnackBarBehavior.floating,
     ));
   }
+
   Future<void> _openForm({AddressModel? existing}) async {
     final willBeFirst = _addresses.isEmpty && existing == null;
 
@@ -119,7 +121,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
         builder: (_) => _AddressFormScreen(
           existing:     existing,
           forceDefault: !willBeFirst,
-          token:        widget.token, // ← pass token for zone check
+          token:        widget.token,
         ),
       ),
     );
@@ -133,7 +135,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(apiResult.message.isNotEmpty
                 ? apiResult.message : 'Failed to save address.'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ));
           return;
         }
@@ -164,7 +166,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Address saved successfully!'),
-            backgroundColor: Color(0xFF228B22),
+            backgroundColor: AppColors.success,
           ));
         }
       } else {
@@ -175,7 +177,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(apiResult.message.isNotEmpty
                 ? apiResult.message : 'Failed to update address.'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ));
           return;
         }
@@ -185,7 +187,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Address updated successfully!'),
-            backgroundColor: Color(0xFFFF0080),
+            backgroundColor: AppColors.buttonPrimary,
           ));
         }
       }
@@ -271,7 +273,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Delete',
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -284,7 +286,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
         context: context,
         barrierDismissible: false,
         builder: (_) => const Center(
-          child: CircularProgressIndicator(color: Color(0xFFFF0080)),
+          child: CircularProgressIndicator(color: AppColors.loader),
         ),
       );
     }
@@ -301,7 +303,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(apiResult.message.isNotEmpty
             ? apiResult.message : 'Failed to delete address.'),
-        backgroundColor: Colors.red,
+        backgroundColor: AppColors.error,
         behavior: SnackBarBehavior.floating,
       ));
       return;
@@ -311,7 +313,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Address deleted successfully!'),
-        backgroundColor: Colors.green,
+        backgroundColor: AppColors.success,
         behavior: SnackBarBehavior.floating,
       ));
     }
@@ -321,51 +323,52 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.appBarBg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.appBarBg,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: AppColors.appBarIcon),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           widget.selectMode ? 'Select Delivery Address' : 'Saved Addresses',
           style: const TextStyle(
-              color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
+              color: AppColors.appBarText, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: Colors.grey[200]),
+          child: Container(height: 1, color: AppColors.divider),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Color(0xFFFF0080)),
+            icon: const Icon(Icons.refresh, color: AppColors.buttonPrimary),
             onPressed: _load,
             tooltip: 'Refresh',
           ),
           if (_addresses.length < 20)
             TextButton.icon(
               onPressed: () => _openForm(),
-              icon: const Icon(Icons.add, color: Color(0xFFFF0080), size: 18),
+              icon: const Icon(Icons.add, color: AppColors.buttonPrimary, size: 18),
               label: const Text('Add',
                   style: TextStyle(
-                      color: Color(0xFFFF0080), fontWeight: FontWeight.bold)),
+                      color: AppColors.buttonPrimary, fontWeight: FontWeight.bold)),
             ),
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFFF0080)))
+          ? const Center(child: CircularProgressIndicator(color: AppColors.loader))
           : _addresses.isEmpty
           ? _buildEmpty()
           : _buildList(),
       floatingActionButton: (!_loading && _addresses.length < 20)
           ? FloatingActionButton.extended(
         onPressed: () => _openForm(),
-        backgroundColor: const Color(0xFFFF0080),
-        icon: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: AppColors.buttonPrimary,
+        icon: const Icon(Icons.add, color: AppColors.buttonPrimaryText),
         label: const Text('Add New Address',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            style: TextStyle(
+                color: AppColors.buttonPrimaryText, fontWeight: FontWeight.bold)),
       )
           : null,
     );
@@ -378,14 +381,15 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
         Container(
           width: 100, height: 100,
           decoration: BoxDecoration(
-              color: const Color(0xFFFF0080).withOpacity(0.08),
+              color: AppColors.buttonPrimary.withOpacity(0.08),
               shape: BoxShape.circle),
           child: const Icon(Icons.location_off_outlined,
-              size: 50, color: Color(0xFFFF0080)),
+              size: 50, color: AppColors.buttonPrimary),
         ),
         const SizedBox(height: 20),
         const Text('No Saved Addresses',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+            style: TextStyle(
+                fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
         const SizedBox(height: 8),
         Text('Add your home, office or any\ndelivery address here.',
             textAlign: TextAlign.center,
@@ -393,11 +397,13 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
         const SizedBox(height: 28),
         ElevatedButton.icon(
           onPressed: () => _openForm(),
-          icon: const Icon(Icons.add_location_alt_outlined, color: Colors.white),
+          icon: const Icon(Icons.add_location_alt_outlined,
+              color: AppColors.buttonPrimaryText),
           label: const Text('Add Address',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              style: TextStyle(
+                  color: AppColors.buttonPrimaryText, fontWeight: FontWeight.bold)),
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFFF0080),
+            backgroundColor: AppColors.buttonPrimary,
             padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -450,18 +456,18 @@ class _AddressTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isDefault
-              ? const Color(0xFFFF0080).withOpacity(0.5)
-              : Colors.grey[200]!,
+              ? AppColors.buttonPrimary.withOpacity(0.5)
+              : AppColors.border,
           width: isDefault ? 1.5 : 1,
         ),
         boxShadow: [
           BoxShadow(
             color: isDefault
-                ? const Color(0xFFFF0080).withOpacity(0.08)
+                ? AppColors.buttonPrimary.withOpacity(0.08)
                 : Colors.black.withOpacity(0.04),
             blurRadius: isDefault ? 10 : 6,
             offset: const Offset(0, 2),
@@ -481,11 +487,11 @@ class _AddressTile extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFF0080).withOpacity(0.08),
+                    color: AppColors.buttonPrimary.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(_iconFor(address.name),
-                      color: const Color(0xFFFF0080), size: 20),
+                      color: AppColors.buttonPrimary, size: 20),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -493,25 +499,30 @@ class _AddressTile extends StatelessWidget {
                     Row(children: [
                       Text(address.name,
                           style: const TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87)),
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary)),
                       if (isDefault) ...[
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFF0080).withOpacity(0.12),
+                            color: AppColors.buttonPrimary.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Text('DEFAULT',
                               style: TextStyle(
-                                  fontSize: 9, color: Color(0xFFFF0080),
-                                  fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                                  fontSize: 9,
+                                  color: AppColors.buttonPrimary,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5)),
                         ),
                       ],
                     ]),
                     const SizedBox(height: 2),
                     Text(address.fullName,
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.appBarText)),
                     if (address.name.toLowerCase() == 'office') ...[
                       if ((address.officeName ?? '').isNotEmpty)
                         _subDetail('🏢 ${address.officeName}'),
@@ -525,19 +536,19 @@ class _AddressTile extends StatelessWidget {
                 Row(mainAxisSize: MainAxisSize.min, children: [
                   _ActionBtn(
                       icon: Icons.edit_outlined,
-                      color: const Color(0xFF1976D2),
+                      color: AppColors.info,
                       tooltip: 'Edit',
                       onTap: onEdit),
                   const SizedBox(width: 4),
                   _ActionBtn(
                       icon: Icons.delete_outline,
-                      color: Colors.red,
+                      color: AppColors.error,
                       tooltip: 'Delete',
                       onTap: onDelete),
                 ]),
               ]),
               const SizedBox(height: 10),
-              Divider(color: Colors.grey[100], height: 1),
+              Divider(color: AppColors.divider, height: 1),
               const SizedBox(height: 10),
               _detailRow(Icons.phone_outlined, address.phone),
               const SizedBox(height: 6),
@@ -545,7 +556,7 @@ class _AddressTile extends StatelessWidget {
               if (address.hasGpsPin) ...[
                 const SizedBox(height: 6),
                 Row(children: [
-                  const Icon(Icons.gps_fixed, size: 14, color: Color(0xFFFF0080)),
+                  const Icon(Icons.gps_fixed, size: 14, color: AppColors.buttonPrimary),
                   const SizedBox(width: 6),
                   Text('GPS pinned · exact delivery point saved',
                       style: TextStyle(fontSize: 11, color: Colors.grey[500])),
@@ -558,22 +569,23 @@ class _AddressTile extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFF0080).withOpacity(0.08),
+                    color: AppColors.buttonPrimary.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFFF0080), width: 1.2),
+                    border: Border.all(color: AppColors.buttonPrimary, width: 1.2),
                   ),
                   child: const Center(
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.check_circle, color: Color(0xFFFF0080), size: 15),
+                        Icon(Icons.check_circle,
+                            color: AppColors.buttonPrimary, size: 15),
                         SizedBox(width: 6),
                         Text(
                           'This is your Default Address',
                           style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFFFF0080)),
+                              color: AppColors.buttonPrimary),
                         ),
                       ],
                     ),
@@ -587,12 +599,13 @@ class _AddressTile extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
                         color: selectMode
-                            ? const Color(0xFFFF0080)
-                            : const Color(0xFFFF0080).withOpacity(0.12),
+                            ? AppColors.buttonPrimary
+                            : AppColors.buttonPrimary.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(8),
                         border: selectMode
                             ? null
-                            : Border.all(color: const Color(0xFFFF0080), width: 1.2)),
+                            : Border.all(
+                            color: AppColors.buttonPrimary, width: 1.2)),
                     child: Center(
                       child: Text(
                         selectMode ? 'Deliver Here' : 'Set as Default',
@@ -600,8 +613,8 @@ class _AddressTile extends StatelessWidget {
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
                             color: selectMode
-                                ? Colors.white
-                                : const Color(0xFFFF0080)),
+                                ? AppColors.buttonPrimaryText
+                                : AppColors.buttonPrimary),
                       ),
                     ),
                   ),
@@ -615,17 +628,18 @@ class _AddressTile extends StatelessWidget {
 
   Widget _subDetail(String text) => Padding(
     padding: const EdgeInsets.only(top: 2),
-    child: Text(text, style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+    child: Text(text,
+        style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
   );
 
   Widget _detailRow(IconData icon, String text) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Icon(icon, size: 14, color: Colors.grey[500]),
+      Icon(icon, size: 14, color:Colors.black87),
       const SizedBox(width: 6),
       Expanded(
           child: Text(text,
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: const TextStyle(fontSize: 12, color: AppColors.appBarText),
               maxLines: 2,
               overflow: TextOverflow.ellipsis)),
     ],
@@ -668,7 +682,7 @@ class _ActionBtn extends StatelessWidget {
 class _AddressFormScreen extends StatefulWidget {
   final AddressModel? existing;
   final bool          forceDefault;
-  final String        token; // ← needed for zone check
+  final String        token;
 
   const _AddressFormScreen({
     this.existing,
@@ -726,8 +740,6 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
     super.dispose();
   }
 
-  // ── Live location logic ───────────────────────────────────────────────────
-
   Future<void> _fetchLiveLocation() async {
     setState(() => _fetchingLocation = true);
     try {
@@ -762,7 +774,6 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
 
       if (placemarks.isNotEmpty) {
         final Placemark p = placemarks.first;
-
         final String subThoroughfare = p.subThoroughfare ?? '';
         final String thoroughfare    = p.thoroughfare    ?? '';
         final String subLocality     = p.subLocality     ?? '';
@@ -783,7 +794,7 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
           if (adminArea.isNotEmpty)   _state.text = adminArea;
         });
 
-        _showSnack('Location detected and address filled!', Colors.green);
+        _showSnack('Location detected and address filled!', AppColors.success);
       }
     } catch (e) {
       _showLocationError('Could not detect location: $e');
@@ -819,7 +830,6 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
     );
   }
 
-  // ── Zone unavailable popup ────────────────────────────────────────────────
   void _showZoneUnavailableDialog(String pincode) {
     showDialog(
       context: context,
@@ -831,87 +841,77 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // ── Icon ──────────────────────────────────────────────────────
               Container(
                 width:  80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.08),
+                  color: AppColors.error.withOpacity(0.08),
                   shape: BoxShape.circle,
                 ),
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
                     Icon(Icons.location_off_rounded,
-                        size: 44, color: Colors.red.withOpacity(0.3)),
+                        size: 44, color: AppColors.error.withOpacity(0.3)),
                     Positioned(
                       bottom: 12, right: 12,
                       child: Container(
                         padding: const EdgeInsets.all(3),
                         decoration: const BoxDecoration(
-                            color: Colors.white, shape: BoxShape.circle),
+                            color: AppColors.white, shape: BoxShape.circle),
                         child: const Icon(Icons.close,
-                            color: Colors.red, size: 14),
+                            color: AppColors.error, size: 14),
                       ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 16),
-
-              // ── Title ─────────────────────────────────────────────────────
               const Text(
                 'Delivery Unavailable',
                 style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87),
+                    color: AppColors.textPrimary),
               ),
               const SizedBox(height: 10),
-
-              // ── Pincode chip ──────────────────────────────────────────────
               if (pincode.isNotEmpty)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.07),
+                    color: AppColors.error.withOpacity(0.07),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.red.withOpacity(0.2)),
+                    border: Border.all(color: AppColors.error.withOpacity(0.2)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(Icons.pin_drop_outlined,
-                          size: 14, color: Colors.red),
+                          size: 14, color: AppColors.error),
                       const SizedBox(width: 5),
                       Text('Pincode: $pincode',
                           style: const TextStyle(
                               fontSize: 13,
-                              color: Colors.red,
+                              color: AppColors.error,
                               fontWeight: FontWeight.w600)),
                     ],
                   ),
                 ),
               const SizedBox(height: 12),
-
-              // ── Message ───────────────────────────────────────────────────
               Text(
                 'Sorry, we\'re unable to deliver to this address. '
                     'We haven\'t reached your area yet, but we\'re expanding fast!',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 13, color: Colors.grey[600], height: 1.5),
+                style: const TextStyle(
+                    fontSize: 13, color: AppColors.textSecondary, height: 1.5),
               ),
               const SizedBox(height: 24),
-
-              // ── Button ────────────────────────────────────────────────────
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFCC5500),
+                    backgroundColor: AppColors.lightBrown,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(vertical: 13),
@@ -920,7 +920,7 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
                   child: const Text(
                     'Try a Different Pincode',
                     style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.buttonPrimaryText,
                         fontWeight: FontWeight.bold,
                         fontSize: 14),
                   ),
@@ -933,16 +933,13 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
     );
   }
 
-  // ── Save with zone check ──────────────────────────────────────────────────
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
     final pin = _pin.text.trim();
 
-    // ── Show loading ───────────────────────────────────────────────────────
     setState(() => _saving = true);
 
-    // ── Zone check ─────────────────────────────────────────────────────────
     final zoneResult = await ZoneCheckService.check(
       postcode: pin,
       token:    widget.token,
@@ -952,18 +949,16 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
     setState(() => _saving = false);
 
     if (zoneResult.hasError) {
-      _showSnack('Could not verify delivery zone: ${zoneResult.error}', Colors.orange);
-
+      _showSnack('Could not verify delivery zone: ${zoneResult.error}',
+          AppColors.warning);
       return;
     }
 
     if (!zoneResult.available) {
-      // ── Zone not serviceable → show popup, stay on form ────────────────
       _showZoneUnavailableDialog(pin);
       return;
     }
 
-    // ── Zone is available → pop with the address ───────────────────────────
     Navigator.pop(
       context,
       AddressModel(
@@ -986,25 +981,25 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
     );
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.existing != null;
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.white,
         elevation: 0,
         leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            icon: const Icon(Icons.arrow_back, color: AppColors.appBarIcon),
             onPressed: () => Navigator.pop(context)),
         title: Text(isEdit ? 'Edit Address' : 'Add New Address',
             style: const TextStyle(
-                color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
+                color: AppColors.appBarText,
+                fontWeight: FontWeight.bold,
+                fontSize: 18)),
         bottom: PreferredSize(
             preferredSize: const Size.fromHeight(1),
-            child: Container(height: 1, color: Colors.grey[200])),
+            child: Container(height: 1, color: AppColors.divider)),
       ),
       body: Form(
         key: _formKey,
@@ -1025,18 +1020,24 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
                     margin: const EdgeInsets.only(right: 10),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
                     decoration: BoxDecoration(
-                      color: sel ? const Color(0xFFFF0080) : Colors.white,
+                      color: sel ? AppColors.buttonPrimary : AppColors.white,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                          color: sel ? const Color(0xFFFF0080) : Colors.grey[300]!),
+                          color: sel
+                              ? AppColors.buttonPrimary
+                              : AppColors.border),
                     ),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       Icon(_iconFor(l), size: 16,
-                          color: sel ? Colors.white : Colors.grey[600]),
+                          color: sel
+                              ? AppColors.buttonPrimaryText
+                              : AppColors.appBarText),
                       const SizedBox(width: 5),
                       Text(l, style: TextStyle(
                           fontSize: 13, fontWeight: FontWeight.w600,
-                          color: sel ? Colors.white : Colors.grey[700])),
+                          color: sel
+                              ? AppColors.buttonPrimaryText
+                              : AppColors.appBarText)),
                     ]),
                   ),
                 );
@@ -1045,11 +1046,11 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
             const SizedBox(height: 20),
 
             // ── Contact Details ──────────────────────────────────────────
-            _SectionTitle('Contact Details'),
+            _SectionTitle('Contact Details *'),
             const SizedBox(height: 10),
             _field(
                 controller: _fullName,
-                label: 'Full Name',
+                label: 'Full Name ',
                 icon: Icons.person_outline,
                 validator: (v) => v!.trim().isEmpty ? 'Required' : null),
             const SizedBox(height: 12),
@@ -1077,22 +1078,22 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
               curve: Curves.easeInOut,
               child: _isOffice
                   ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                _SectionTitle('Office Details'),
+                _SectionTitle('Office Details *'),
                 const SizedBox(height: 10),
                 _field(
                     controller: _officeName,
-                    label: 'Office / Company Name',
+                    label: 'Office / Company Name *',
                     icon: Icons.business_outlined),
                 const SizedBox(height: 12),
                 Row(children: [
                   Expanded(child: _field(
                       controller: _block,
-                      label: 'Block / Tower',
+                      label: 'Block / Tower *',
                       icon: Icons.domain_outlined)),
                   const SizedBox(width: 12),
                   Expanded(child: _field(
                       controller: _floor,
-                      label: 'Floor',
+                      label: 'Floor *',
                       icon: Icons.layers_outlined,
                       keyboardType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly])),
@@ -1100,7 +1101,7 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
                 const SizedBox(height: 12),
                 _field(
                     controller: _line1,
-                    label: 'House No., Building, Street',
+                    label: 'House No., Building, Street *',
                     icon: Icons.home_outlined,
                     validator: (v) => v!.trim().isEmpty ? 'Required' : null),
                 const SizedBox(height: 12),
@@ -1112,20 +1113,20 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
                 Row(children: [
                   Expanded(child: _field(
                       controller: _city,
-                      label: 'City',
+                      label: 'City *',
                       icon: Icons.location_city_outlined,
                       validator: (v) => v!.trim().isEmpty ? 'Required' : null)),
                   const SizedBox(width: 12),
                   Expanded(child: _field(
                       controller: _state,
-                      label: 'State',
+                      label: 'State *',
                       icon: Icons.flag_outlined,
                       validator: (v) => v!.trim().isEmpty ? 'Required' : null)),
                 ]),
                 const SizedBox(height: 12),
                 _field(
                     controller: _pin,
-                    label: 'PIN Code',
+                    label: 'PIN Code *',
                     icon: Icons.pin_drop_outlined,
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -1140,11 +1141,11 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
                   : const SizedBox.shrink(),
             ),
             if (!_isOffice) ...[
-              _SectionTitle('Address Details'),
+              _SectionTitle('Address Details *'),
               const SizedBox(height: 10),
               _field(
                   controller: _line1,
-                  label: 'House No., Building, Street',
+                  label: 'House No., Building, Street *',
                   icon: Icons.home_outlined,
                   validator: (v) => v!.trim().isEmpty ? 'Required' : null),
               const SizedBox(height: 12),
@@ -1156,20 +1157,20 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
               Row(children: [
                 Expanded(child: _field(
                     controller: _city,
-                    label: 'City',
+                    label: 'City *',
                     icon: Icons.location_city_outlined,
                     validator: (v) => v!.trim().isEmpty ? 'Required' : null)),
                 const SizedBox(width: 12),
                 Expanded(child: _field(
                     controller: _state,
-                    label: 'State',
+                    label: 'State *',
                     icon: Icons.flag_outlined,
                     validator: (v) => v!.trim().isEmpty ? 'Required' : null)),
               ]),
               const SizedBox(height: 12),
               _field(
                   controller: _pin,
-                  label: 'PIN Code',
+                  label: 'PIN Code *',
                   icon: Icons.pin_drop_outlined,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -1187,14 +1188,15 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
-                    color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(12)),
                 child: SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  activeColor: const Color(0xFFFF0080),
+                  activeColor: AppColors.buttonPrimary,
                   title: const Text('Set as default address',
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                   subtitle: Text('Use this for all deliveries by default',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                      style: TextStyle(fontSize: 12, color: Colors.black87)),
                   value: _isDefault,
                   onChanged: (v) => setState(() => _isDefault = v),
                 ),
@@ -1205,8 +1207,8 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
             ElevatedButton(
               onPressed: _saving ? null : _save,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF0080),
-                disabledBackgroundColor: const Color(0xFFFF0080).withOpacity(0.6),
+                backgroundColor: AppColors.buttonPrimary,
+                disabledBackgroundColor: AppColors.buttonPrimaryDisabled,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 elevation: 0,
@@ -1216,10 +1218,10 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
                   height: 20,
                   width:  20,
                   child:  CircularProgressIndicator(
-                      color: Colors.white, strokeWidth: 2))
+                      color: AppColors.buttonPrimaryText, strokeWidth: 2))
                   : Text(isEdit ? 'Update Address' : 'Save Address',
                   style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.buttonPrimaryText,
                       fontSize: 16,
                       fontWeight: FontWeight.bold)),
             ),
@@ -1229,13 +1231,12 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
     );
   }
 
-  // ── Live Location Card ─────────────────────────────────────────────────────
   Widget _buildLiveLocationCard() {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF3E0),
-        border: Border.all(color: const Color(0xFFFFB300), width: 1.2),
+        color: AppColors.warningLight,
+        border: Border.all(color: AppColors.warning, width: 1.2),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1243,15 +1244,15 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
           Container(
             padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
-                color: const Color(0xFFFFB300).withOpacity(0.2),
+                color: AppColors.warning.withOpacity(0.2),
                 shape: BoxShape.circle),
             child: const Icon(Icons.my_location_rounded,
-                color: Color(0xFFFF0080), size: 18),
+                color: AppColors.buttonPrimary, size: 18),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Use live location',
+              const Text('Use live location ',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
               Text('Auto-fill address from your GPS',
                   style: TextStyle(fontSize: 11, color: Colors.grey[600])),
@@ -1263,8 +1264,9 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
               child: Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1), shape: BoxShape.circle),
-                child: const Icon(Icons.close, size: 14, color: Colors.green),
+                    color: AppColors.success.withOpacity(0.1),
+                    shape: BoxShape.circle),
+                child: const Icon(Icons.close, size: 14, color: AppColors.success),
               ),
             ),
         ]),
@@ -1275,7 +1277,8 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
             onPressed: _fetchingLocation ? null : _fetchLiveLocation,
             icon: _fetchingLocation
                 ? const SizedBox(width: 15, height: 15,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: AppColors.buttonPrimaryText))
                 : const Icon(Icons.gps_fixed, size: 16),
             label: Text(
               _fetchingLocation
@@ -1286,8 +1289,8 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
               style: const TextStyle(fontSize: 13),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF0080),
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.buttonPrimary,
+              foregroundColor: AppColors.buttonPrimaryText,
               elevation: 0,
               padding: const EdgeInsets.symmetric(vertical: 11),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -1298,12 +1301,14 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
           Padding(
             padding: const EdgeInsets.only(top: 10),
             child: Row(children: [
-              const Icon(Icons.check_circle, color: Colors.green, size: 14),
+              const Icon(Icons.check_circle, color: AppColors.success, size: 14),
               const SizedBox(width: 5),
               Expanded(
                 child: Text(
                   'Pinned · ${_latitude!.toStringAsFixed(4)}, ${_longitude!.toStringAsFixed(4)}',
-                  style: const TextStyle(fontSize: 11, color: Colors.green,
+                  style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.success,
                       fontWeight: FontWeight.w500),
                 ),
               ),
@@ -1313,7 +1318,6 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
     );
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
   Widget _field({
     required TextEditingController   controller,
     required String                  label,
@@ -1332,24 +1336,24 @@ class _AddressFormScreenState extends State<_AddressFormScreen> {
       style:           const TextStyle(fontSize: 14),
       decoration: InputDecoration(
         labelText:    label,
-        labelStyle:   TextStyle(fontSize: 13, color: Colors.grey[600]),
-        prefixIcon:   Icon(icon, size: 18, color: Colors.grey[500]),
+        labelStyle:   const TextStyle(fontSize: 13, color: Colors.black87),
+        prefixIcon:   Icon(icon, size: 18, color: Colors.black87),
         filled:       true,
-        fillColor:    Colors.white,
+        fillColor:    AppColors.white,
         counterText:  '',
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.grey[300]!)),
+            borderSide: const BorderSide(color: AppColors.border)),
         enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.grey[300]!)),
+            borderSide: const BorderSide(color: AppColors.border)),
         focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Color(0xFFFF0080), width: 1.5)),
+            borderSide: const BorderSide(color: AppColors.buttonPrimary, width: 1.5)),
         errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Colors.red)),
+            borderSide: const BorderSide(color: AppColors.error)),
       ),
     );
   }
@@ -1369,6 +1373,6 @@ class _SectionTitle extends StatelessWidget {
   const _SectionTitle(this.text);
   @override
   Widget build(BuildContext context) => Text(text,
-      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold,
-          color: Colors.grey[700]));
+      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold,
+          color: AppColors.appBarText));
 }

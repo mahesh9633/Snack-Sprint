@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../config/app_color.dart';
 import '../model/cart_model.dart';
 import '../model/favorites_model.dart';
 import '../model/product_model.dart';
@@ -19,6 +20,7 @@ Product _toProduct(CategoryDataProduct p) {
   final raw    = p.image;
   final imgUrl = (raw.isNotEmpty && raw != 'no_image.png')
       ? '$_tImgBase$raw' : '';
+  final int qty = int.tryParse(p.quantity) ?? 0;
   return Product(
     id:                 p.productId,
     name:               p.name,
@@ -27,8 +29,10 @@ Product _toProduct(CategoryDataProduct p) {
     image:              raw,
     imageUrl:           imgUrl,
     category:           p.categoryId,
-    weight:             p.sku.isNotEmpty ? p.sku : '',
+    weight:             p.piece.isNotEmpty ? p.piece : p.sku.isNotEmpty ? p.sku : '',
     discountPercentage: p.discountPercent.toDouble(),
+    quantity:           qty, //added this line
+    posQuantity:        qty, //added this line
   );
 }
 
@@ -141,12 +145,20 @@ class _TrendingScreenState extends State<TrendingScreen>
       if (!mounted) return;
 
       if (result['success'] == true) {
+        final products = _parseProducts(result);
         setState(() {
-          _allProducts      = _parseProducts(result);
+          _allProducts      = products;
           _loading          = false;
           _newDataAvailable = false;
           _pendingProducts  = [];
         });
+
+        // ✅ Remove favourites deleted from backend
+        final favs = context.read<FavoritesModel>();
+        await favs.syncWithBackend(
+          products.map((p) => p.id).toList(),
+          liveProducts: products,
+        );
       } else {
         setState(() {
           _error   = result['message']?.toString() ?? 'Failed to load';
@@ -186,7 +198,7 @@ class _TrendingScreenState extends State<TrendingScreen>
   Widget build(BuildContext context) {
     return Consumer2<CartModel, FavoritesModel>(
       builder: (ctx, cart, favs, _) => Scaffold(
-        backgroundColor: const Color(0xFFFFF8F0),
+        backgroundColor: AppColors.white,
         appBar: _buildAppBar(favs),
         floatingActionButton: const Padding(
           padding: EdgeInsets.only(bottom: 8),
@@ -195,7 +207,7 @@ class _TrendingScreenState extends State<TrendingScreen>
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         body: _loading
             ? const Center(
-            child: CircularProgressIndicator(color: Color(0xFFB85C00)))
+            child: CircularProgressIndicator(color:AppColors.buttonPrimary))
             : _error != null
             ? _buildError()
             : Column(children: [
@@ -209,13 +221,17 @@ class _TrendingScreenState extends State<TrendingScreen>
             ),
           _buildTabBar(favs),
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildFavouritesTab(favs, cart),
-                _buildDealsTab(cart, favs),
-                _buildMostBoughtTab(cart, favs),
-              ],
+            child: RefreshIndicator(
+              color: AppColors.buttonPrimary,
+              onRefresh: _onRefresh,
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildFavouritesTab(favs, cart),
+                  _buildDealsTab(cart, favs),
+                  _buildMostBoughtTab(cart, favs),
+                ],
+              ),
             ),
           ),
         ]),
@@ -225,31 +241,31 @@ class _TrendingScreenState extends State<TrendingScreen>
 
   PreferredSizeWidget _buildAppBar(FavoritesModel favs) {
     return AppBar(
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor:AppColors.white,
       elevation: 0,
       automaticallyImplyLeading: false,
       title: const Text(
-        'Trending',
-        style: TextStyle(
-            color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 20),
+          'Trending',
+          style: TextStyle(
+              color: AppColors.appBarText, fontWeight: FontWeight.bold, fontSize: 20)
       ),
       centerTitle: false,
       actions: [
         Stack(alignment: Alignment.topRight, children: [
           Container(
-            margin: const EdgeInsets.only(right: 4),
+            margin: const EdgeInsets.only(right: 12),
             decoration: BoxDecoration(
-              color: Colors.brown.withOpacity(0.2),
+              color: AppColors.buttonPrimary.withOpacity(0.2),
               shape: BoxShape.circle,
             ),
             child: IconButton(
-              icon: const Icon(Icons.favorite, color: Colors.brown, size: 20),
+              icon: const Icon(Icons.favorite, color: AppColors.buttonPrimary, size: 20),
               onPressed: () => _tabController.animateTo(0),
             ),
           ),
           if (favs.count > 0)
             Positioned(
-              top: 6, right: 6,
+              top: 6, right: 12,
               child: Container(
                 width: 16, height: 16,
                 decoration: const BoxDecoration(
@@ -257,36 +273,24 @@ class _TrendingScreenState extends State<TrendingScreen>
                 alignment: Alignment.center,
                 child: Text('${favs.count}',
                     style: const TextStyle(
-                        color: Color(0xFFB85C00),
+                        color: AppColors.lightBrown,
                         fontSize: 9,
                         fontWeight: FontWeight.bold)),
               ),
             ),
         ]),
-        Container(
-          margin: const EdgeInsets.only(right: 12),
-          decoration: BoxDecoration(
-            color: Colors.brown.withOpacity(0.2),
-            shape: BoxShape.circle,
-          ),
-          child: IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.brown, size: 20),
-            onPressed: _loadData,
-            tooltip: 'Refresh',
-          ),
-        ),
       ],
     );
   }
 
   Widget _buildTabBar(FavoritesModel favs) {
     return Container(
-      color: const Color(0xFF7B3F00),
+      color: AppColors.white,
       child: TabBar(
         controller: _tabController,
-        labelColor: Colors.white,
-        unselectedLabelColor: Colors.white.withOpacity(0.55),
-        indicatorColor: Colors.white,
+        labelColor: AppColors.buttonPrimary,
+        unselectedLabelColor: Colors.black54,
+        indicatorColor: AppColors.buttonPrimary,
         indicatorWeight: 2.5,
         labelPadding: EdgeInsets.zero,
         labelStyle:
@@ -336,7 +340,7 @@ class _TrendingScreenState extends State<TrendingScreen>
           'No favourites yet\nTap ♥ on any product to save it here');
     }
     return RefreshIndicator(
-      color: const Color(0xFFB85C00),
+      color:AppColors.buttonPrimary,
       onRefresh: _onRefresh,
       child: GridView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -360,7 +364,7 @@ class _TrendingScreenState extends State<TrendingScreen>
           Icons.local_offer_outlined, 'No deals available right now');
     }
     return RefreshIndicator(
-      color: const Color(0xFFB85C00),
+      color:AppColors.buttonPrimary,
       onRefresh: _onRefresh,
       child: GridView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -399,7 +403,7 @@ class _TrendingScreenState extends State<TrendingScreen>
         ),
         child: Row(children: [
           const Icon(Icons.local_fire_department,
-              color: Color(0xFFE8C49A), size: 18),
+              color:AppColors.lightBrown, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -426,7 +430,7 @@ class _TrendingScreenState extends State<TrendingScreen>
       ),
       Expanded(
         child: RefreshIndicator(
-          color: const Color(0xFFB85C00),
+          color: AppColors.buttonPrimary,
           onRefresh: _onRefresh,
           child: GridView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -464,7 +468,7 @@ class _TrendingScreenState extends State<TrendingScreen>
           icon: const Icon(Icons.refresh, color: Colors.white),
           label: const Text('Retry', style: TextStyle(color: Colors.white)),
           style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFB85C00)),
+              backgroundColor:AppColors.lightBrown),
         ),
       ]),
     ),
@@ -472,12 +476,12 @@ class _TrendingScreenState extends State<TrendingScreen>
 
   Widget _emptyState(IconData icon, String msg) => Center(
     child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, size: 64, color: const Color(0xFFE8C49A)),
+      Icon(icon, size: 64, color: AppColors.buttonPrimary),
       const SizedBox(height: 14),
       Text(msg,
           textAlign: TextAlign.center,
           style: const TextStyle(
-              fontSize: 14, color: Color(0xFFB85C00), height: 1.5)),
+              fontSize: 14, color:AppColors.appBarText, height: 1.5)),
     ]),
   );
 
@@ -521,12 +525,12 @@ class _TrendingNewDataBannerState extends State<_TrendingNewDataBanner>
         margin: const EdgeInsets.fromLTRB(12, 6, 12, 4),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF7B3F00), Color(0xFFB85C00)],
+            colors: [Color(0xFF7B3F00),AppColors.lightBrown],
           ),
           borderRadius: BorderRadius.circular(10),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFB85C00).withOpacity(0.25),
+              color: AppColors.lightBrown.withOpacity(0.25),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
@@ -587,19 +591,21 @@ class _ProductCard extends StatelessWidget {
     final hasSaving = product.originalPrice > product.price;
     final discount  = product.discountPercentage.round();
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE8C49A)),
-          boxShadow: [BoxShadow(
-              color: const Color(0xFFB85C00).withOpacity(0.06),
-              blurRadius: 6, offset: const Offset(0, 2))],
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Stack(children: [
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.buttonPrimary),
+        boxShadow: [BoxShadow(
+            color: AppColors.lightBrown.withOpacity(0.06),
+            blurRadius: 6, offset: const Offset(0, 2))],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+        // ── Image only navigates ──
+        GestureDetector(
+          onTap: onTap,
+          child: Stack(children: [
             ClipRRect(
               borderRadius:
               const BorderRadius.vertical(top: Radius.circular(12)),
@@ -625,7 +631,7 @@ class _ProductCard extends StatelessWidget {
                   ),
                   child: Icon(
                     isFav ? Icons.favorite : Icons.favorite_border,
-                    size: 14, color: const Color(0xFFB85C00),
+                    size: 14, color: AppColors.buttonPrimary,
                   ),
                 ),
               ),
@@ -634,10 +640,9 @@ class _ProductCard extends StatelessWidget {
               Positioned(
                 top: 4, left: 4,
                 child: Container(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                   decoration: BoxDecoration(
-                      color: const Color(0xFF1B5E20),
+                      color: AppColors.priceGreen,
                       borderRadius: BorderRadius.circular(4)),
                   child: Text('$discount% OFF',
                       style: const TextStyle(
@@ -646,66 +651,63 @@ class _ProductCard extends StatelessWidget {
                 ),
               ),
           ]),
+        ), // closes image GestureDetector
 
-          Padding(
-            padding: const EdgeInsets.fromLTRB(7, 6, 7, 0),
-            child: Row(children: [
-              Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                decoration: BoxDecoration(
-                    color: const Color(0xFF388E3C),
-                    borderRadius: BorderRadius.circular(4)),
-                child: Text('₹${product.price.toInt()}',
-                    style: const TextStyle(
-                        color: Colors.white, fontSize: 11,
-                        fontWeight: FontWeight.bold)),
-              ),
-              if (hasSaving) ...[
-                const SizedBox(width: 4),
-                Flexible(
-                  child: Text('₹${product.originalPrice.toInt()}',
-                      style: TextStyle(
-                          color: Colors.grey[500], fontSize: 9,
-                          decoration: TextDecoration.lineThrough),
-                      overflow: TextOverflow.ellipsis),
-                ),
-              ],
-            ]),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.fromLTRB(7, 3, 7, 0),
-            child: Text(product.name,
-                style: const TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.w600,
-                    color: Color(0xFF5C3300)),
-                maxLines: 2, overflow: TextOverflow.ellipsis),
-          ),
-
-          if (product.weight.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(7, 1, 7, 0),
-              child: Text(product.weight,
-                  style: TextStyle(fontSize: 9, color: Colors.grey[500]),
-                  maxLines: 1, overflow: TextOverflow.ellipsis),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(7, 6, 7, 0),
+          child: Row(children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              decoration: BoxDecoration(
+                  color: AppColors.priceGreen,
+                  borderRadius: BorderRadius.circular(4)),
+              child: Text('₹${product.price.toInt()}',
+                  style: const TextStyle(
+                      color: Colors.white, fontSize: 11,
+                      fontWeight: FontWeight.bold)),
             ),
+            if (hasSaving) ...[
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text('₹${product.originalPrice.toInt()}',
+                    style: TextStyle(
+                        color: Colors.grey[500], fontSize: 9,
+                        decoration: TextDecoration.lineThrough),
+                    overflow: TextOverflow.ellipsis),
+              ),
+            ],
+            const Spacer(),
+            if (product.weight.isNotEmpty)
+              Text(product.weight,
+                  style: const TextStyle(fontSize: 10, color: Colors.black54),
+                  overflow: TextOverflow.ellipsis),
+          ]),
+        ),
 
-          const Spacer(),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(7, 3, 7, 0),
+          child: Text(product.name,
+              style: const TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.w600,
+                  color: AppColors.textDark),
+              maxLines: 2, overflow: TextOverflow.ellipsis),
+        ),
 
-          Padding(
-            padding: const EdgeInsets.fromLTRB(7, 3, 7, 8),
-            child: _CartControl(product: product, cart: cart),
-          ),
-        ]),
-      ),
+
+        const Spacer(),
+
+        Padding(
+          padding: const EdgeInsets.fromLTRB(7, 3, 7, 8),
+          child: _CartControl(product: product, cart: cart),
+        ),
+      ]),
     );
   }
 
   Widget _placeholder() => Container(
-    color: const Color(0xFFFFF3E0),
+    color:AppColors.warningLight,
     child: Center(child: Icon(Icons.image_not_supported,
-        color: const Color(0xFFE8C49A), size: 24)),
+        color:AppColors.lightBrown, size: 24)),
   );
 }
 
@@ -736,7 +738,7 @@ class _MostBoughtCard extends StatelessWidget {
     if (rank == 1) return const Color(0xFFFFD700);
     if (rank == 2) return const Color(0xFFC0C0C0);
     if (rank == 3) return const Color(0xFFCD7F32);
-    return const Color(0xFFB85C00);
+    return AppColors.lightBrown;
   }
 
   @override
@@ -745,19 +747,21 @@ class _MostBoughtCard extends StatelessWidget {
     final hasSaving = product.originalPrice > product.price;
     final discount  = product.discountPercentage.round();
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE8C49A)),
-          boxShadow: [BoxShadow(
-              color: const Color(0xFFB85C00).withOpacity(0.06),
-              blurRadius: 6, offset: const Offset(0, 2))],
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Stack(children: [
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.lightBrown),
+        boxShadow: [BoxShadow(
+            color: AppColors.lightBrown.withOpacity(0.06),
+            blurRadius: 6, offset: const Offset(0, 2))],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+        // ── Image only navigates ──
+        GestureDetector(
+          onTap: onTap,
+          child: Stack(children: [
             ClipRRect(
               borderRadius:
               const BorderRadius.vertical(top: Radius.circular(12)),
@@ -784,16 +788,16 @@ class _MostBoughtCard extends StatelessWidget {
                         fontWeight: FontWeight.bold)),
               ),
             ),
+
             if (discount > 0)
               Positioned(
                 top: 34, left: 4,
                 child: Container(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                   decoration: BoxDecoration(
-                      color: const Color(0xFF1B5E20),
+                      color: AppColors.priceGreen,
                       borderRadius: BorderRadius.circular(4)),
-                  child: Text('$discount% OFF',
+                  child: Text('↓$discount%',
                       style: const TextStyle(
                           color: Colors.white, fontSize: 8,
                           fontWeight: FontWeight.bold)),
@@ -813,96 +817,92 @@ class _MostBoughtCard extends StatelessWidget {
                   ),
                   child: Icon(
                     isFav ? Icons.favorite : Icons.favorite_border,
-                    size: 14, color: const Color(0xFFB85C00),
+                    size: 14, color: AppColors.lightBrown,
                   ),
                 ),
               ),
             ),
           ]),
+        ), // closes image GestureDetector
 
-          Padding(
-            padding: const EdgeInsets.fromLTRB(7, 6, 7, 0),
-            child: Row(children: [
-              Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                decoration: BoxDecoration(
-                    color: const Color(0xFF388E3C),
-                    borderRadius: BorderRadius.circular(4)),
-                child: Text('₹${product.price.toInt()}',
-                    style: const TextStyle(
-                        color: Colors.white, fontSize: 11,
-                        fontWeight: FontWeight.bold)),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(7, 6, 7, 0),
+          child: Row(children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              decoration: BoxDecoration(
+                  color: AppColors.priceGreen,
+                  borderRadius: BorderRadius.circular(4)),
+              child: Text('₹${product.price.toInt()}',
+                  style: const TextStyle(
+                      color: Colors.white, fontSize: 11,
+                      fontWeight: FontWeight.bold)),
+            ),
+
+            if (hasSaving) ...[
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text('₹${product.originalPrice.toInt()}',
+                    style: TextStyle(
+                        color: Colors.grey[500], fontSize: 9,
+                        decoration: TextDecoration.lineThrough),
+                    overflow: TextOverflow.ellipsis),
               ),
-              if (hasSaving) ...[
-                const SizedBox(width: 4),
-                Flexible(
-                  child: Text('₹${product.originalPrice.toInt()}',
-                      style: TextStyle(
-                          color: Colors.grey[500], fontSize: 9,
-                          decoration: TextDecoration.lineThrough),
-                      overflow: TextOverflow.ellipsis),
-                ),
-              ],
+            ],
+            const Spacer(),
+            if (product.weight.isNotEmpty)
+              Text(product.weight,
+                  style: const TextStyle(fontSize: 10, color: Colors.black54),
+                  overflow: TextOverflow.ellipsis),
+          ]),
+        ),
+
+        Padding(
+          padding: const EdgeInsets.fromLTRB(7, 3, 7, 0),
+          child: Text(product.name,
+              style: const TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.w600,
+                  color: AppColors.textDark),
+              maxLines: 2, overflow: TextOverflow.ellipsis),
+        ),
+
+        Padding(
+          padding: const EdgeInsets.fromLTRB(7, 4, 7, 0),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppColors.lightBrown.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                  color: AppColors.lightBrown.withOpacity(0.3),
+                  width: 0.8),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.shopping_bag_outlined,
+                  size: 9, color: AppColors.lightBrown),
+              const SizedBox(width: 3),
+              Text('Bought $buyCount×',
+                  style: const TextStyle(
+                      fontSize: 9, color: AppColors.lightBrown,
+                      fontWeight: FontWeight.w600)),
             ]),
           ),
+        ),
 
-          Padding(
-            padding: const EdgeInsets.fromLTRB(7, 3, 7, 0),
-            child: Text(product.name,
-                style: const TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.w600,
-                    color: Color(0xFF5C3300)),
-                maxLines: 2, overflow: TextOverflow.ellipsis),
-          ),
+        const Spacer(),
 
-          if (product.weight.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(7, 1, 7, 0),
-              child: Text(product.weight,
-                  style: TextStyle(fontSize: 9, color: Colors.grey[500]),
-                  maxLines: 1, overflow: TextOverflow.ellipsis),
-            ),
-
-          Padding(
-            padding: const EdgeInsets.fromLTRB(7, 4, 7, 0),
-            child: Container(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: const Color(0xFFB85C00).withOpacity(0.08),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                    color: const Color(0xFFB85C00).withOpacity(0.3),
-                    width: 0.8),
-              ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.shopping_bag_outlined,
-                    size: 9, color: Color(0xFFB85C00)),
-                const SizedBox(width: 3),
-                Text('Bought $buyCount×',
-                    style: const TextStyle(
-                        fontSize: 9, color: Color(0xFFB85C00),
-                        fontWeight: FontWeight.w600)),
-              ]),
-            ),
-          ),
-
-          const Spacer(),
-
-          Padding(
-            padding: const EdgeInsets.fromLTRB(7, 3, 7, 8),
-            child: _CartControl(product: product, cart: cart),
-          ),
-        ]),
-      ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(7, 3, 7, 8),
+          child: _CartControl(product: product, cart: cart),
+        ),
+      ]),
     );
   }
 
   Widget _placeholder() => Container(
-    color: const Color(0xFFFFF3E0),
+    color:AppColors.warningLight,
     child: Center(child: Icon(Icons.image_not_supported,
-        color: const Color(0xFFE8C49A), size: 24)),
+        color: AppColors.buttonPrimary, size: 24)),
   );
 }
 
@@ -915,6 +915,24 @@ class _CartControl extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final qty = cart.getQuantity(product);
+
+    final bool outOfStock = !product.isInStock;
+
+    if (outOfStock) {
+      return Container(
+        width: double.infinity, height: 28,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text('Out of Stock',
+            style: TextStyle(
+                color: Colors.grey[500], fontSize: 10,
+                fontWeight: FontWeight.w600)),
+      );
+    }
+
     if (qty == 0) {
       return GestureDetector(
         onTap: () => cart.addItem(product),
@@ -924,12 +942,12 @@ class _CartControl extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             border: Border.all(
-                color: const Color(0xFFB85C00), width: 1.2),
+                color: AppColors.buttonPrimary, width: 1.2),
             borderRadius: BorderRadius.circular(6),
           ),
           child: const Text('ADD',
               style: TextStyle(
-                  color: Color(0xFFB85C00), fontSize: 11,
+                  color: AppColors.buttonPrimary, fontSize: 11,
                   fontWeight: FontWeight.bold, letterSpacing: 0.5)),
         ),
       );
@@ -937,7 +955,7 @@ class _CartControl extends StatelessWidget {
     return Container(
       height: 28,
       decoration: BoxDecoration(
-          color: const Color(0xFFB85C00),
+          color: AppColors.buttonPrimary,
           borderRadius: BorderRadius.circular(6)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,

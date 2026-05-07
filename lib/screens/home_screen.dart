@@ -89,7 +89,6 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildNavItem(Icons.home,        'Home',       0),
               _buildNavItem(Icons.grid_view,   'Categories', 1),
@@ -104,76 +103,88 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildNavItem(IconData icon, String label, int index) {
     final selected = _selectedNavIndex == index;
-    return GestureDetector(
-      onTap: () => _onNavItemTapped(index),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: selected ? const Color(0xFFB85C00) : Colors.grey),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color:      selected ? const Color(0xFFB85C00) : Colors.grey,
-              fontSize:   12,
-              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-            ),
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _onNavItemTapped(index),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: selected ? const Color(0xFFFF0080) : Colors.grey),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  color:      selected ? const Color(0xFFFF0080) : Colors.grey,
+                  fontSize:   12,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildCartNavItem() {
     final selected = _selectedNavIndex == 3;
-    return GestureDetector(
-      onTap: () => _onNavItemTapped(3),
-      child: Consumer<CartModel>(
-        builder: (context, cart, _) {
-          final count = cart.totalQuantity;
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _onNavItemTapped(3),
+        child: Consumer<CartModel>(
+          builder: (context, cart, _) {
+            final count = cart.totalQuantity;
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.shopping_cart,
-                      color: selected ? const Color(0xFFB85C00) : Colors.grey),
-                  if (count > 0)
-                    Positioned(
-                      right: -6,
-                      top:   -6,
-                      child: Container(
-                        width:  16,
-                        height: 16,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFB85C00),
-                          shape: BoxShape.circle,
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Icon(Icons.shopping_cart,
+                          color: selected ? const Color(0xFFFF0080) : Colors.grey),
+                      if (count > 0)
+                        Positioned(
+                          right: -6,
+                          top:   -6,
+                          child: Container(
+                            width:  16,
+                            height: 16,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFFF0080),
+                              shape: BoxShape.circle,
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              count > 9 ? '9+' : '$count',
+                              style: const TextStyle(
+                                  color:      Colors.white,
+                                  fontSize:   9,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
                         ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          count > 9 ? '9+' : '$count',
-                          style: const TextStyle(
-                              color:      Colors.white,
-                              fontSize:   9,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Cart',
+                    style: TextStyle(
+                      color:      selected ? const Color(0xFFFF0080) : Colors.grey,
+                      fontSize:   12,
+                      fontWeight: selected ? FontWeight.bold : FontWeight.normal,
                     ),
+                  ),
                 ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Cart',
-                style: TextStyle(
-                  color:      selected ? const Color(0xFFB85C00) : Colors.grey,
-                  fontSize:   12,
-                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                ),
-              ),
-            ],
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

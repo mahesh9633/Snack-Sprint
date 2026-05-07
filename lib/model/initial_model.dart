@@ -64,9 +64,13 @@ class ApiProduct {
     })(),
     retailPrice:    double.tryParse(j['price']?.toString()           ?? '') ?? 0.0,
     wholesalePrice: double.tryParse(j['wholesale_price']?.toString() ?? '') ?? 0.0,
-    // specialPrice:   double.tryParse(j['special_price']?.toString()   ?? '') ?? 0.0,
     specialPrice:   double.tryParse(j['special_price']?.toString()   ?? '') ?? 0.0,
-    quantity:       int.tryParse(   j['quantity']?.toString()        ?? '') ?? 0,
+    quantity: int.tryParse(
+        (j['pos_quentity']?.toString().isNotEmpty == true
+            ? j['pos_quentity']
+            : j['pos_quantity']?.toString().isNotEmpty == true
+            ? j['pos_quantity']
+            : j['quantity'])?.toString() ?? '') ?? 0,
   );
 }
 

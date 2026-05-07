@@ -6,10 +6,11 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mtl_groceriesapp/config/app_color.dart';
 
 import '../services/pincode_service.dart';
 import '../services/pincode_zone_check_service.dart';
-import 'delivery_unavailable_screen.dart';    // ← new
+import 'delivery_unavailable_screen.dart';
 
 String get _authToken {
   return '6dd01c52d3e107b179798efc3716354bcc4c0d2b8e6f3a1d5e9c2b7a4f8e0d3c';
@@ -52,11 +53,6 @@ class SelectLocationSheet extends StatefulWidget {
 }
 
 class _SelectLocationSheetState extends State<SelectLocationSheet> {
-  static const Color _darkBrown = Color(0xFFB85C00);
-  static const Color _accent    = Color(0xFFB85C00);
-  static const Color _cream     = Color(0xFFFDF6EC);
-  static const Color _mutedText = Color(0xFFD9C4A8);
-
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, String>> _searchResults = [];
   String _searchQuery     = '';
@@ -103,17 +99,16 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
   }
 
   Future<void> _checkZoneAndProceed({
-    required String            pincode,
-    required SelectedAddress   address,
-    required VoidCallback      onAvailable,
+    required String          pincode,
+    required SelectedAddress address,
+    required VoidCallback    onAvailable,
   }) async {
-    // Show loading
     if (!mounted) return;
     showDialog(
-      context:   context,
+      context:            context,
       barrierDismissible: false,
-      builder:   (_) => const Center(
-        child: CircularProgressIndicator(color: Color(0xFFB85C00)),
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: AppColors.buttonPrimary),
       ),
     );
 
@@ -123,18 +118,17 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
     );
 
     if (!mounted) return;
-    Navigator.of(context, rootNavigator: true).pop(); // dismiss loading
+    Navigator.of(context, rootNavigator: true).pop();
 
     if (result.hasError) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content:         Text('Zone check failed: ${result.error}'),
-        backgroundColor: Colors.red,
+        backgroundColor: AppColors.error,
       ));
       return;
     }
 
     if (!result.available) {
-      // ── Not serviceable → show unavailable page ──────────────────────────
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -144,7 +138,6 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
       return;
     }
 
-    // ── Available → save + proceed ──────────────────────────────────────────
     await _saveToRecent({
       'label':    address.label,
       'title':    address.label,
@@ -214,7 +207,7 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
         setState(() => _locationLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content:         Text('Could not fetch location: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.error,
         ));
       }
     }
@@ -241,12 +234,13 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
           children: [
             Row(children: [
               Container(
-                padding:    const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: _accent.withOpacity(0.1),
+                  color: AppColors.buttonPrimary.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.my_location, color: _accent, size: 24),
+                child: const Icon(Icons.my_location,
+                    color: AppColors.buttonPrimary, size: 24),
               ),
               const SizedBox(width: 12),
               const Text('Deliver to this location?',
@@ -260,14 +254,15 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
               width:   double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color:        const Color(0xFFF5F5F5),
+                color:        AppColors.white,
                 borderRadius: BorderRadius.circular(12),
-                border:       Border.all(color: Colors.grey[300]!),
+                border:       Border.all(color: AppColors.border),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.location_on, color: _accent, size: 20),
+                  const Icon(Icons.location_on,
+                      color: AppColors.buttonPrimary, size: 20),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(addressLine,
@@ -285,23 +280,23 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
                 child: OutlinedButton(
                   onPressed: () => Navigator.pop(ctx),
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: _accent),
+                    side: const BorderSide(color: AppColors.buttonPrimary),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   child: const Text('Change',
                       style: TextStyle(
-                          color: _accent, fontWeight: FontWeight.w600)),
+                          color:      AppColors.buttonPrimary,
+                          fontWeight: FontWeight.w600)),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 flex: 2,
                 child: ElevatedButton(
-                  // ── CONFIRM LOCATION ─────────────────────────────────────
                   onPressed: () async {
-                    Navigator.pop(ctx); // close the confirm sheet
+                    Navigator.pop(ctx);
 
                     final address = SelectedAddress(
                       label:    'CURRENT',
@@ -312,15 +307,15 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
                     );
 
                     await _checkZoneAndProceed(
-                      pincode:  pincode,
-                      address:  address,
+                      pincode:     pincode,
+                      address:     address,
                       onAvailable: () {
                         widget.onUseCurrentLocation(address);
                       },
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _accent,
+                    backgroundColor: AppColors.buttonPrimary,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
                     padding:   const EdgeInsets.symmetric(vertical: 14),
@@ -367,7 +362,8 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
       context: context,
       builder: (_) => AlertDialog(
         title:   const Text('Location Service Off'),
-        content: const Text('Please enable location services on your device.'),
+        content: const Text(
+            'Please enable location services on your device.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
@@ -389,14 +385,14 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: const BoxDecoration(
-        color:        _cream,
+        color:        AppColors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(children: [
         // ── Dark Brown Header ──────────────────────────────────────────────
         Container(
           decoration: const BoxDecoration(
-            color:        _darkBrown,
+            color:       AppColors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
@@ -409,12 +405,10 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                      color:        Colors.white.withOpacity(0.3),
+                      color:        Colors.grey.withOpacity(0.4),
                       borderRadius: BorderRadius.circular(2)),
                 ),
               ),
-              Text('',
-                  style: TextStyle(fontSize: 12, color: _mutedText)),
               const SizedBox(height: 4),
               Row(children: [
                 GestureDetector(
@@ -430,14 +424,14 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.arrow_back,
-                        color: Colors.white, size: 18),
+                        color:  AppColors.appBarIcon,  size: 18),
                   ),
                 ),
                 const Text('Where should we deliver?',
                     style: TextStyle(
                         fontSize:   18,
                         fontWeight: FontWeight.bold,
-                        color:      Colors.white)),
+                        color:      AppColors.appBarText)),
               ]),
               const SizedBox(height: 16),
             ],
@@ -462,7 +456,7 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 decoration: BoxDecoration(
-                  color:        _accent,
+                  color:        AppColors.headerBanner,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Column(children: [
@@ -476,7 +470,7 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
                     width:  36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.green.withOpacity(0.2),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.my_location,
@@ -493,7 +487,7 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
             ),
           ),
           const SizedBox(width: 12),
-          // Add Address button
+          // Check Delivery button
           Expanded(
             child: GestureDetector(
               onTap: () async {
@@ -501,7 +495,7 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
                     context,
                     MaterialPageRoute(
                         builder: (_) => const AddNewAddressPage()));
-                  if (result != null && mounted) {
+                if (result != null && mounted) {
                   await _saveToRecent({
                     'label':    result.label,
                     'title':    result.flat?.isNotEmpty == true
@@ -525,17 +519,18 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
                 decoration: BoxDecoration(
                   color:        Colors.white,
                   borderRadius: BorderRadius.circular(14),
-                  border:       Border.all(color: Colors.grey[200]!),
+                  border:       Border.all(color: AppColors.border),
                 ),
                 child: Column(children: [
                   Container(
                     width:  36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: Colors.grey[100],
+                      color: AppColors.white,
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.search, color: Colors.grey[700], size: 20),
+                    child: Icon(Icons.search,
+                        color: Colors.grey[700], size: 20),
                   ),
                   const SizedBox(height: 8),
                   Text('Check Delivery',
@@ -553,9 +548,9 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
 
         Text('Recent addresses',
             style: TextStyle(
-                fontSize:   13,
-                fontWeight: FontWeight.w600,
-                color:      Colors.grey[500],
+                fontSize:      13,
+                fontWeight:    FontWeight.w600,
+                color:         Colors.black87,
                 letterSpacing: 0.3)),
         const SizedBox(height: 10),
 
@@ -563,14 +558,15 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 20),
             child: Center(
-              child: CircularProgressIndicator(strokeWidth: 2, color: _accent),
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: AppColors.buttonPrimary),
             ),
           )
         else if (_recentAddresses.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),
             child: Text('No recent addresses yet.',
-                style: TextStyle(fontSize: 13, color: Colors.grey[400])),
+                style: TextStyle(fontSize: 13, color: Colors.black87)),
           )
         else
           ..._recentAddresses.map((a) => _addressTile(a)).toList(),
@@ -590,19 +586,18 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
         );
 
         if (pincode.length == 6) {
-          // Zone check — navigates to DeliveryUnavailablePage if not serviceable
           await _checkZoneAndProceed(
             pincode:     pincode,
             address:     address,
             onAvailable: () => widget.onAddressSelected(address),
           );
         } else {
-          // No pincode stored on this recent entry — skip zone check
           await _saveToRecent(addr);
           widget.onAddressSelected(address);
         }
       },
-      borderRadius: inCard ? BorderRadius.zero : BorderRadius.circular(14),
+      borderRadius:
+      inCard ? BorderRadius.zero : BorderRadius.circular(14),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         child: Row(children: [
@@ -610,7 +605,7 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
             width:  40,
             height: 40,
             decoration: BoxDecoration(
-                color:        Colors.grey[100],
+                color:        AppColors.white,
                 borderRadius: BorderRadius.circular(10)),
             child: Icon(
               addr['label'] == 'HOME'
@@ -634,7 +629,7 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
                         color:      Colors.black87)),
                 const SizedBox(height: 3),
                 Text(addr['subtitle'] ?? '',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                    style:    TextStyle(fontSize: 12, color: Colors.grey[500]),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),
               ],
@@ -651,7 +646,7 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
       decoration: BoxDecoration(
           color:        Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border:       Border.all(color: Colors.grey[200]!),
+          border:       Border.all(color: AppColors.border),
           boxShadow: [
             BoxShadow(
                 color:      Colors.black.withOpacity(0.03),
@@ -682,15 +677,13 @@ class _AddNewAddressPageState extends State<AddNewAddressPage> {
   final TextEditingController _areaController    = TextEditingController();
   final MapController         _mapController     = MapController();
 
-  static const Color _accent = Color(0xFFFF0080);
-
   bool   _pincodeLoading = false;
   String _pincodeError   = '';
   String _resolvedArea   = '';
   String _resolvedCity   = '';
   String _resolvedState  = '';
 
-  LatLng _markerPosition = const LatLng(17.6868, 83.2185);
+  LatLng _markerPosition = const LatLng(14.0446, 78.7432);
   bool   _addressLoading = false;
   String _selectedLabel  = 'HOME';
   final List<String> _labels = ['HOME', 'WORK', 'OTHER'];
@@ -703,7 +696,6 @@ class _AddNewAddressPageState extends State<AddNewAddressPage> {
       _resolvedArea   = '';
     });
 
-    // ── Zone check FIRST before anything else ──
     final zoneResult = await ZoneCheckService.check(
       postcode: pin,
       token:    _authToken,
@@ -832,12 +824,11 @@ class _AddNewAddressPageState extends State<AddNewAddressPage> {
       return;
     }
 
-    // Show loading spinner
     showDialog(
       context:            context,
       barrierDismissible: false,
-      builder:            (_) => const Center(
-        child: CircularProgressIndicator(color: Color(0xFFB85C00)),
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: AppColors.buttonPrimary),
       ),
     );
 
@@ -847,18 +838,17 @@ class _AddNewAddressPageState extends State<AddNewAddressPage> {
     );
 
     if (!mounted) return;
-    Navigator.of(context, rootNavigator: true).pop(); // dismiss spinner
+    Navigator.of(context, rootNavigator: true).pop();
 
     if (zoneResult.hasError) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content:         Text('Zone check failed: ${zoneResult.error}'),
-        backgroundColor: Colors.red,
+        backgroundColor: AppColors.error,
       ));
       return;
     }
 
     if (!zoneResult.available) {
-      // ── Not serviceable ────────────────────────────────────────────────────
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -868,7 +858,6 @@ class _AddNewAddressPageState extends State<AddNewAddressPage> {
       return;
     }
 
-    // ── Serviceable → build address and pop back ───────────────────────────
     final fullAddress =
     '$flat, $area, $_resolvedCity, $_resolvedState $pin'
         .trim()
@@ -895,9 +884,9 @@ class _AddNewAddressPageState extends State<AddNewAddressPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor: AppColors.white,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFFFFFF),
+        backgroundColor: AppColors.appBarBg,
         elevation:       0,
         leading: IconButton(
           icon:      const Icon(Icons.arrow_back, color: Colors.black87),
@@ -944,9 +933,9 @@ class _AddNewAddressPageState extends State<AddNewAddressPage> {
                         onSubmitted: (v) => _searchPincode(v),
                         decoration: InputDecoration(
                           hintText:   'Enter 6-digit pincode',
-                          hintStyle:  TextStyle(color: Colors.grey[400]),
+                          hintStyle:  TextStyle(color: Colors.black87),
                           prefixIcon: Icon(Icons.pin_drop_outlined,
-                              color: Colors.grey[500]),
+                              color: Colors.pink),
                           counterText:    '',
                           border:         InputBorder.none,
                           contentPadding:
@@ -962,7 +951,7 @@ class _AddNewAddressPageState extends State<AddNewAddressPage> {
                       width:  48,
                       height: 52,
                       decoration: BoxDecoration(
-                          color:        _accent,
+                          color:        AppColors.buttonPrimary,
                           borderRadius: BorderRadius.circular(12)),
                       child: _pincodeLoading
                           ? const Center(
@@ -980,11 +969,11 @@ class _AddNewAddressPageState extends State<AddNewAddressPage> {
                   const SizedBox(height: 8),
                   Row(children: [
                     const Icon(Icons.error_outline,
-                        color: Colors.red, size: 16),
+                        color: AppColors.error, size: 16),
                     const SizedBox(width: 6),
                     Text(_pincodeError,
                         style: const TextStyle(
-                            color: Colors.red, fontSize: 13)),
+                            color: AppColors.error, fontSize: 13)),
                   ]),
                 ] else if (_resolvedArea.isNotEmpty) ...[
                   const SizedBox(height: 8),
@@ -992,19 +981,21 @@ class _AddNewAddressPageState extends State<AddNewAddressPage> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2E7D32).withOpacity(0.08),
+                      color:        AppColors.successLight,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFF2E7D32).withOpacity(0.3)),
+                      border: Border.all(
+                          color: AppColors.success.withOpacity(0.3)),
                     ),
                     child: Row(children: [
-                      const Icon(Icons.check_circle, color: Color(0xFF2E7D32), size: 16),
+                      const Icon(Icons.check_circle,
+                          color: AppColors.success, size: 16),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                             '$_resolvedArea, $_resolvedCity, $_resolvedState',
                             style: const TextStyle(
                                 fontSize:   13,
-                                color:      Colors.green,
+                                color:      AppColors.success,
                                 fontWeight: FontWeight.w500)),
                       ),
                     ]),
@@ -1017,7 +1008,7 @@ class _AddNewAddressPageState extends State<AddNewAddressPage> {
                 const SizedBox(height: 4),
                 Text('Tap anywhere on the map to move the delivery pin',
                     style:
-                    TextStyle(fontSize: 12, color: Colors.grey[500])),
+                    TextStyle(fontSize: 12, color: Colors.black87)),
                 const SizedBox(height: 10),
 
                 ClipRRect(
@@ -1053,7 +1044,7 @@ class _AddNewAddressPageState extends State<AddNewAddressPage> {
                                     width:  36,
                                     height: 36,
                                     decoration: const BoxDecoration(
-                                      color:  _accent,
+                                      color:  AppColors.buttonPrimary,
                                       shape:  BoxShape.circle,
                                       boxShadow: [
                                         BoxShadow(
@@ -1091,7 +1082,7 @@ class _AddNewAddressPageState extends State<AddNewAddressPage> {
                               ],
                             ),
                             child: const Icon(Icons.my_location,
-                                color: _accent, size: 22),
+                                color:AppColors.buttonPrimary, size: 22),
                           ),
                         ),
                       ),
@@ -1107,8 +1098,7 @@ class _AddNewAddressPageState extends State<AddNewAddressPage> {
                                   borderRadius: BorderRadius.circular(20),
                                   boxShadow: [
                                     BoxShadow(
-                                        color: Colors.black
-                                            .withOpacity(0.1),
+                                        color: Colors.black.withOpacity(0.1),
                                         blurRadius: 8)
                                   ]),
                               child: const Row(
@@ -1118,7 +1108,7 @@ class _AddNewAddressPageState extends State<AddNewAddressPage> {
                                     width: 14, height: 14,
                                     child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        color:       _accent),
+                                        color: AppColors.buttonPrimary),
                                   ),
                                   SizedBox(width: 8),
                                   Text('Getting address…',
@@ -1160,10 +1150,12 @@ class _AddNewAddressPageState extends State<AddNewAddressPage> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
-                          color: sel ? _accent : Colors.white,
+                          color: sel ? AppColors.buttonPrimary : Colors.white,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: sel ? _accent : Colors.grey[300]!,
+                            color: sel
+                                ? AppColors.buttonPrimary
+                                : AppColors.border,
                             width: 1.5,
                           ),
                         ),
@@ -1211,9 +1203,9 @@ class _AddNewAddressPageState extends State<AddNewAddressPage> {
             width:  double.infinity,
             height: 52,
             child: ElevatedButton(
-              onPressed: _confirmAddress, // now async + zone-checked
+              onPressed: _confirmAddress,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _accent,
+                backgroundColor: AppColors.buttonPrimary,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
                 elevation: 0,
@@ -1271,11 +1263,11 @@ class _AddNewAddressPageState extends State<AddNewAddressPage> {
   }
 }
 
-// ── Brown triangle below the marker circle ─────────────────────────────────
+// ── lightBrown triangle below the marker circle ────────────────────────────────
 class _TrianglePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = const Color(0xFFB85C00);
+    final paint = Paint()..color = AppColors.buttonPrimary;
     final path  = ui.Path()
       ..moveTo(0, 0)
       ..lineTo(size.width, 0)

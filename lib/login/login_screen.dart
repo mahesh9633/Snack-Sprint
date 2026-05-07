@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:mtl_groceriesapp/login/otp_screen.dart';
+import '../config/app_color.dart';
 import '../screens/privacy_policy.dart';
 import '../screens/terms_conditions.dart';
 import '../services/auth_service.dart';
@@ -17,13 +18,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _telephoneController = TextEditingController();
   bool _isSending = false;
   String _errorMessage = '';
-
-  static const Color _primaryBrown = Color(0xFF7A3B00);
-  static const Color _cream        = Color(0xFFFDF6EC);
-  static const Color _mutedText    = Color(0xFF8B6B4A);
-  static const Color _darkText     = Color(0xFF3D1F00);
-  static const Color _linkColor    = Color(0xFFB05A0A);
-  static const Color _disabledBg   = Color(0xFFD9C4A8);
 
   bool get _isValidTelephone =>
       _telephoneController.text.trim().length == 10;
@@ -85,7 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _cream,
+      backgroundColor: AppColors.white,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -110,13 +104,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: TextStyle(
                   fontSize: 30,
                   fontWeight: FontWeight.bold,
-                  color: _darkText,
+                  color: AppColors.sectionHeader,
+
                 ),
               ),
               const SizedBox(height: 6),
               const Text(
                 'Enter your WhatsApp mobile number',
-                style: TextStyle(fontSize: 15, color: _mutedText),
+                style: TextStyle(fontSize: 15, color: AppColors.appBarText),
               ),
               const SizedBox(height: 36),
 
@@ -142,7 +137,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 2,
-                      color: _darkText,
+                      color: AppColors.sectionHeader,
                     ),
                     onChanged: (value) {
                       String digits = value.replaceAll(RegExp(r'\D'), '');
@@ -184,7 +179,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: _primaryBrown,
+                            color: AppColors.appBarText,
                           ),
                         ),
                       ),
@@ -226,12 +221,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed:
                   (_isValidTelephone && !_isSending) ? _sendOtp : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _primaryBrown,
-                    disabledBackgroundColor: _disabledBg,
+                    backgroundColor: AppColors.buttonPrimary,
+                    disabledBackgroundColor: AppColors.buttonPrimaryDisabled,
+
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
                     elevation: 4,
-                    shadowColor: _primaryBrown.withOpacity(0.4),
+                    shadowColor: AppColors.buttonPrimary.withOpacity(0.4),
                   ),
                   child: _isSending
                       ? const SizedBox(
@@ -258,12 +254,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   textAlign: TextAlign.center,
                   text: TextSpan(
                     text: 'By continuing, you agree to our ',
-                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                    style: TextStyle(color: Colors.black87, fontSize: 12),
                     children: [
                       TextSpan(
                         text: 'Terms of Service',
                         style: const TextStyle(
-                          color: _linkColor,
+                          color: AppColors.textLink,
                           fontWeight: FontWeight.w600,
                           fontSize: 12,
                           decoration: TextDecoration.underline,
@@ -278,7 +274,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextSpan(
                         text: 'Privacy Policy',
                         style: const TextStyle(
-                          color: _linkColor,
+                          color: AppColors.textLink,
                           fontWeight: FontWeight.w600,
                           fontSize: 12,
                           decoration: TextDecoration.underline,

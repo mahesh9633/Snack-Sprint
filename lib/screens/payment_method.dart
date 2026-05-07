@@ -7,6 +7,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:provider/provider.dart';
 
+import '../config/app_color.dart';
 import '../model/address_model.dart';
 import '../model/cart_model.dart';
 import '../services/api_config_service.dart';
@@ -208,6 +209,109 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       return;
     }
 
+    // ── Confirmation dialog ───────────────────────────────────────────────
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.shopping_bag_outlined, color: AppColors.buttonPrimary, size: 24),
+            SizedBox(width: 10),
+            Text('Confirm Order',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Are you sure you want to place this order?',
+                style: TextStyle(fontSize: 14, color: Colors.black87)),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.buttonPrimary.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                    color: AppColors.buttonPrimary.withOpacity(0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Payment',
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey[600])),
+                      Text(_paymentLabel,
+                          style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Deliver to',
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey[600])),
+                      Flexible(
+                        child: Text(
+                          _defaultAddress?.fullName ?? '',
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.pop(context, false),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: Colors.grey[400]!),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            ),
+            child: const Text('CANCEL',
+                style: TextStyle(
+                    color: Colors.black54,
+                    fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.buttonPrimary,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            ),
+            child: const Text('CONFIRM',
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return; // user tapped Cancel or dismissed
     setState(() => _placingOrder = true);
     try {
       String? screenshotBase64;
@@ -282,17 +386,16 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFFFFFFF),
+      backgroundColor: AppColors.white,
       appBar: AppBar(
-        backgroundColor:  Color(0xFFFFFFFF),
-        // elevation: 2,
+        backgroundColor: AppColors.appBarBg,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black45),
+          icon: const Icon(Icons.arrow_back, color: AppColors.appBarIcon),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Payment Method',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          style: TextStyle(color: AppColors.appBarText, fontWeight: FontWeight.bold),
         ),
       ),
       body: Consumer<CartModel>(
@@ -529,7 +632,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF8B4513),
+                          color: Color(0xFF000000),
                         ),
                       ),
                     ],
@@ -542,9 +645,8 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                           ? null
                           : () => _placeOrder(context, cart),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF0080),
-                        disabledBackgroundColor:
-                        const Color(0xFFFF0080).withOpacity(0.6),
+                        backgroundColor: AppColors.buttonPrimary,
+                        disabledBackgroundColor: AppColors.buttonPrimaryDisabled,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
@@ -584,7 +686,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFFCF0F5),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF8B4513).withOpacity(0.25)),
+        border: Border.all(color: AppColors.buttonPrimary.withOpacity(0.25)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
@@ -595,7 +697,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
         if (_storeLoading)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 8),
-            child: LinearProgressIndicator(color: Color(0xFF8B4513)),
+            child: LinearProgressIndicator(color: AppColors.buttonPrimary),
           )
         else if (_storeError.isNotEmpty)
           Container(
@@ -617,7 +719,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                 child: const Text('Retry',
                     style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF8B4513),
+                        color: AppColors.buttonPrimary,
                         fontWeight: FontWeight.bold)),
               ),
             ]),
@@ -648,7 +750,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.account_balance_wallet_outlined,
-                        color: Color(0xFF8B4513), size: 20),
+                        color: Color(0xFFFF0080), size: 20),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -682,7 +784,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                               );
                             },
                             child: const Icon(Icons.copy,
-                                size: 14, color: Color(0xFF8B4513)),
+                                size: 14, color: AppColors.buttonPrimary),
                           ),
                         ]),
                       ],
@@ -743,7 +845,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                 filled: true,
                 fillColor: Colors.white,
                 prefixIcon: const Icon(Icons.tag, size: 18,
-                    color: Color(0xFF8B4513)),
+                    color: AppColors.buttonPrimary),
                 contentPadding: const EdgeInsets.symmetric(
                     horizontal: 12, vertical: 12),
                 border: OutlineInputBorder(
@@ -764,7 +866,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
             onTap: _pickScreenshot,
             child: _paymentScreenshot == null
                 ? DottedBorder(
-              color: const Color(0xFF8B4513),
+              color: const Color(0xFFFF0080),
               strokeWidth: 1.5,
               dashPattern: const [6, 3],
               borderType: BorderType.RRect,
@@ -777,12 +879,12 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Icon(Icons.attach_file,
-                          color: Color(0xFF8B4513), size: 20),
+                          color: Color(0xFFFF0080), size: 20),
                       const SizedBox(height: 2),
                       Text('Attach',
                           style: TextStyle(
                               fontSize: 10,
-                              color: Colors.grey[600],
+                              color: Colors.black87,
                               fontWeight: FontWeight.w500)),
                     ]),
               ),
@@ -848,7 +950,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
         height: 24,
         alignment: Alignment.center,
         decoration: const BoxDecoration(
-          color: Color(0xFF8B4513),
+          color: Color(0xFFFF0080),
           shape: BoxShape.circle,
         ),
         child: Text(number,
@@ -1011,7 +1113,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
               focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide: const BorderSide(
-                      color: Color(0xFF8B4513), width: 1.5)),
+                      color: AppColors.buttonPrimary, width: 1.5)),
             ),
             onChanged: (_) {
               if (_couponError.isNotEmpty) {
@@ -1027,9 +1129,8 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
             onPressed:
             _couponLoading ? null : () => _applyCoupon(cartTotal),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF0080),
-              disabledBackgroundColor:
-              const Color(0xFFFF0080).withOpacity(0.5),
+              backgroundColor: AppColors.buttonPrimary,
+              disabledBackgroundColor: AppColors.buttonPrimaryDisabled,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
               elevation: 0,
@@ -1113,7 +1214,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
           }
         },
 
-        activeColor: const Color(0xFF8B4513),
+        activeColor: AppColors.buttonPrimary,
         title: Text(title,
             style: const TextStyle(
                 fontSize: 16, fontWeight: FontWeight.w600)),
@@ -1191,17 +1292,17 @@ class _AllCouponsScreen extends StatelessWidget {
     final sorted   = [...eligible, ...blocked];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor: AppColors.white,
       appBar: AppBar(
-        backgroundColor: Color(0xFFFFFFFF),
+        backgroundColor: AppColors.appBarBg,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: AppColors.appBarIcon),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text('Available Coupons',
             style: TextStyle(
-                color: Colors.black,
+                color: AppColors.appBarText,
                 fontWeight: FontWeight.bold,
                 fontSize: 18)),
         bottom: PreferredSize(
@@ -1216,7 +1317,7 @@ class _AllCouponsScreen extends StatelessWidget {
           const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(children: [
             const Icon(Icons.shopping_cart_outlined,
-                size: 16, color: Color(0xFF8B4513)),
+                size: 16, color: Color(0xFFFF0080)),
             const SizedBox(width: 8),
             Text('Your cart total: ',
                 style:
@@ -1225,7 +1326,7 @@ class _AllCouponsScreen extends StatelessWidget {
                 style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF8B4513))),
+                    color: Color(0xFF000000))),
             const Spacer(),
             if (eligible.isNotEmpty)
               Container(
@@ -1459,7 +1560,8 @@ class _CouponCard extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: onTap,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFF0080),
+                          // backgroundColor: const Color(0xFFFF0080),
+                          backgroundColor: AppColors.buttonPrimary,
                           padding: const EdgeInsets.symmetric(
                               vertical: 12),
                           shape: RoundedRectangleBorder(
@@ -1569,7 +1671,7 @@ class _OrderSuccessScreen extends StatelessWidget {
                         style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF8B4513))),
+                            color: Color(0xFF000000))),
                   ),
                 const SizedBox(height: 28),
                 Container(
@@ -1608,7 +1710,7 @@ class _OrderSuccessScreen extends StatelessWidget {
                                           style: const TextStyle(
                                               fontSize: 26,
                                               fontWeight: FontWeight.bold,
-                                              color: Color(0xFF1B5E20))),
+                                              color: Color(0xFF000000))),
                                     ]),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
@@ -1809,7 +1911,7 @@ class _OrderSuccessScreen extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: onContinue,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF0080),
+                  backgroundColor: AppColors.buttonPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14)),

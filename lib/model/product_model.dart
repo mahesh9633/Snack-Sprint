@@ -78,7 +78,7 @@ class Product {
       description:        description        ?? this.description,
       highlights:         highlights         ?? this.highlights,
       quantity:           quantity           ?? this.quantity,
-      posQuantity: posQuantity ?? this.posQuantity,
+      posQuantity: posQuantity               ?? this.posQuantity,
     );
   }
 
@@ -102,6 +102,7 @@ class Product {
     'description':        description,
     'highlights':         highlights,
     'quantity':           quantity,
+    'posQuantity':        posQuantity,
   };
 
   factory Product.fromJson(Map<String, dynamic> json) => Product(
@@ -123,6 +124,8 @@ class Product {
     highlights:          (json['highlights'] as List<dynamic>?)
         ?.map((e) => e.toString()).toList()            ?? [],
     quantity:            (json['quantity'] as num?)?.toInt()               ?? 0,
+
+    posQuantity:         (json['posQuantity'] as num?)?.toInt() ?? 0,
   );
 
   factory Product.fromCategoryJson(
@@ -160,7 +163,7 @@ class Product {
         return '';
       })(),
       sku:                '',
-      deliveryTime:       '15 mins',
+      deliveryTime:       '25 mins',
       discountPercentage: 0,
       isVeg:              true,
       quantity:           qty < 0 ? 0 : qty,
@@ -189,13 +192,11 @@ class Product {
       id:            json['product_id']?.toString()    ?? '',
       name:          json['name']?.toString()          ?? '',
       price:         price,
-      // originalPrice: addPrice > 0 ? addPrice : price,
       originalPrice: hasOffer ? basePrice : price,
       image:         rawImage,
       imageUrl:      buildUrl(rawImage),
       category:      json['category']?.toString()      ?? '',
       subCategory:   json['sub_category']?.toString()  ?? '',
-      // weight:        json['weight']?.toString()        ?? '',
       weight: (() {
         for (final key in ['piece', 'unit', 'weight', 'net_qty', 'barcode_type']) {
           final val = json[key]?.toString() ?? '';
@@ -224,7 +225,8 @@ class Product {
   }
 
   double get savings => originalPrice > price ? originalPrice - price : 0;
-  bool get isInStock => posQuantity > 0;
+  // bool get isInStock => posQuantity > 0;
+  bool get isInStock => posQuantity > 0 || quantity > 0;
 
   int get deliveryMinutes {
     final match = RegExp(r'\d+').firstMatch(deliveryTime);

@@ -85,7 +85,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       category: '',
       quantity: int.tryParse(similar.posQuantity) ?? 0,
       posQuantity: int.tryParse(similar.posQuantity) ?? 0,
-      deliveryTime: '15 mins',
+      deliveryTime: '25 mins',
     );
 
     Navigator.push(
@@ -134,10 +134,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           final qty = cart.getQuantity(_product);
           final inCart = qty > 0;
           final isFav = favs.isFavorite(_product.id);
-
           return Stack(children: [
-            CustomScrollView(
-              slivers: [
+              RefreshIndicator(
+              color: const Color(0xFFFF0080),
+          onRefresh: _loadFullProduct,
+          child: CustomScrollView(
+          slivers: [
                 // ── Hero image app bar ──────────────────────────────────────
                 SliverAppBar(
                   expandedHeight: 260,   // ← CHANGED from 300
@@ -153,7 +155,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     IconButton(
                       icon: _circleIcon(
                         isFav ? Icons.favorite : Icons.favorite_border,
-                        const Color(0xFFB85C00),
+                        const Color(0xFFFF0080),
                       ),
                       onPressed: () {
                         favs.toggleFavorite(_product);
@@ -164,7 +166,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 ? '❤️ Added to Favourites'
                                 : '🤍 Removed from Favourites'),
                             duration: const Duration(seconds: 1),
-                            backgroundColor: const Color(0xFFB85C00),
+                            backgroundColor: const Color(0xFFFF0080),
                             behavior: SnackBarBehavior.floating,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10)),
@@ -302,7 +304,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                       isFav
                                           ? Icons.favorite
                                           : Icons.favorite_border,
-                                      color: const Color(0xFFB85C00),
+                                      color: const Color(0xFFFF0080),
                                       size: 22,
                                     ),
                                   ),
@@ -483,8 +485,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ],
                   ),
                 ),
-              ],
-            ),
+          ],
+          ),
+              ),
 
             Positioned(
               bottom: MediaQuery.of(context).padding.bottom + 72,

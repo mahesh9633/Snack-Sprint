@@ -277,14 +277,14 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
             child: Center(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 Icon(Icons.local_offer_outlined,
-                    size: 56, color: Colors.grey[300]),
+                    size: 56, color: Colors.pink),
                 const SizedBox(height: 12),
                 Text(
                   _searchText.isNotEmpty || _selectedCategory != null
                       ? 'No products match your filter.'
                       : 'No 50%+ offers right now.\nCheck back soon!',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.grey, fontSize: 14),
+                  style: const TextStyle(color: Colors.black87, fontSize: 14),
                 ),
                 if (_selectedCategory != null || _searchText.isNotEmpty)
                   TextButton(
@@ -315,7 +315,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount:   2,
-                childAspectRatio: 0.72,
+                childAspectRatio: 0.65,
                 crossAxisSpacing: 12,
                 mainAxisSpacing:  12,
               ),
@@ -342,7 +342,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-            colors: [Color(0xFF6366F1), Color(0xFF818CF8)]),
+            colors: [Color(0xFF6366F1), Color(0xFFFF0080)]),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Stack(children: [
@@ -424,7 +424,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
         ),
         child: Row(children: [
           const SizedBox(width: 14),
-          const Icon(Icons.search, color: Color(0xFF6366F1), size: 20),
+          const Icon(Icons.search, color: Color(0xFFFF0080), size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: TextField(
@@ -432,7 +432,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
               onChanged: (v) => setState(() => _searchText = v),
               decoration: InputDecoration(
                 hintText: 'Search in 50% OFF Zone…',
-                hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+                hintStyle: TextStyle(color: Colors.black87, fontSize: 14),
                 border: InputBorder.none,
                 isDense: true,
                 contentPadding: EdgeInsets.zero,
@@ -445,7 +445,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
                   setState(() { _searchText = ''; _searchCtrl.clear(); }),
               child: Padding(
                 padding: const EdgeInsets.only(right: 10),
-                child: Icon(Icons.close, size: 18, color: Colors.grey[400]),
+                child: Icon(Icons.close, size: 18, color: Colors.pink),
               ),
             ),
         ]),
@@ -555,9 +555,9 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('All Deals',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,color: Colors.pink,)),
           Text('${displayed.length} items with 50%+ off',
-              style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+              style: TextStyle(fontSize: 11, color: Colors.black87)),
         ]),
         TextButton(
           onPressed: () => Navigator.push(
@@ -567,9 +567,9 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
                       title: '50% OFF Zone', products: displayed))),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             Text('See all',
-                style: TextStyle(color: Colors.indigo[400], fontSize: 13)),
+                style: TextStyle(color: Colors.pink, fontSize: 16)),
             Icon(Icons.arrow_forward_ios,
-                size: 12, color: Colors.indigo[400]),
+                size: 12, color: Colors.pink),
           ]),
         ),
       ]),

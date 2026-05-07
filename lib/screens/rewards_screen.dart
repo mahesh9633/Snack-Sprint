@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_color.dart';
 import '../services/get_rewards_service.dart';
 import '../services/session_manager.dart';
 
@@ -10,9 +11,6 @@ class RewardsScreen extends StatefulWidget {
 }
 
 class _RewardsScreenState extends State<RewardsScreen> {
-  static const Color _primaryBrown = Color(0xFF5C3D1E);
-  static const Color _accentBrown  = Color(0xFFB07D4A);
-
   bool   _isLoading   = true;
   int    _totalPoints = 0;
   String _error       = '';
@@ -45,18 +43,20 @@ class _RewardsScreenState extends State<RewardsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:Color(0xFFFFFFFF),
+      // ── White background ───────────────────────────────────────────────────
+      backgroundColor: AppColors.white,
       appBar: AppBar(
-        backgroundColor:Color(0xFFFFFFFF),
+        // ── White AppBar, black text & icon ───────────────────────────────
+        backgroundColor: AppColors.appBarBg,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: const Icon(Icons.arrow_back, color: AppColors.appBarIcon),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'My Rewards',
           style: TextStyle(
-            color: Colors.black87,
+            color: AppColors.appBarText,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -64,7 +64,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
       ),
       body: _isLoading
           ? const Center(
-        child: CircularProgressIndicator(color: Color(0xFFB07D4A)),
+        child: CircularProgressIndicator(color: AppColors.loader),
       )
           : _error.isNotEmpty
           ? _buildError()
@@ -79,23 +79,27 @@ class _RewardsScreenState extends State<RewardsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+            const Icon(Icons.error_outline, size: 64, color: AppColors.error),
             const SizedBox(height: 16),
             Text(
               _error,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[700], fontSize: 15),
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 15),
             ),
             const SizedBox(height: 24),
+            // ── Pink retry button ──────────────────────────────────────────
             ElevatedButton.icon(
               onPressed: _loadRewards,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              icon: const Icon(Icons.refresh, color: AppColors.buttonPrimaryText),
+              label: const Text(
+                'Retry',
+                style: TextStyle(color: AppColors.buttonPrimaryText),
+              ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _accentBrown,
-                foregroundColor: Colors.white,
+                backgroundColor: AppColors.buttonPrimary,
                 padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
               ),
             ),
           ],
@@ -107,26 +111,26 @@ class _RewardsScreenState extends State<RewardsScreen> {
   Widget _buildContent() {
     return RefreshIndicator(
       onRefresh: _loadRewards,
-      color: _accentBrown,
+      color: AppColors.buttonPrimary,
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           const SizedBox(height: 12),
 
-          // ── Points Card ──────────────────────────────────────────────────
+          // ── Points Card (gradient using AppColors brand colours) ──────────
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFF5C3D1E), Color(0xFFB07D4A)],
+                colors: [AppColors.pink, AppColors.pink],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: _primaryBrown.withOpacity(0.35),
+                  color: AppColors.accentDark.withOpacity(0.35),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -140,7 +144,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
                 style: const TextStyle(
                   fontSize: 60,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: AppColors.white,
                   height: 1,
                 ),
               ),
@@ -162,21 +166,22 @@ class _RewardsScreenState extends State<RewardsScreen> {
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.white,
               borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.border),
             ),
             child: Row(children: [
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: _accentBrown.withOpacity(0.12),
+                  color: AppColors.appBarBg.withOpacity(0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   _totalPoints == 0
                       ? Icons.info_outline
                       : Icons.emoji_events_outlined,
-                  color: _accentBrown,
+                  color: AppColors.pink,
                   size: 26,
                 ),
               ),
@@ -186,9 +191,9 @@ class _RewardsScreenState extends State<RewardsScreen> {
                   _totalPoints == 0
                       ? 'You have no reward points yet.\nStart shopping to earn points!'
                       : 'Keep shopping to earn more points\nand unlock exciting rewards!',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[700],
+                    color: AppColors.appBarText,
                     height: 1.5,
                   ),
                 ),
@@ -199,10 +204,10 @@ class _RewardsScreenState extends State<RewardsScreen> {
           const SizedBox(height: 24),
 
           // ── Refresh hint ─────────────────────────────────────────────────
-          Center(
+          const Center(
             child: Text(
               'Pull down to refresh your points',
-              style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+              style: TextStyle(fontSize: 12, color: AppColors.pink),
             ),
           ),
           const SizedBox(height: 16),
