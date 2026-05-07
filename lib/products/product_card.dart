@@ -37,7 +37,7 @@ class ProductCard extends StatelessWidget {
         decoration: BoxDecoration(
           color:        Colors.white,
           borderRadius: BorderRadius.circular(10),
-          border:       Border.all(color: Colors.grey[200]!),
+          border:       Border.all(color: Colors.pink),
           boxShadow: [
             BoxShadow(
                 color:      Colors.black.withOpacity(0.05),
@@ -51,8 +51,14 @@ class ProductCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.max,
           children: [
 
+            // // ── Image: height = 72% of actual card width ──────────────
+            // LayoutBuilder(builder: (_, constraints) {
             // ── Image: height = 72% of actual card width ──────────────
-            LayoutBuilder(builder: (_, constraints) {
+            GestureDetector(
+            onTap: () => Navigator.push(context,
+          MaterialPageRoute(
+              builder: (_) => ProductDetailScreen(product: product))),
+      child: LayoutBuilder(builder: (_, constraints) {
               final imgH = imageHeight > 0
                   ? imageHeight
                   : constraints.maxWidth * 0.72;
@@ -84,7 +90,7 @@ class ProductCard extends StatelessWidget {
                     ),
                   ),
                 // Out-of-stock overlay
-                if (product.quantity == 0)
+                if (!product.isInStock)
                   Positioned.fill(
                     child: ClipRRect(
                       borderRadius: const BorderRadius.vertical(
@@ -94,14 +100,14 @@ class ProductCard extends StatelessWidget {
                         alignment: Alignment.center,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 5, vertical: 2),
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                              color: Colors.red[700],
-                              borderRadius: BorderRadius.circular(4)),
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(6)),
                           child: const Text('Out of Stock',
                               style: TextStyle(
-                                  color:      Colors.white,
-                                  fontSize:   8,
+                                  color:      Colors.red,
+                                  fontSize:   10,
                                   fontWeight: FontWeight.bold)),
                         ),
                       ),
@@ -109,6 +115,7 @@ class ProductCard extends StatelessWidget {
                   ),
               ]);
             }),
+            ),
 
             // ── Content (price / discount / name) ────────────────────
             Padding(
@@ -135,7 +142,7 @@ class ProductCard extends StatelessWidget {
                               child: Text('₹${product.price.toInt()}',
                                   style: const TextStyle(
                                       color:      Colors.white,
-                                      fontSize:   11,
+                                      fontSize:   9,
                                       fontWeight: FontWeight.bold)),
                             ),
                             if (product.originalPrice > product.price) ...[
@@ -160,7 +167,7 @@ class ProductCard extends StatelessWidget {
                         Flexible(
                           child: Text(product.displayWeight,
                               style: TextStyle(
-                                  fontSize: 14, color: Colors.grey[500]),
+                                  fontSize: 8, color: Colors.grey[500]),
                               maxLines:  1,
                               overflow:  TextOverflow.ellipsis,
                               textAlign: TextAlign.right),
@@ -202,7 +209,7 @@ class ProductCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(7, 0, 7, 8),
               child: _CartButton(
                   product: product,
-                  isInStock: product.quantity > 0),
+                  isInStock: product.isInStock),
             ),
           ],
         ),
@@ -215,13 +222,8 @@ class ProductCard extends StatelessWidget {
     return Consumer<CartModel>(
       builder: (context, cart, _) {
         final quantity = cart.getQuantity(product);
-        return GestureDetector(
-          onTap: () => Navigator.push(context,
-              MaterialPageRoute(
-                  builder: (_) => ProductDetailScreen(product: product))),
-          child: Container(
-            width: 150,
-            margin: EdgeInsets.only(right: cardRightMargin),
+        return Container(
+          margin: EdgeInsets.only(right: cardRightMargin),
             decoration: BoxDecoration(
               color:        Colors.white,
               borderRadius: BorderRadius.circular(10),
@@ -237,11 +239,14 @@ class ProductCard extends StatelessWidget {
               mainAxisSize:       MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Image with overlay ADD/stepper
-                Stack(children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(10)),
+                GestureDetector(
+                onTap: () => Navigator.push(context,
+            MaterialPageRoute(
+                builder: (_) => ProductDetailScreen(product: product))),
+        child: Stack(children: [
+        ClipRRect(
+        borderRadius: const BorderRadius.vertical(
+        top: Radius.circular(10)),
                     child: SizedBox(
                       height: imageHeight > 0 ? imageHeight : 100,
                       width:  double.infinity,
@@ -277,6 +282,7 @@ class ProductCard extends StatelessWidget {
                     ),
                   ),
                 ]),
+                ),
 
                 Padding(
                   padding: const EdgeInsets.fromLTRB(7, 5, 7, 7),
@@ -362,9 +368,8 @@ class ProductCard extends StatelessWidget {
                 ),
               ],
             ),
-          ),
         );
-      },
+      }
     );
   }
 
@@ -423,8 +428,11 @@ class _CartButton extends StatelessWidget {
         decoration: BoxDecoration(
             color:        Colors.grey[200],
             borderRadius: BorderRadius.circular(6)),
-        child: Text('Unavailable',
-            style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+        child: const Text('Out of Stock',
+            style: TextStyle(
+                fontSize:   10,
+                color:      Colors.red,
+                fontWeight: FontWeight.bold)),
       );
     }
 
@@ -501,7 +509,7 @@ class _AddButton extends StatelessWidget {
         decoration: BoxDecoration(
           color:        Colors.white,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFB85C00), width: 1.5),
+          border: Border.all(color: const Color(0xFFFF0080), width: 1.5),
           boxShadow: [
             BoxShadow(
                 color:      Colors.black.withOpacity(0.1),
@@ -532,7 +540,7 @@ class _StepperWidget extends StatelessWidget {
     return Container(
       height: 30,
       decoration: BoxDecoration(
-        color:        const Color(0xFFB85C00),
+        color:        const Color(0xFFFF0080),
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
@@ -569,4 +577,3 @@ class _StepperWidget extends StatelessWidget {
     );
   }
 }
-

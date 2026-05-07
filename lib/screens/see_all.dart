@@ -11,7 +11,7 @@ class SeeAllScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFCE4EC),
+      backgroundColor: const Color(0xFFFFFFFF),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -43,7 +43,7 @@ class SeeAllScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 0.72,
+          childAspectRatio: 0.65,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
         ),

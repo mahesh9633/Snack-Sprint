@@ -124,7 +124,7 @@ class _SuperMallTabBodyState extends State<SuperMallTabBody> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                childAspectRatio: 0.72,
+                childAspectRatio: 0.65,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12),
             itemCount: featured.length > 20 ? 20 : featured.length,

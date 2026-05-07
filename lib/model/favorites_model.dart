@@ -18,11 +18,20 @@ class FavoritesModel extends ChangeNotifier {
   bool isFavorite(String productId) =>
       _favorites.any((p) => p.id == productId);
 
+
   Future<void> loadForUser(String userId) async {
-    _prefsKey = 'user_favorites_$userId';
+    final newKey = 'user_favorites_$userId';
+
     _favorites.clear();
-    notifyListeners();
+    _prefsKey = newKey;
+
     await _loadFromPrefs();
+  }
+
+  void onLogout() {
+    _favorites.clear();
+    _prefsKey = 'user_favorites_guest';
+    notifyListeners();
   }
 
   void clear() {
@@ -54,6 +63,31 @@ class FavoritesModel extends ChangeNotifier {
     await _saveToPrefs();
   }
 
+  Future<void> syncWithBackend(List<String> liveProductIds, {List<Product>? liveProducts}) async {
+    // Never remove favourites automatically — only update stock status
+    if (liveProducts != null) {
+      bool changed = false;
+      for (int i = 0; i < _favorites.length; i++) {
+        final live = liveProducts.where((p) => p.id == _favorites[i].id).toList();
+        if (live.isNotEmpty) {
+          _favorites[i] = _favorites[i].copyWith(
+            quantity:    live.first.quantity,
+            posQuantity: live.first.posQuantity,
+            price:              live.first.price,
+            originalPrice:      live.first.originalPrice,
+            discountPercentage: live.first.discountPercentage,
+            weight:             live.first.weight,
+          );
+          changed = true;
+        }
+      }
+      if (changed) {
+        notifyListeners();
+        await _saveToPrefs();
+      }
+    }
+  }
+
   Future<void> _saveToPrefs() async {
     try {
       final prefs   = await SharedPreferences.getInstance();
@@ -68,16 +102,18 @@ class FavoritesModel extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw   = prefs.getString(_prefsKey);
-      if (raw == null || raw.isEmpty) {
-        return;
-      }
+      if (raw == null || raw.isEmpty) return;
+
       final List<dynamic> decoded = jsonDecode(raw) as List<dynamic>;
       final loaded = decoded
           .map((e) => _productFromJson(e as Map<String, dynamic>))
           .toList();
-      _favorites
-        ..clear()
-        ..addAll(loaded);
+
+      for (final p in loaded) {
+        if (!_favorites.any((f) => f.id == p.id)) {
+          _favorites.add(p);
+        }
+      }
       notifyListeners();
     } catch (e) { }
   }
@@ -92,6 +128,8 @@ class FavoritesModel extends ChangeNotifier {
     'category':           p.category,
     'weight':             p.weight,
     'discountPercentage': p.discountPercentage,
+    'quantity':           p.quantity,        // ← ADD THIS
+    'posQuantity':        p.posQuantity,   // ← ADD THIS
   };
 
   Product _productFromJson(Map<String, dynamic> j) {
@@ -117,6 +155,8 @@ class FavoritesModel extends ChangeNotifier {
       category:           j['category']            as String? ?? '',
       weight:             j['weight']              as String? ?? '',
       discountPercentage: (j['discountPercentage'] as num).toDouble(),
+      quantity:           (j['quantity']           as num?)?.toInt() ?? 1,  // ← ADD THIS
+      posQuantity:        (j['posQuantity']        as num?)?.toInt() ?? 0,  // ← ADD THIS
     );
   }
 }

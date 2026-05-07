@@ -10,6 +10,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../config/app_color.dart';
 import '../model/product_model.dart' show Product;
 import '../products/product_detail_screen.dart';
 import '../services/session_manager.dart';
@@ -93,8 +94,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   // ── PDF Generator ────────────────────────────────────────────────────────────
   Future<Uint8List> _buildPdf() async {
-    final orderInfo  = _data!['order_info']   as Map<String, dynamic>;
-    final products   = (_data!['products']    as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final orderInfo     = _data!['order_info']   as Map<String, dynamic>;
+    final invoiceNo     = orderInfo['invoice_no']?.toString()     ?? '';
+    final invoicePrefix = orderInfo['invoice_prefix']?.toString() ?? '';
+    final fullInvoice   = '$invoicePrefix$invoiceNo';
+    final products      = (_data!['products']    as List?)?.cast<Map<String, dynamic>>() ?? [];
     final invoice    = _data!['invoice']      as Map<String, dynamic>?;
     final taxDetails = (_data!['tax_details'] as List?)?.cast<Map<String, dynamic>>() ?? [];
     final history    = (_data!['history']     as List?)?.cast<Map<String, dynamic>>() ?? [];
@@ -115,7 +119,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     } catch (_) {}
 
     double subTotal = 0, totalTax = 0, discount = 0,
-        // creditPts = 0, roundoff = 0, grandTotal = 0,
         roundoff = 0, grandTotal = 0,
         cashAmt = 0, upiAmt = 0;
     String couponCode = '', upiRef = '';
@@ -124,7 +127,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       subTotal   = double.tryParse(invoice['sub_total'].toString())       ?? 0;
       totalTax   = double.tryParse(invoice['total_tax'].toString())       ?? 0;
       discount   = double.tryParse(invoice['discount'].toString())        ?? 0;
-      // creditPts  = double.tryParse(invoice['credit_points'].toString())   ?? 0;
       roundoff   = double.tryParse(invoice['roundoff_amount'].toString()) ?? 0;
       grandTotal = double.tryParse(invoice['total_received'].toString())  ?? 0;
       cashAmt    = double.tryParse(invoice['cash_amount'].toString())     ?? 0;
@@ -250,6 +252,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   ]),
                   pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
                     pw.Text('Order #${widget.orderId}', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.white)),
+                    pw.Text('Invoice: ${(orderInfo['invoice_prefix'] ?? '')}${(orderInfo['invoice_no'] ?? '')}', style: pw.TextStyle(fontSize: 10, color: PdfColor(0.85, 0.80, 1.0))),
                     pw.Text(date, style: pw.TextStyle(fontSize: 10, color: PdfColor(0.85, 0.80, 1.0))),
                   ]),
                 ],
@@ -507,9 +510,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor: AppColors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
@@ -553,9 +556,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     style: TextStyle(
                         fontSize: 14, fontWeight: FontWeight.w600)),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFFFF0080),
-                  side: const BorderSide(
-                      color: Color(0xFFFF0080), width: 1.5),
+                  foregroundColor: AppColors.buttonPrimary,
+                  side: const BorderSide(color: AppColors.buttonPrimary, width: 1.5),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
                   padding: const EdgeInsets.symmetric(vertical: 13),
@@ -572,7 +574,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     style: TextStyle(
                         fontSize: 14, fontWeight: FontWeight.w600)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF0080),
+                  backgroundColor: AppColors.buttonPrimary,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -587,7 +589,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
       body: _isLoading
           ? const Center(
-          child: CircularProgressIndicator(color: Color(0xFF7C3AED)))
+          child: CircularProgressIndicator(color: AppColors.loader))
           : _error != null
           ? _buildError()
           : _buildContent(),
@@ -603,7 +605,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       ElevatedButton(
         onPressed: _fetchOrderDetails,
         style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF7C3AED)),
+            backgroundColor: AppColors.buttonPrimary),
         child:
         const Text('Retry', style: TextStyle(color: Colors.white)),
       ),
@@ -612,6 +614,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   Widget _buildContent() {
     final orderInfo  = _data!['order_info']   as Map<String, dynamic>;
+    final invoiceNo     = orderInfo['invoice_no']?.toString()     ?? '';
+    final invoicePrefix = orderInfo['invoice_prefix']?.toString() ?? '';
+    final fullInvoice   = '$invoicePrefix$invoiceNo';
     final products   = (_data!['products']    as List?)?.cast<Map<String, dynamic>>() ?? [];
     final invoice    = _data!['invoice']      as Map<String, dynamic>?;
     final taxDetails = (_data!['tax_details'] as List?)?.cast<Map<String, dynamic>>() ?? [];
@@ -619,7 +624,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
     return RefreshIndicator(
       onRefresh: _fetchOrderDetails,
-      color: const Color(0xFF7C3AED),
+      color: AppColors.loader,
       child: ListView(
         padding: const EdgeInsets.all(12),
         children: [
@@ -665,11 +670,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFFB85C00).withOpacity(0.1),
+              color: const Color(0xFFFF0080).withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(Icons.receipt_long,
-                color: Color(0xFFB85C00), size: 20),
+                color: Color(0xFFFF0080), size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -682,7 +687,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   if (invoiceNo.isNotEmpty)
                     Text('Invoice: $invoiceNo',
                         style: TextStyle(
-                            fontSize: 12, color: Colors.grey[600])),
+                            fontSize: 12, color: Colors.black87)),
                 ]),
           ),
           _statusChip(status),
@@ -727,44 +732,44 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ),
               ),
             ) : null,
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8F4FF),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFB85C00).withOpacity(0.15)),
-                ),
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(p['name'] ?? '',
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w600)),
-                  if ((p['model'] ?? '').toString().isNotEmpty)
-                    Text('Model: ${p['model']}',
-                        style: TextStyle(
-                            fontSize: 12, color: Colors.grey[600])),
-                  const SizedBox(height: 8),
-                  Row(children: [
-                    _pill('Qty: $qty'),
-                    const SizedBox(width: 8),
-                    _pill('GST: $gst%'),
-                    const Spacer(),
-                    Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text('₹${_fmt(price)}',
-                              style: TextStyle(
-                                  fontSize: 12, color: Colors.grey[500])),
-                          Text('₹${_fmt(total)}',
-                              style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFFB85C00))),
-                        ]),
-                  ]),]),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFFFF),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF000000).withOpacity(0.15)),
               ),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(p['name'] ?? '',
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black)),
+                    if ((p['model'] ?? '').toString().isNotEmpty)
+                      Text('Model: ${p['model']}',
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey[600])),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      _pill('Qty: $qty'),
+                      const SizedBox(width: 8),
+                      _pill('GST: $gst%'),
+                      const Spacer(),
+                      Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text('₹${_fmt(price)}',
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.black87)),
+                            Text('₹${_fmt(total)}',
+                                style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.appBarText)),
+                          ]),
+                    ]),]),
+            ),
           );
         }).toList(),
       ),
@@ -776,7 +781,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final subTotal   = double.tryParse(inv['sub_total'].toString())       ?? 0;
     final totalTax   = double.tryParse(inv['total_tax'].toString())       ?? 0;
     final discount   = double.tryParse(inv['discount'].toString())        ?? 0;
-    // final creditPts  = double.tryParse(inv['credit_points'].toString())   ?? 0;
     final roundoff   = double.tryParse(inv['roundoff_amount'].toString()) ?? 0;
     final grandTotal = double.tryParse(inv['total_received'].toString())  ?? 0;
     final couponCode = inv['coupon']?.toString() ?? '';
@@ -816,7 +820,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFFB85C00))),
+                  color: AppColors.lightBrown)),
         ]),
       ]),
     );
@@ -963,7 +967,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            Icon(icon, size: 18, color: const Color(0xFFB85C00)),
+            Icon(icon, size: 18, color: const Color(0xFFFF0080)),
             const SizedBox(width: 8),
             Text(title,
                 style: const TextStyle(
@@ -1069,4 +1073,3 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 }
-

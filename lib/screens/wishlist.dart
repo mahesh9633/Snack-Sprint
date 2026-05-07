@@ -1,35 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../config/app_color.dart';
 import '../model/favorites_model.dart';
 import '../model/cart_model.dart';
 import '../model/product_model.dart';
 import '../services/api_config_service.dart';
 import '../products/product_detail_screen.dart';
+import '../widgets/floating_cart.dart';
 import '../widgets/refreshable_screen.dart';
 
-class WishlistScreen extends StatelessWidget {
+class WishlistScreen extends StatefulWidget {
   const WishlistScreen({super.key});
 
-  static const Color _primaryBrown = Color(0xFFCC5500);
-  static const Color _accentBrown  = Color(0xFFCC5500);
-  static const Color _lightCream   = Color(0xFFF5EFE6);
+  @override
+  State<WishlistScreen> createState() => _WishlistScreenState();
+}
+
+class _WishlistScreenState extends State<WishlistScreen> {
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _lightCream,
+      backgroundColor: AppColors.white,
+      floatingActionButton: const Padding(
+        padding: EdgeInsets.only(bottom: 0),
+        child: FloatingCartBar(),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       appBar: AppBar(
-        backgroundColor: Color(0xFFFFFFFF),
+        backgroundColor: AppColors.appBarBg,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: const Icon(Icons.arrow_back, color: AppColors.appBarIcon),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'My Wishlist',
           style: TextStyle(
-              color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 18),
+              color: AppColors.appBarText, fontWeight: FontWeight.bold, fontSize: 18),
         ),
       ),
       body: Consumer<FavoritesModel>(
@@ -61,9 +70,9 @@ class WishlistScreen extends StatelessWidget {
               Expanded(
                 child: RefreshableScreen(
                   onRefresh: () async {},// call your existing reload/fetch
-                  color: _accentBrown,
+                  color: AppColors.textAccent,
                   child: ListView.separated(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 100),
                     itemCount: items.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
@@ -87,10 +96,10 @@ class WishlistScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: _accentBrown.withOpacity(0.1),
+              color:Colors.white.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.favorite_border, size: 56, color: _accentBrown),
+            child: Icon(Icons.favorite_border, size: 56, color:Colors.pink),
           ),
           const SizedBox(height: 20),
           const Text(
@@ -98,19 +107,19 @@ class WishlistScreen extends StatelessWidget {
             style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: _primaryBrown),
+                color: AppColors.buttonPrimary),
           ),
           const SizedBox(height: 8),
           Text(
             'Tap ♡ on any product to save it here.\nYour items stay saved even after logout.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+            style: TextStyle(fontSize: 14, color: Colors.black87),
           ),
           const SizedBox(height: 28),
           ElevatedButton(
             onPressed: () => Navigator.pop(context),
             style: ElevatedButton.styleFrom(
-              backgroundColor:Color(0xFFFF0080),
+              backgroundColor: AppColors.buttonPrimary,
               padding:
               const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
               shape: RoundedRectangleBorder(
@@ -136,9 +145,6 @@ class _WishlistCard extends StatelessWidget {
   final Product product;
   const _WishlistCard({required this.product});
 
-  static const Color _primaryBrown = Color(0xFFCC5500);
-  static const Color _accentBrown  = Color(0xFFCC5500);
-
   // ── Safe image URL builder ─────────────────────────────────────────────────
   String _buildUrl(String raw) {
     if (raw.isEmpty || raw == 'no_image.png') return '';
@@ -162,14 +168,7 @@ class _WishlistCard extends StatelessWidget {
         product.weight != '0.00000000' &&
         product.weight != '0';
 
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ProductDetailScreen(product: product),
-        ),
-      ),
-      child: Container(
+    return Container(
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -184,9 +183,16 @@ class _WishlistCard extends StatelessWidget {
         child: Row(
           children: [
             // ── Product image ────────────────────────────────────────────────
-            Stack(
-              children: [
-                ClipRRect(
+            GestureDetector(
+            onTap: () => Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProductDetailScreen(product: product),
+      ),
+    ),
+    child: Stack(
+    children: [
+    ClipRRect(
                   borderRadius:
                   const BorderRadius.horizontal(left: Radius.circular(12)),
                   child: SizedBox(
@@ -228,6 +234,7 @@ class _WishlistCard extends StatelessWidget {
                   ),
               ],
             ),
+            ),
 
             // ── Details ──────────────────────────────────────────────────────
             Expanded(
@@ -262,7 +269,7 @@ class _WishlistCard extends StatelessWidget {
                           style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: _primaryBrown),
+                              color: AppColors.priceGreen),
                         ),
                         if (hasDiscount) ...[
                           const SizedBox(width: 6),
@@ -354,51 +361,98 @@ class _WishlistCard extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                  // Add to cart
                   Consumer<CartModel>(
-                    builder: (context, cart, _) => Tooltip(
-                      message: 'Add to cart',
-                      child: GestureDetector(
-                        onTap: () {
-                          cart.addItem(product);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content:
-                              Text('${product.name} added to cart'),
-                              duration: const Duration(seconds: 2),
-                              backgroundColor: _accentBrown,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8)),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(7),
+                    builder: (context, cart, _) {
+                      final bool outOfStock = !product.isInStock;
+                      final int qty = cart.getQuantity(product);
+
+                      if (outOfStock) {
+                        return Container(
+                          width: 90,
+                          height: 38,
+                          alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: _primaryBrown,
+                            color: Colors.grey[200],
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(Icons.add_shopping_cart,
-                              color: Colors.white, size: 18),
+                          child: Text('Out of\nStock',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w600)),
+                        );
+                      }
+
+                      if (qty == 0) {
+                        return GestureDetector(
+                          onTap: () => cart.addItem(product),
+                          child: Container(
+                            width: 90,
+                            height: 40,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(
+                                  color: AppColors.buttonPrimary, width: 1.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text('ADD',
+                                style: TextStyle(
+                                    color: AppColors.buttonPrimary,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5)),
+                          ),
+                        );
+                      }
+
+                      return Container(
+                        width: 90,
+                        height: 38,
+                        decoration: BoxDecoration(
+                            color: AppColors.buttonPrimary,
+                            borderRadius: BorderRadius.circular(8)),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            GestureDetector(
+                              onTap: () => cart.decrementQuantity(product.id),
+                              child: const SizedBox(
+                                  width: 22, height: 32,
+                                  child: Icon(Icons.remove,
+                                      color: Colors.white, size: 14)),
+                            ),
+                            Text('$qty',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold)),
+                            GestureDetector(
+                              onTap: () => cart.addItem(product),
+                              child: const SizedBox(
+                                  width: 22, height: 32,
+                                  child: Icon(Icons.add,
+                                      color: Colors.white, size: 14)),
+                            ),
+                          ],
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                 ],
               ),
             ),
           ],
         ),
-      ),
     );
   }
 
   Widget _placeholder() => Container(
-    color: const Color(0xFFF0E9DC),
+    color: AppColors.sidebarBg,
     child: const Center(
       child: Icon(Icons.image_not_supported_outlined,
-          color: Color(0xFFCC5500), size: 32),
+          color: AppColors.buttonPrimary, size: 32),
     ),
   );
 }

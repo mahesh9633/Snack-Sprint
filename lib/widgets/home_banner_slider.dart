@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:mtl_groceriesapp/config/app_color.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/home_banner_service.dart';
 import '../services/session_manager.dart';
@@ -76,8 +77,6 @@ class _HomeBannerSliderState extends State<HomeBannerSlider> {
           mode: LaunchMode.externalApplication,
         );
       }
-      if (!launched) {
-      }
     } catch (e) {
       await launchUrl(
         uri,
@@ -99,13 +98,13 @@ class _HomeBannerSliderState extends State<HomeBannerSlider> {
           borderRadius: BorderRadius.circular(16),
         ),
         child: const Center(
-          child: CircularProgressIndicator(color: Color(0xFFB85C00)),
+          child: CircularProgressIndicator(color: AppColors.buttonPrimary),
         ),
       );
     }
 
-    // ── Empty — fall back to static banner ───────────────────────────────────
-    if (_banners.isEmpty) return const _StaticMtlBanner();
+    // ── Empty — nothing to show ──────────────────────────────────────────────
+    if (_banners.isEmpty) return const SizedBox.shrink();
 
     final bannerH =
         (MediaQuery.of(context).size.width - 32) / _bannerAspectRatio;
@@ -138,7 +137,7 @@ class _HomeBannerSliderState extends State<HomeBannerSlider> {
                         color: Colors.grey[200],
                         child: const Center(
                           child: CircularProgressIndicator(
-                              color: Color(0xFFB85C00)),
+                              color: Color(0xFFFF0080)),
                         ),
                       ),
                       errorBuilder: (_, __, ___) =>
@@ -237,62 +236,14 @@ class _HomeBannerSliderState extends State<HomeBannerSlider> {
                 height: 6,
                 decoration: BoxDecoration(
                   color: active
-                      ? const Color(0xFFB85C00)
-                      : const Color(0xFFB85C00).withOpacity(0.3),
+                      ? const Color(0xFFFF0080)
+                      : const Color(0xFFFF0080).withOpacity(0.3),
                   borderRadius: BorderRadius.circular(3),
                 ),
               );
             }),
           ),
         ],
-      ]),
-    );
-  }
-}
-
-// ─── Fallback: shown when no banners returned from API ────────────────────────
-class _StaticMtlBanner extends StatelessWidget {
-  const _StaticMtlBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF7B3F00),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('CELEBRATE',
-              style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFFE8C49A),
-                  fontWeight: FontWeight.w500)),
-          Text('MTL DAY',
-              style: TextStyle(
-                  fontSize: 30,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2)),
-        ]),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-              color: const Color(0xFFB85C00),
-              borderRadius: BorderRadius.circular(20)),
-          child: const Row(children: [
-            Icon(Icons.favorite, color: Colors.white, size: 16),
-            SizedBox(width: 4),
-            Text('MTL\nZone',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center),
-          ]),
-        ),
       ]),
     );
   }

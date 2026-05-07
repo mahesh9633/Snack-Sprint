@@ -1,32 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:mtl_groceriesapp/screens/privacy_policy.dart';
+import '../config/app_color.dart';
 
 class TermsConditionsScreen extends StatelessWidget {
   final bool fromProfile;
 
   const TermsConditionsScreen({super.key, this.fromProfile = false});
 
-  static const Color _primaryBrown = Color(0xFF5C3D1E);
-  static const Color _accentBrown  = Color(0xFFB07D4A);
-  static const Color _darkText     = Color(0xFF3D1F00);
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:Color(0xFFFFFFFF),
+      backgroundColor: AppColors.white,
       appBar: AppBar(
-        backgroundColor:Color(0xFFFFFFFF),
+        backgroundColor: AppColors.appBarBg,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: const Icon(Icons.arrow_back, color: AppColors.appBarIcon),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Terms & Conditions',
           style: TextStyle(
-            color: Colors.black87,
+            color: AppColors.appBarText,
             fontWeight: FontWeight.bold,
-            fontSize: 18,
+            fontSize: 16,
           ),
         ),
       ),
@@ -40,35 +37,76 @@ class TermsConditionsScreen extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: _primaryBrown,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.black, width: 1.5),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    'Terms & Conditions',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
+                children: [
+                  // ── Outlined "Terms & Conditions" title ──
+                  Stack(
+                    children: [
+                      Text(
+                        '',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          foreground: Paint()
+                            ..style = PaintingStyle.stroke
+                            ..strokeWidth = 2
+                            ..color = Colors.black,
+                        ),
+                      ),
+                      const Text(
+                        'Terms & Conditions',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 6),
-                  Text(
-                    'Durga Bhavani Mart',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                    ),
+                  const SizedBox(height: 6),
+                  // ── Outlined "Durga Bhavani Mart" ──
+                  Stack(
+                    children: [
+                      Text(
+                        '',
+                        style: TextStyle(
+                          fontSize: 14,
+                          foreground: Paint()
+                            ..style = PaintingStyle.stroke
+                            ..strokeWidth = 1.5
+                            ..color = Colors.black,
+                        ),
+                      ),
+                      const Text(
+                        'Durga Bhavani Mart',
+                        style: TextStyle(color: Colors.black, fontSize: 14),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Last updated: April 10, 2026',
-                    style: TextStyle(
-                      color: Colors.white54,
-                      fontSize: 12,
-                    ),
+                  const SizedBox(height: 4),
+                  // ── Outlined "Last updated" ──
+                  Stack(
+                    children: [
+                      Text(
+                        '',
+                        style: TextStyle(
+                          fontSize: 12,
+                          foreground: Paint()
+                            ..style = PaintingStyle.stroke
+                            ..strokeWidth = 1.5
+                            ..color = Colors.black,
+                        ),
+                      ),
+                      const Text(
+                        'Last updated: April 10, 2026',
+                        style: TextStyle(color: Colors.black, fontSize: 12),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -76,7 +114,7 @@ class TermsConditionsScreen extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // ── Privacy Policy link card (REQUIRED by Google Play) ─────────
+            // ── Privacy Policy link card ───────────────────────────────────
             GestureDetector(
               onTap: () => Navigator.push(
                 context,
@@ -86,23 +124,26 @@ class TermsConditionsScreen extends StatelessWidget {
               ),
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: _accentBrown.withOpacity(0.12),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: _accentBrown.withOpacity(0.4)),
+                  border: Border.all(color: Colors.black),
                 ),
                 child: Row(
                   children: const [
-                    Icon(Icons.privacy_tip_outlined, color: _accentBrown, size: 20),
+                    Icon(Icons.privacy_tip_outlined,
+                        color: Colors.black, size: 20),
                     SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         'Read our Privacy Policy to understand how we collect and use your data.',
-                        style: TextStyle(fontSize: 13, color: _darkText, height: 1.4),
+                        style: TextStyle(
+                            fontSize: 13, color: Colors.black, height: 1.4),
                       ),
                     ),
-                    Icon(Icons.chevron_right, color: _accentBrown, size: 18),
+                    Icon(Icons.chevron_right, color: Colors.black, size: 18),
                   ],
                 ),
               ),
@@ -176,6 +217,7 @@ class TermsConditionsScreen extends StatelessWidget {
                   'Your personal data will be deleted within 30 days of account '
                   'closure, except where retention is required by applicable law.',
             ),
+
             _sectionTitle('5. Payment Methods'),
             _bodyText(
               'Durga Bhavani Mart currently supports the following payment methods:',
@@ -241,7 +283,6 @@ class TermsConditionsScreen extends StatelessWidget {
                   'NON-INFRINGEMENT. USE OF THE APPLICATION IS AT YOUR SOLE RISK.',
             ),
 
-            // ── FIXED: Removed ₹100 cap and 1-year limitation clause ───────
             _sectionTitle('10. Limitation of Liability'),
             _bodyText(
               'TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT '
@@ -270,7 +311,6 @@ class TermsConditionsScreen extends StatelessWidget {
                   'violation of these Terms.',
             ),
 
-            // ── FIXED: Removed class action waiver; updated to Indian law ──
             _sectionTitle('12. Governing Law & Dispute Resolution'),
             _bodyText(
               'These Terms are governed by the laws of India. Any dispute '
@@ -307,7 +347,7 @@ class TermsConditionsScreen extends StatelessWidget {
     );
   }
 
-  // ── Reusable widgets ────────────────────────────────────────────────────────
+  // ── Reusable widgets ─────────────────────────────────────────────────────────
 
   Widget _sectionTitle(String text) => Padding(
     padding: const EdgeInsets.only(top: 24, bottom: 8),
@@ -316,7 +356,7 @@ class TermsConditionsScreen extends StatelessWidget {
       style: const TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.bold,
-        color: _primaryBrown,
+        color: AppColors.appBarText,
       ),
     ),
   );
@@ -328,7 +368,7 @@ class TermsConditionsScreen extends StatelessWidget {
       style: const TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: _primaryBrown,
+        color: AppColors.appBarText,
       ),
     ),
   );
@@ -340,7 +380,7 @@ class TermsConditionsScreen extends StatelessWidget {
       style: const TextStyle(
         fontSize: 14,
         height: 1.6,
-        color: _darkText,
+        color: AppColors.appBarText,
       ),
     ),
   );
@@ -349,16 +389,16 @@ class TermsConditionsScreen extends StatelessWidget {
     margin: const EdgeInsets.only(bottom: 10),
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     decoration: BoxDecoration(
-      color: _accentBrown.withOpacity(0.08),
+      color: AppColors.white.withOpacity(0.08),
       borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: _accentBrown.withOpacity(0.2)),
+      border: Border.all(color: AppColors.appBarText.withOpacity(0.2)),
     ),
     child: Text(
       text,
       style: TextStyle(
         fontSize: 12,
         height: 1.5,
-        color: _darkText.withOpacity(0.75),
+        color: AppColors.appBarText.withOpacity(0.75),
         fontStyle: FontStyle.italic,
       ),
     ),
@@ -373,7 +413,7 @@ class TermsConditionsScreen extends StatelessWidget {
           padding: EdgeInsets.only(top: 6),
           child: CircleAvatar(
             radius: 3,
-            backgroundColor: _accentBrown,
+            backgroundColor: AppColors.appBarText,
           ),
         ),
         const SizedBox(width: 10),
@@ -383,7 +423,7 @@ class TermsConditionsScreen extends StatelessWidget {
             style: const TextStyle(
               fontSize: 14,
               height: 1.6,
-              color: _darkText,
+              color: AppColors.appBarText,
             ),
           ),
         ),
@@ -395,9 +435,9 @@ class TermsConditionsScreen extends StatelessWidget {
     margin: const EdgeInsets.only(top: 12),
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: AppColors.white,
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: _accentBrown.withOpacity(0.3)),
+      border: Border.all(color: AppColors.appBarText.withOpacity(0.3)),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -407,13 +447,14 @@ class TermsConditionsScreen extends StatelessWidget {
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 15,
-            color: _primaryBrown,
+            color: AppColors.appBarText,
           ),
         ),
         SizedBox(height: 8),
         _ContactRow(
           icon: Icons.location_on_outlined,
-          text: 'Address: 67/163,Near Market,Veerabhadra Swamy Temple,Rayachoti. AP - 516269 ',
+          text:
+          'Address: 67/163,Near Market,Veerabhadra Swamy Temple,Rayachoti. AP - 516269 ',
         ),
         SizedBox(height: 6),
         _ContactRow(icon: Icons.phone_outlined, text: '+91 9701657580'),
@@ -442,14 +483,14 @@ class _ContactRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 16, color: const Color(0xFFB07D4A)),
+        Icon(icon, size: 16, color: AppColors.headerBanner),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             text,
             style: const TextStyle(
               fontSize: 13,
-              color: Color(0xFF3D1F00),
+              color: AppColors.appBarText,
               height: 1.5,
             ),
           ),

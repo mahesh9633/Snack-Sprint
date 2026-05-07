@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../config/app_color.dart';
 import '../model/cart_model.dart';
 import '../model/favorites_model.dart';
 import '../screens/location_gateway.dart';
@@ -36,14 +37,6 @@ class _OtpScreenState extends State<OtpScreen> {
   String _errorMessage = '';
   late String _currentOtpRef = widget.otpRef;
 
-  static const Color _primaryBrown = Color(0xFF7A3B00);
-  static const Color _accentBrown  = Color(0xFFB05A0A);
-  static const Color _cream        = Color(0xFFFDF6EC);
-  static const Color _mutedText    = Color(0xFF8B6B4A);
-  static const Color _darkText     = Color(0xFF3D1F00);
-  static const Color _disabledBg   = Color(0xFFD9C4A8);
-  static const Color _borderColor  = Color(0xFFD9C4A8);
-
   @override
   void initState() {
     super.initState();
@@ -71,7 +64,8 @@ class _OtpScreenState extends State<OtpScreen> {
 
   Future<void> _verifyOtp() async {
     if (_enteredOtp.length < 6) {
-      setState(() => _errorMessage = 'Enter the 6-digit Code Was Sent To Your WhatsApp Mobile Number');
+      setState(() => _errorMessage =
+      'Enter the 6-digit Code Was Sent To Your WhatsApp Mobile Number');
       return;
     }
     if (_isVerifying) return;
@@ -145,7 +139,7 @@ class _OtpScreenState extends State<OtpScreen> {
 
     if (result.success) {
       _currentOtpRef = result.otpRef ?? _currentOtpRef;
-      if (result.otp != null) { }
+      if (result.otp != null) {}
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -155,10 +149,10 @@ class _OtpScreenState extends State<OtpScreen> {
               ? 'OTP resent to +91 ${widget.telephone}'
               : result.message ?? 'Failed to resend OTP.',
         ),
-        backgroundColor:
-        result.success ? _primaryBrown : Colors.red,
-        behavior:         SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        backgroundColor: result.success ? AppColors.accentDark : AppColors.error,
+        behavior:        SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10)),
       ),
     );
 
@@ -168,7 +162,7 @@ class _OtpScreenState extends State<OtpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _cream,
+      backgroundColor: AppColors.white,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -184,16 +178,15 @@ class _OtpScreenState extends State<OtpScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 20),
-
               Container(
                 width:  80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color:         _primaryBrown,
+                  color:        AppColors.buttonPrimary,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color:      _primaryBrown.withOpacity(0.3),
+                      color:      AppColors.buttonPrimary.withOpacity(0.3),
                       blurRadius: 20,
                       offset:     const Offset(0, 8),
                     ),
@@ -208,13 +201,13 @@ class _OtpScreenState extends State<OtpScreen> {
                 style: TextStyle(
                   fontSize:   26,
                   fontWeight: FontWeight.bold,
-                  color:      _darkText,
+                  color:      AppColors.sectionHeader,
                 ),
               ),
               const SizedBox(height: 10),
-              Text(
+              const Text(
                 'Enter the OTP code sent via WhatsApp.',
-                style: TextStyle(fontSize: 14, color: _mutedText),
+                style: TextStyle(fontSize: 14, color: AppColors.appBarText),
               ),
               const SizedBox(height: 4),
               Text(
@@ -222,7 +215,7 @@ class _OtpScreenState extends State<OtpScreen> {
                 style: const TextStyle(
                   fontSize:   16,
                   fontWeight: FontWeight.bold,
-                  color:      _accentBrown,
+                  color:      AppColors.textLink,
                 ),
               ),
               const SizedBox(height: 36),
@@ -238,19 +231,20 @@ class _OtpScreenState extends State<OtpScreen> {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 16, vertical: 10),
                   decoration: BoxDecoration(
-                    color: Colors.red[50],
+                    color:        AppColors.errorLight,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.red[200]!),
+                    border:       Border.all(
+                        color: AppColors.error.withOpacity(0.4)),
                   ),
                   child: Row(children: [
-                    Icon(Icons.error_outline,
-                        color: Colors.red[400], size: 18),
+                    const Icon(Icons.error_outline,
+                        color: AppColors.error, size: 18),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         _errorMessage,
-                        style:
-                        TextStyle(color: Colors.red[700], fontSize: 13),
+                        style: const TextStyle(
+                            color: AppColors.error, fontSize: 13),
                       ),
                     ),
                   ]),
@@ -263,13 +257,14 @@ class _OtpScreenState extends State<OtpScreen> {
                 height: 54,
                 child: ElevatedButton(
                   onPressed: _isVerifying ? null : _verifyOtp,
+
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:         _primaryBrown,
-                    disabledBackgroundColor: _disabledBg,
+                    backgroundColor:         AppColors.buttonPrimary,
+                    disabledBackgroundColor: AppColors.buttonPrimaryDisabled,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
                     elevation:   4,
-                    shadowColor: _primaryBrown.withOpacity(0.4),
+                    shadowColor: AppColors.buttonPrimary.withOpacity(0.4),
                   ),
                   child: _isVerifying
                       ? const SizedBox(
@@ -292,21 +287,22 @@ class _OtpScreenState extends State<OtpScreen> {
               const SizedBox(height: 24),
 
               Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Text(
+                const Text(
                   "Didn't receive OTP? ",
-                  style: TextStyle(color: _mutedText, fontSize: 14),
+                  style: TextStyle(
+                      color: AppColors.appBarText, fontSize: 14),
                 ),
                 GestureDetector(
                   onTap: (_resendTimer == 0 && !_isResending)
                       ? _resendOtp
                       : null,
                   child: _isResending
-                      ? SizedBox(
+                      ? const SizedBox(
                     width:  16,
                     height: 16,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color:       _accentBrown,
+                      color:       AppColors.textLink,
                     ),
                   )
                       : Text(
@@ -315,8 +311,8 @@ class _OtpScreenState extends State<OtpScreen> {
                         : 'Resend OTP',
                     style: TextStyle(
                       color: _resendTimer > 0
-                          ? Colors.grey
-                          : _accentBrown,
+                          ? AppColors.textMuted
+                          : AppColors.textLink,
                       fontSize:   14,
                       fontWeight: FontWeight.bold,
                     ),
@@ -361,7 +357,7 @@ class _OtpScreenState extends State<OtpScreen> {
           style: const TextStyle(
             fontSize:   22,
             fontWeight: FontWeight.bold,
-            color:      _darkText,
+            color:      AppColors.sectionHeader,
           ),
           decoration: InputDecoration(
             counterText: '',
@@ -369,11 +365,13 @@ class _OtpScreenState extends State<OtpScreen> {
             fillColor:   Colors.white,
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: _borderColor, width: 1.5),
+              borderSide:
+              const BorderSide(color: AppColors.border, width: 1.5),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: _primaryBrown, width: 2),
+              borderSide:
+              const BorderSide(color: AppColors.buttonPrimary, width: 2),
             ),
           ),
           onChanged: (value) {

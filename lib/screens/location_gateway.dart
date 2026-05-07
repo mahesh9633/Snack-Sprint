@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:mtl_groceriesapp/config/app_color.dart';
 import 'package:mtl_groceriesapp/screens/select_location_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'home_screen.dart';
 import 'home_screen.dart';
 
 class LocationGateway extends StatelessWidget {
@@ -44,7 +44,7 @@ class LocationGateway extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8F0),
+      backgroundColor: AppColors.white,
       body: SafeArea(
         child: Column(children: [
 
@@ -59,19 +59,19 @@ class LocationGateway extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFB85C00).withOpacity(0.12),
+                      color: AppColors.white.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(Icons.delivery_dining,
-                        color: Color(0xFFB85C00), size: 24),
+                        color: AppColors.buttonPrimary, size: 24),
                   ),
                   const SizedBox(width: 12),
                   const Text('Durga Bhavani Mart',
                       style: TextStyle(
-                          fontSize: 26,
+                          fontSize:   26,
                           fontWeight: FontWeight.bold,
-                          fontStyle: FontStyle.italic,
-                          color: Color(0xFFB85C00))),
+                          fontStyle:  FontStyle.italic,
+                          color:      AppColors.lightBrown)),
                 ]),
               ],
             ),
@@ -89,21 +89,21 @@ class LocationGateway extends StatelessWidget {
           TextButton(
             onPressed: () {
               showDialog(
-                context: context,
+                context:           context,
                 barrierDismissible: false,
                 builder: (ctx) => AlertDialog(
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20)),
-                  backgroundColor: const Color(0xFFFFF8F0),
+                  backgroundColor: AppColors.white,
                   icon: const Icon(Icons.location_off_outlined,
-                      color: Color(0xFFB85C00), size: 48),
+                      color: AppColors.buttonPrimary, size: 48),
                   title: const Text(
                     'Location Required',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF3D1F00),
-                        fontSize: 18),
+                        color:      AppColors.sectionHeader,
+                        fontSize:   18),
                   ),
                   content: const Text(
                     'Please select a delivery location to continue.\n\nWe need your address to deliver products to you.',
@@ -115,7 +115,7 @@ class LocationGateway extends StatelessWidget {
                     ElevatedButton(
                       onPressed: () => Navigator.pop(ctx),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFB85C00),
+                        backgroundColor: AppColors.buttonPrimary,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
                         padding: const EdgeInsets.symmetric(
@@ -123,7 +123,8 @@ class LocationGateway extends StatelessWidget {
                       ),
                       child: const Text(
                         'Select Location',
-                        style: TextStyle(color: Colors.white,
+                        style: TextStyle(
+                            color:      Colors.white,
                             fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -135,7 +136,7 @@ class LocationGateway extends StatelessWidget {
                       icon: const Icon(Icons.arrow_back,
                           size: 16, color: Colors.grey),
                       label: const Text('Go Back',
-                          style: TextStyle(color: Colors.grey, fontSize: 13)),
+                          style: TextStyle(color: Colors.black87, fontSize: 13)),
                     ),
                   ],
                 ),
@@ -144,8 +145,8 @@ class LocationGateway extends StatelessWidget {
             child: Text(
               'Skip for now',
               style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey[500],
+                  fontSize:   13,
+                  color:      Colors.pink,
                   decoration: TextDecoration.underline),
             ),
           ),

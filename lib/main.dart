@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,12 +7,35 @@ import 'login/splash_screen.dart';
 import 'model/cart_model.dart';
 import 'model/favorites_model.dart';
 
+
+final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final cart          = CartModel();
+  // Pre-warm SharedPreferences once so all screens reuse the cache
+  final prefs = await SharedPreferences.getInstance();
+
+  final cart           = CartModel();
   final favoritesModel = FavoritesModel();
-  final prefs         = await SharedPreferences.getInstance();
+
+  // Show snackbar when stock limit is reached
+  cart.onStockLimitReached = (message) {
+    scaffoldMessengerKey.currentState?.showSnackBar(
+      SnackBar(
+        content: Row(children: [
+          const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 18),
+          const SizedBox(width: 8),
+          Expanded(child: Text(message)),
+        ]),
+        backgroundColor: Colors.red[600],
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 80),
+      ),
+    );
+  };
 
   final savedUserId = prefs.getString('customer_id');
   if (savedUserId != null && savedUserId.isNotEmpty) {
@@ -19,6 +43,11 @@ void main() async {
     await favoritesModel.loadForUser(savedUserId);
   } else {
     await cart.loadCart();
+  }
+
+  // Disable all print() statements in release mode
+  if (kReleaseMode) {
+    debugPrint = (String? message, {int? wrapWidth}) {};
   }
 
   runApp(
@@ -38,10 +67,20 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      scaffoldMessengerKey: scaffoldMessengerKey,
       title: 'MTL Groceries',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.pink,
+        scaffoldBackgroundColor: Colors.white,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFFFF0080),
+          brightness: Brightness.light,
+        ).copyWith(
+          background: Colors.white,
+          surface: Colors.white,
+          surfaceVariant: Colors.white,
+          surfaceTint: Colors.transparent,
+        ),
         fontFamily: 'Roboto',
       ),
       home: const SplashScreen(),

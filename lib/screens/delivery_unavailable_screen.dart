@@ -1,36 +1,35 @@
 import 'package:flutter/material.dart';
 
+import '../config/app_color.dart';
+
 class DeliveryUnavailablePage extends StatelessWidget {
   /// The pincode / address the user entered — shown in the message.
   final String pincode;
 
   const DeliveryUnavailablePage({super.key, required this.pincode});
 
-  static const Color _darkBrown = Color(0xFF3D1F00);
-  static const Color _accent    = Color(0xFFB85C00);
-  static const Color _cream     = Color(0xFFFDF6EC);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _cream,
+      backgroundColor: AppColors.white,
       appBar: AppBar(
-        backgroundColor: _darkBrown,
+        backgroundColor: AppColors.appBarBg,
         elevation:       0,
         leading: IconButton(
-          icon:      const Icon(Icons.arrow_back, color: Colors.white),
+          icon:      const Icon(Icons.arrow_back, color: AppColors.appBarIcon),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Delivery Unavailable',
           style: TextStyle(
-            color:      Colors.white,
+            color:       AppColors.appBarText,
             fontWeight: FontWeight.bold,
             fontSize:   18,
           ),
         ),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -40,16 +39,16 @@ class DeliveryUnavailablePage extends StatelessWidget {
               width:  160,
               height: 160,
               decoration: BoxDecoration(
-                color:        _accent.withOpacity(0.08),
+                color:        AppColors.lightBrown.withOpacity(0.08),
                 shape:        BoxShape.circle,
                 border:       Border.all(
-                    color: _accent.withOpacity(0.18), width: 2),
+                    color: AppColors.lightBrown.withOpacity(0.18), width: 2),
               ),
               child: Stack(
                 alignment: Alignment.center,
                 children: [
                   Icon(Icons.location_off_rounded,
-                      size: 80, color: _accent.withOpacity(0.25)),
+                      size: 80, color: AppColors.buttonPrimary.withOpacity(0.25)),
                   Positioned(
                     bottom: 28,
                     right:  28,
@@ -93,22 +92,22 @@ class DeliveryUnavailablePage extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color:        _accent.withOpacity(0.08),
+                  color:        AppColors.buttonPrimary.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(20),
                   border:       Border.all(
-                      color: _accent.withOpacity(0.25)),
+                      color: AppColors.buttonPrimary.withOpacity(0.25)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.pin_drop_outlined,
-                        size: 16, color: _accent),
+                        size: 16, color: AppColors.buttonPrimary),
                     const SizedBox(width: 6),
                     Text(
                       'Pincode: $pincode',
                       style: TextStyle(
                           fontSize:   14,
-                          color:      _accent,
+                          color:      AppColors.appBarText,
                           fontWeight: FontWeight.w600),
                     ),
                   ],
@@ -141,7 +140,7 @@ class DeliveryUnavailablePage extends StatelessWidget {
                   Navigator.pop(context);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _accent,
+                  backgroundColor: AppColors.buttonPrimary,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14)),
                   elevation: 0,
@@ -169,7 +168,7 @@ class DeliveryUnavailablePage extends StatelessWidget {
                 'Go back to home',
                 style: TextStyle(
                     fontSize:   14,
-                    color:      Colors.grey[500],
+                    color:      AppColors.buttonPrimary,
                     decoration: TextDecoration.underline),
               ),
             ),

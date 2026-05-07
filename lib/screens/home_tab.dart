@@ -56,6 +56,7 @@ class HomeTabState extends State<HomeTab> {
   final GlobalKey<State<MtlTabBody>> _mtlKey = GlobalKey<State<MtlTabBody>>();
 
   bool get isTablet => MediaQuery.of(context).size.shortestSide >= 600;
+
   @override
   void initState() {
     super.initState();
@@ -93,9 +94,9 @@ class HomeTabState extends State<HomeTab> {
           });
         }
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
+
   Future<void> _loadSavedAddress() async {
     final prefs = await SharedPreferences.getInstance();
     final label    = prefs.getString('saved_address_label')    ?? '';
@@ -107,9 +108,15 @@ class HomeTabState extends State<HomeTab> {
       });
     }
   }
+
+  Future<void> _saveAddress(SelectedAddress address) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('saved_address_label',    address.label);
+    await prefs.setString('saved_address_subtitle', address.subtitle);
+  }
+
   // ── Pull-to-refresh handler ────────────────────────────────────────────────
   Future<void> _onRefresh() async {
-    // Trigger the MtlTabBody's refresh via GlobalKey
     final state = _mtlKey.currentState;
     if (state != null) {
       await (state as dynamic).refresh();
@@ -131,12 +138,13 @@ class HomeTabState extends State<HomeTab> {
             _addressLabel    = address.label;
             _addressSubtitle = address.subtitle;
           });
+          _saveAddress(address);
           _searchFocus.unfocus();
           FocusScope.of(context).unfocus();
-
+          Navigator.of(context).pop();
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Location set: ${address.subtitle}'),
-            backgroundColor: const Color(0xFFB85C00),
+            backgroundColor: const Color(0xFF388E3C),
           ));
         },
         onAddressSelected: (SelectedAddress address) {
@@ -144,8 +152,10 @@ class HomeTabState extends State<HomeTab> {
             _addressLabel    = address.label;
             _addressSubtitle = address.subtitle;
           });
+          _saveAddress(address);
           _searchFocus.unfocus();
           FocusScope.of(context).unfocus();
+          Navigator.of(context).pop();
         },
       ),
     ).then((_) {
@@ -211,7 +221,7 @@ class HomeTabState extends State<HomeTab> {
                   borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
           const Text('Search by Image',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.black87)),
           const SizedBox(height: 16),
           ListTile(
             leading: _iconBox(Icons.camera_alt),
@@ -276,7 +286,7 @@ class HomeTabState extends State<HomeTab> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Image search coming soon!'),
-          backgroundColor: Color(0xFFB85C00),
+          backgroundColor: Color(0xFFFF0080),
         ));
       }
     });
@@ -286,9 +296,9 @@ class HomeTabState extends State<HomeTab> {
   Widget _iconBox(IconData icon) => Container(
     padding: const EdgeInsets.all(8),
     decoration: BoxDecoration(
-        color: const Color(0xFFB85C00).withValues(alpha: 0.1),
+        color: const Color(0xFFFF0080).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8)),
-    child: Icon(icon, color: const Color(0xFFB85C00), size: 22),
+    child: Icon(icon, color: const Color(0xFFFF0080), size: 22),
   );
 
   void _permDialog(String feature) {
@@ -327,7 +337,7 @@ class HomeTabState extends State<HomeTab> {
         child: Stack(
           children: [
             RefreshIndicator(
-              color:       const Color(0xFFB85C00),
+              color:       const Color(0xFFFF0080),
               strokeWidth: 2.5,
               displacement: 80,
               onRefresh:   _onRefresh,
@@ -336,18 +346,13 @@ class HomeTabState extends State<HomeTab> {
                 keyboardDismissBehavior:
                 ScrollViewKeyboardDismissBehavior.onDrag,
                 slivers: [
-                  // ── Address bar scrolls away ──────────────────────────
                   SliverToBoxAdapter(child: _buildAddressBar()),
-
-                  // ── Tab bar scrolls away ──────────────────────────────
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: _buildQuickTabBar(),
                     ),
                   ),
-
-                  // ── Search bar PINNED (only mtl tab) ─────────────────
                   if (_activeTab == QuickTab.mtl)
                     SliverPersistentHeader(
                       pinned: true,
@@ -356,8 +361,6 @@ class HomeTabState extends State<HomeTab> {
                         isTablet: isTablet,
                       ),
                     ),
-
-                  // ── Tab body (category strip pins inside MtlTabBody) ──
                   if (_activeTab == QuickTab.mtl)
                     MtlTabBody(
                       key: _mtlKey,
@@ -371,13 +374,10 @@ class HomeTabState extends State<HomeTab> {
                     const SuperMallTabBody(),
                   if (_activeTab == QuickTab.cafe)
                     const CafeTabBody(),
-
                   const SliverToBoxAdapter(child: SizedBox(height: 100)),
                 ],
               ),
             ),
-
-            // ── Floating cart bar ─────────────────────────────────────────
             Positioned(
               bottom: 12,
               left:   16,
@@ -393,7 +393,6 @@ class HomeTabState extends State<HomeTab> {
   // ── Address bar ────────────────────────────────────────────────────────────
   Widget _buildAddressBar() {
     return Container(
-      // margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       margin: EdgeInsets.fromLTRB(isTablet ? 24 : 16, isTablet ? 20 : 16, isTablet ? 24 : 16, 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -415,9 +414,9 @@ class HomeTabState extends State<HomeTab> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                    color: const Color(0xFFB85C00).withValues(alpha: 0.1),
+                    color: const Color(0xFFFF0080).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8)),
-                child: const Icon(Icons.home, color: Color(0xFFB85C00), size: 24),
+                child: const Icon(Icons.home, color: Color(0xFFFF0080), size: 24),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -444,8 +443,6 @@ class HomeTabState extends State<HomeTab> {
             ]),
           ),
         ),
-
-        // ── Profile avatar ────────────────────────────────────────────────
         GestureDetector(
           onTap: () {
             _searchFocus.unfocus();
@@ -460,16 +457,15 @@ class HomeTabState extends State<HomeTab> {
           child: Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-                color: const Color(0xFFB85C00).withValues(alpha: 0.1),
+                color: const Color(0xFFFF0080).withValues(alpha: 0.1),
                 shape: BoxShape.circle),
             child: CircleAvatar(
               radius: 14,
-              backgroundColor: const Color(0xFFB85C00),
+              backgroundColor: const Color(0xFFFF0080),
               backgroundImage: _profileImagePath != null &&
                   File(_profileImagePath!).existsSync()
                   ? FileImage(File(_profileImagePath!)) as ImageProvider
                   : _profileServerImageUrl != null
-                  // ? NetworkImage('${ApiConfig.imageBase}${_profileServerImageUrl!}') as ImageProvider
                   ? NetworkImage(
                 _profileServerImageUrl!.startsWith('http')
                     ? _profileServerImageUrl!
@@ -488,8 +484,37 @@ class HomeTabState extends State<HomeTab> {
     );
   }
 
+  // ── Quick tab bar ──────────────────────────────────────────────────────────
   Widget _buildQuickTabBar() {
     final double tabWidth = isTablet ? 120 : 80;
+
+    // ── DBM tab colors ─────────────────────────────────────────────────────
+    const Color dbmSelectedBg       = Color(0xFFDEDEDE); // ← change selected bg
+    const Color dbmUnselectedBg     = Colors.white;       // ← change unselected bg
+    const Color dbmSelectedText     = Colors.black87;       // ← change selected text
+    const Color dbmUnselectedText   = Color(0xFFB85C00);  // ← change unselected text
+    const Color dbmBorderColor      = Color(0xFFFFB3D9);  // ← change border color
+
+    // ── 50% OFF ZONE tab colors ────────────────────────────────────────────
+    const Color offZoneSelectedBg       = Color(0xFFDEDEDE); // ← change selected bg
+    const Color offZoneUnselectedBg     = Colors.white;       // ← change unselected bg
+    const Color offZoneSelectedText     = Colors.black87;       // ← change selected text
+    const Color offZoneUnselectedText   = Color(0xFFB85C00);  // ← change unselected text
+    const Color offZoneBorderColor      = Color(0xFFFFB3D9);  // ← change border color
+
+    // ── 10% OFF ZONE tab colors ────────────────────────────────────────────
+    const Color superMallSelectedBg     = Color(0xFFDEDEDE); // ← change selected bg
+    const Color superMallUnselectedBg   = Colors.white;       // ← change unselected bg
+    const Color superMallSelectedText   = Colors.black87;       // ← change selected text
+    const Color superMallUnselectedText = Color(0xFF1B5E20);  // ← change unselected text
+    const Color superMallBorderColor    = Color(0xFFFFB3D9);  // ← change border color
+
+    // ── Café tab colors ────────────────────────────────────────────────────
+    const Color cafeSelectedBg       = Color(0xFFDEDEDE); // ← change selected bg
+    const Color cafeUnselectedBg     = Colors.white;       // ← change unselected bg
+    const Color cafeSelectedText     = Colors.black87;       // ← change selected text
+    const Color cafeUnselectedText   = Color(0xFFB85C00);  // ← change unselected text
+    const Color cafeBorderColor      = Color(0xFFFFB3D9);  // ← change border color
 
     return SizedBox(
       height: isTablet ? 60 : 45,
@@ -502,8 +527,12 @@ class HomeTabState extends State<HomeTab> {
             child: _tabItem(
               tab: QuickTab.mtl,
               label: 'DBM',
-              selectedColor: const Color(0xFFB85C00),
-              isBold: true,
+              selectedColor:       dbmSelectedBg,
+              unselectedBg:        dbmUnselectedBg,
+              selectedTextColor:   dbmSelectedText,
+              unselectedTextColor: dbmUnselectedText,
+              borderColor:         dbmBorderColor,
+              isBold:   true,
               isItalic: true,
               isTablet: isTablet,
             ),
@@ -515,10 +544,14 @@ class HomeTabState extends State<HomeTab> {
             child: _tabItem(
               tab: QuickTab.offZone,
               label: '50%\nOFF ZONE',
-              selectedColor: const Color(0xFFB85C00),
-              isBold: true,
-              bigTopLine: true,
-              isTablet: isTablet,
+              selectedColor:       offZoneSelectedBg,
+              unselectedBg:        offZoneUnselectedBg,
+              selectedTextColor:   offZoneSelectedText,
+              unselectedTextColor: offZoneUnselectedText,
+              borderColor:         offZoneBorderColor,
+              isBold:      true,
+              bigTopLine:  true,
+              isTablet:    isTablet,
             ),
           ),
           const SizedBox(width: 8),
@@ -528,10 +561,14 @@ class HomeTabState extends State<HomeTab> {
             child: _tabItem(
               tab: QuickTab.superMall,
               label: '10%\nOFF ZONE',
-              selectedColor: const Color(0xFF1B5E20),
-              isBold: true,
+              selectedColor:       superMallSelectedBg,
+              unselectedBg:        superMallUnselectedBg,
+              selectedTextColor:   superMallSelectedText,
+              unselectedTextColor: superMallUnselectedText,
+              borderColor:         superMallBorderColor,
+              isBold:     true,
               bigTopLine: true,
-              isTablet: isTablet,
+              isTablet:   isTablet,
             ),
           ),
           const SizedBox(width: 8),
@@ -541,7 +578,11 @@ class HomeTabState extends State<HomeTab> {
             child: _tabItem(
               tab: QuickTab.cafe,
               label: 'café',
-              selectedColor: const Color(0xFFB85C00),
+              selectedColor:       cafeSelectedBg,
+              unselectedBg:        cafeUnselectedBg,
+              selectedTextColor:   cafeSelectedText,
+              unselectedTextColor: cafeUnselectedText,
+              borderColor:         cafeBorderColor,
               isItalic: true,
               isTablet: isTablet,
             ),
@@ -551,23 +592,22 @@ class HomeTabState extends State<HomeTab> {
     );
   }
 
+  // ── Tab item ───────────────────────────────────────────────────────────────
   Widget _tabItem({
     required QuickTab tab,
     required String   label,
     required Color    selectedColor,
-    bool isBold       = false,
-    bool isItalic     = false,
-    bool isTablet     = false,
-    bool bigTopLine   = false,
+    required Color    unselectedBg,
+    required Color    selectedTextColor,
+    required Color    unselectedTextColor,
+    required Color    borderColor,
+    bool isBold     = false,
+    bool isItalic   = false,
+    bool isTablet   = false,
+    bool bigTopLine = false,
   }) {
     final isSelected = _activeTab == tab;
     final isMtl      = tab == QuickTab.mtl;
-
-    Color unselected() {
-      if (isMtl) return const Color(0xFFB85C00);
-      if (tab == QuickTab.superMall) return const Color(0xFF1B5E20);
-      return const Color(0xFFB85C00);
-    }
 
     return GestureDetector(
       onTap: () {
@@ -578,22 +618,20 @@ class HomeTabState extends State<HomeTab> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeInOut,
-        // padding: EdgeInsets.symmetric(horizontal: isMtl ? 22 : 16, vertical: 6),
         constraints: BoxConstraints(
           minHeight: isTablet ? 52 : 42,
           maxHeight: isTablet ? 56 : 44,
         ),
-
         padding: EdgeInsets.symmetric(
           horizontal: isTablet ? 16 : 10,
-          vertical: isTablet ? 10 : 6,
+          vertical:   isTablet ? 10 : 6,
         ),
         decoration: BoxDecoration(
-          color: isSelected ? selectedColor : Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          color: isSelected ? selectedColor : unselectedBg,         // ← bg color
+          borderRadius: BorderRadius.circular(14),                   // ← corner shape
           border: Border.all(
-              color: isSelected ? selectedColor : Colors.grey[300]!,
-              width: 1.5),
+              color: isSelected ? selectedColor : borderColor,       // ← border color
+              width: 1.5),                                           // ← border width
           boxShadow: isSelected
               ? [BoxShadow(
               color: selectedColor.withValues(alpha: 0.35),
@@ -614,17 +652,19 @@ class HomeTabState extends State<HomeTab> {
                 style: TextStyle(
                   fontSize:   isTablet ? 20 : 16,
                   fontWeight: FontWeight.bold,
-                  color:      isSelected ? Colors.white : unselected(),
-                  height:     1.2,
+                  color: isSelected ? selectedTextColor : unselectedTextColor,
+                  height: 1.2,
                 ),
               ),
               TextSpan(
-                text: label.split('\n').length > 1 ? label.split('\n').sublist(1).join('\n') : '',
+                text: label.split('\n').length > 1
+                    ? label.split('\n').sublist(1).join('\n')
+                    : '',
                 style: TextStyle(
                   fontSize:   isTablet ? 9 : 8,
                   fontWeight: FontWeight.w600,
-                  color:      isSelected ? Colors.white : unselected(),
-                  height:     1.2,
+                  color: isSelected ? selectedTextColor : unselectedTextColor,
+                  height: 1.2,
                 ),
               ),
             ]),
@@ -636,7 +676,7 @@ class HomeTabState extends State<HomeTab> {
               fontSize:      isMtl ? (isTablet ? 24 : 18) : (isTablet ? 15 : 12),
               fontWeight:    isBold ? FontWeight.bold : FontWeight.w500,
               fontStyle:     isItalic ? FontStyle.italic : FontStyle.normal,
-              color:         isSelected ? Colors.white : unselected(),
+              color: isSelected ? selectedTextColor : unselectedTextColor,
               height:        1.25,
               letterSpacing: isMtl ? 0.5 : 0,
             ),
@@ -668,7 +708,7 @@ class HomeTabState extends State<HomeTab> {
               ),
               child: Row(children: [
                 const SizedBox(width: 14),
-                Icon(Icons.search, color: Colors.grey[400], size: 20),
+                const Icon(Icons.search, color: Colors.black87, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
@@ -681,8 +721,8 @@ class HomeTabState extends State<HomeTab> {
                           : 'Search products, categories, offers…',
                       hintStyle: TextStyle(
                           color: _isListening
-                              ? const Color(0xFFB85C00)
-                              : Colors.grey[400],
+                              ? const Color(0xFFFF0080)
+                              : Colors.black87,
                           fontSize: 14),
                       border: InputBorder.none,
                       isDense: true,
@@ -697,21 +737,25 @@ class HomeTabState extends State<HomeTab> {
                       _searchFocus.unfocus();
                       setState(() {});
                     },
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 10),
-                      child: Icon(Icons.close, size: 18, color: Colors.grey[400]),
+                    child: const Padding(
+                      padding: EdgeInsets.only(right: 10),
+                      child: Icon(Icons.close, size: 18, color: Colors.black87),
                     ),
                   ),
               ]),
             ),
           ),
           const SizedBox(width: 8),
-          // _iconBtn(icon: Icons.camera_alt_outlined, onTap: _showImageSheet),
-          _iconBtn(icon: Icons.camera_alt_outlined, onTap: _showImageSheet, isTablet: isTablet),
+          _iconBtn(
+            icon:     Icons.camera_alt_outlined,
+            onTap:    _showImageSheet,
+            isTablet: isTablet,
+            iconColor: Colors.pink,
+          ),
           const SizedBox(width: 8),
           _iconBtn(
             icon:      _isListening ? Icons.mic : Icons.mic_none,
-            iconColor: _isListening ? Colors.red : const Color(0xFFB85C00),
+            iconColor: _isListening ? Colors.red : const Color(0xFFFF0080),
             onTap:     _isListening ? _stopVoice : _startVoice,
             glowing:   _isListening,
             isTablet:  isTablet,
@@ -720,12 +764,13 @@ class HomeTabState extends State<HomeTab> {
       ),
     );
   }
+
   Widget _iconBtn({
     required IconData     icon,
     required VoidCallback onTap,
-    Color iconColor  = const Color(0xFFB85C00),
-    bool  glowing    = false,
-    bool  isTablet   = false,
+    Color iconColor = const Color(0xFFFF0080),
+    bool  glowing   = false,
+    bool  isTablet  = false,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -756,13 +801,12 @@ class HomeTabState extends State<HomeTab> {
         final totalQty   = cart.totalQuantity;
         final totalPrice = cart.totalPrice;
 
-        // Hidden when cart is empty — animate in/out
         return AnimatedSlide(
           duration: const Duration(milliseconds: 300),
           curve:    Curves.easeInOut,
           offset:   totalQty == 0
-              ? const Offset(0, 1.5)   // slide down off-screen
-              : Offset.zero,           // slide into view
+              ? const Offset(0, 1.5)
+              : Offset.zero,
           child: AnimatedOpacity(
             duration: const Duration(milliseconds: 250),
             opacity:  totalQty == 0 ? 0.0 : 1.0,
@@ -774,7 +818,7 @@ class HomeTabState extends State<HomeTab> {
                   context,
                   MaterialPageRoute(
                     builder: (_) => CartScreen(
-                      token:      widget.authToken  ?? '',
+                      token:      widget.authToken ?? '',
                       customerId: '',
                       onGoToHome: () => Navigator.pop(context),
                     ),
@@ -801,7 +845,6 @@ class HomeTabState extends State<HomeTab> {
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Row(
                   children: [
-                    // ── Item count badge ───────────────────────────────────
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 5),
@@ -818,8 +861,6 @@ class HomeTabState extends State<HomeTab> {
                         ),
                       ),
                     ),
-
-                    // ── Centre label ───────────────────────────────────────
                     const Expanded(
                       child: Text(
                         'View Cart',
@@ -832,8 +873,6 @@ class HomeTabState extends State<HomeTab> {
                         ),
                       ),
                     ),
-
-                    // ── Total + chevron ────────────────────────────────────
                     Text(
                       '₹${totalPrice.toStringAsFixed(0)}',
                       style: const TextStyle(
@@ -856,6 +895,7 @@ class HomeTabState extends State<HomeTab> {
   }
 }
 
+// ── Search bar delegate ────────────────────────────────────────────────────
 class _SearchBarDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
   final bool   isTablet;
@@ -864,19 +904,15 @@ class _SearchBarDelegate extends SliverPersistentHeaderDelegate {
 
   double get _height => isTablet ? 72.0 : 64.0;
 
-  @override
-  double get minExtent => _height;
-
-  @override
-  double get maxExtent => _height;
+  @override double get minExtent => _height;
+  @override double get maxExtent => _height;
 
   @override
   bool shouldRebuild(_SearchBarDelegate old) =>
       old.isTablet != isTablet || old.child != child;
 
   @override
-  Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return DecoratedBox(
       decoration: const BoxDecoration(color: Color(0xFFFFFFFF)),
       child: Padding(

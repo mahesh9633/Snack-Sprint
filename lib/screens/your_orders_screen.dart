@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import '../config/app_color.dart';
 import '../services/your_orders_service.dart';
-import '../services/api_config_service.dart';
 import '../services/session_manager.dart';
 import '../widgets/refreshable_screen.dart';
 import 'order_details_screen.dart';
@@ -42,9 +42,9 @@ class _YourOrdersScreenState extends State<YourOrdersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor: AppColors.white,
       appBar: AppBar(
-        backgroundColor: Color(0xFFFFFFFF),
+        backgroundColor: AppColors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
@@ -61,9 +61,9 @@ class _YourOrdersScreenState extends State<YourOrdersScreen> {
 
       body: RefreshableScreen(
         onRefresh: _retry,
-        color: const Color(0xFF8B3A0F),
+        color: Colors.pink,
         child: _loading
-            ? const Center(child: CircularProgressIndicator(color: Color(0xFF8B3A0F)))
+            ? const Center(child: CircularProgressIndicator(color: Color(0xFFFF0080)))
             : _error.isNotEmpty
             ? ListView(
           children: [
@@ -130,14 +130,14 @@ class _SummaryBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          // colors: [Color(0xFF7C3AED), Color(0xFF9F67FA)],
-          colors: [Color(0xFF8B3A0F), Color(0xFFB5541A)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6)
+        ],
       ),
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
       child: Row(
@@ -157,17 +157,17 @@ class _SummaryBanner extends StatelessWidget {
   Widget _stat(String label, String value, IconData icon) => Column(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Icon(icon, color: Colors.white70, size: 18),
+      Icon(icon, color: AppColors.pink, size: 18),
       const SizedBox(height: 4),
       Text(value,
           style: const TextStyle(
-              color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+              color: Colors.black87, fontSize: 15, fontWeight: FontWeight.bold)),
       const SizedBox(height: 2),
-      Text(label, style: const TextStyle(color: Colors.white70, fontSize: 10)),
+      Text(label, style: const TextStyle(color: AppColors.textPrimary, fontSize: 10)),
     ],
   );
 
-  Widget _vDivider() => Container(width: 1, height: 44, color: Colors.white30);
+  Widget _vDivider() => Container(width: 1, height: 44, color: AppColors.border);
 }
 
 // ── Order Card ──────────────────────────────────────────────────────────────
@@ -347,11 +347,11 @@ class _OrderCard extends StatelessWidget {
                     ],
                     const Spacer(),
                     Icon(Icons.calendar_today_outlined,
-                        size: 12, color: Colors.grey[400]),
+                        size: 12, color: Colors.black87),
                     const SizedBox(width: 4),
                     Text(info.dateAdded.split(' ').first,
                         style:
-                        TextStyle(fontSize: 11, color: Colors.grey[500])),
+                        TextStyle(fontSize: 11, color: Colors.black87)),
                   ]),
                   const SizedBox(height: 5),
                   Text(invoiceLabel,
@@ -376,17 +376,16 @@ class _OrderCard extends StatelessWidget {
                       width: 6, height: 6,
                       decoration: const BoxDecoration(
                           shape: BoxShape.circle,
-                          // color: Color(0xFF7C3AED)),
-                          color: Color(0xFF8B3A0F)),
+                          color: Colors.pink),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                         child: Text(p.name,
                             style: const TextStyle(
-                                fontSize: 13, color: Colors.black87))),
+                                fontSize: 15, color: Colors.black87))),
                     Text('\u00d7 ${p.quantity}',
                         style: TextStyle(
-                            fontSize: 12, color: Colors.grey[500])),
+                            fontSize: 12, color: Colors.black87)),
                     const SizedBox(width: 8),
                     Text('\u20b9${p.total}',
                         style: const TextStyle(
@@ -408,13 +407,13 @@ class _OrderCard extends StatelessWidget {
                   children: [
                     Row(children: [
                       const Icon(Icons.payment,
-                          size: 14, color: Color(0xFF8B3A0F)),
+                          size: 14, color: Color(0xFFFF0080)),
                       const SizedBox(width: 4),
                       Text(
                         invoice?.amountThrough ?? info.paymentMethod,
                         style: const TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF8B3A0F),
+                            color: Color(0xFFFF0080),
                             fontWeight: FontWeight.w500),
                       ),
                     ]),
@@ -423,7 +422,7 @@ class _OrderCard extends StatelessWidget {
                         TextSpan(
                             text: 'Total  ',
                             style: TextStyle(
-                                color: Colors.grey[500], fontSize: 12)),
+                                color: Colors.black87, fontSize: 12)),
                         TextSpan(
                             text: '\u20b9${info.total}',
                             style: const TextStyle(
@@ -453,11 +452,11 @@ class _OrderCard extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(Icons.local_shipping_outlined,
-                                size: 14, color: Color(0xFFFF0080)),
+                                size: 14, color: AppColors.buttonPrimary),
                             SizedBox(width: 5),
                             Text('Track Order',
                                 style: TextStyle(
-                                    color: Color(0xFFFF0080),
+                                    color:  AppColors.buttonPrimary,
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold)),
                           ],
@@ -479,7 +478,7 @@ class _OrderCard extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 9),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFF0080),
+                          color: AppColors.buttonPrimary,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Row(

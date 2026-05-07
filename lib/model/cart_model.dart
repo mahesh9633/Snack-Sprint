@@ -22,7 +22,13 @@ class CartItem {
   );
 }
 
+//   // ── Per-user key (set on login, reset on logout) ───────────────────────────
+//   String _cartKey = 'mtl_cart_items_guest';
+
 class CartModel extends ChangeNotifier {
+
+  // callback to notify UI when stock limit is reached
+  void Function(String message)? onStockLimitReached;
 
   // ── Per-user key (set on login, reset on logout) ───────────────────────────
   String _cartKey = 'mtl_cart_items_guest';
@@ -94,6 +100,16 @@ class CartModel extends ChangeNotifier {
   // ── Cart operations ──────────────────────────────────────────────────────────
 
   void addItem(Product product) {
+    final stock = product.quantity > 0 ? product.quantity : product.posQuantity;
+    final currentQty = _items[product.id]?.quantity ?? 0;
+
+    if (stock > 0 && currentQty >= stock) {
+      onStockLimitReached?.call(
+        'Only $stock item${stock == 1 ? '' : 's'} available in stock',
+      );
+      return;
+    }
+
     if (_items.containsKey(product.id)) {
       _items[product.id]!.quantity++;
     } else {
@@ -111,7 +127,19 @@ class CartModel extends ChangeNotifier {
 
   void incrementQuantity(String productId) {
     if (_items.containsKey(productId)) {
-      _items[productId]!.quantity++;
+      final item  = _items[productId]!;
+      final stock = item.product.quantity > 0
+          ? item.product.quantity
+          : item.product.posQuantity;
+
+      if (stock > 0 && item.quantity >= stock) {
+        onStockLimitReached?.call(
+          'Only $stock item${stock == 1 ? '' : 's'} available in stock',
+        );
+        return;
+      }
+
+      item.quantity++;
       notifyListeners();
       _saveCart();
     }

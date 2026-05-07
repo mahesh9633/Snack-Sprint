@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../config/app_color.dart';
 import '../model/address_model.dart';
 import '../model/product_model.dart';
 import '../products/product_detail_screen.dart';
@@ -517,7 +518,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
             child: Row(
               children: [
                 const Icon(Icons.shopping_bag_outlined,
-                    color: Color(0xFF8B3A0F), size: 18),
+                    color: AppColors.headerBanner, size: 18),
                 const SizedBox(width: 6),
                 Text(
                   '${widget.products.length} item${widget.products.length > 1 ? 's' : ''} in this order',
@@ -602,10 +603,10 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F2F7),
+      backgroundColor: AppColors.white,
       appBar: _buildAppBar(),
         body: RefreshIndicator(
-          color: const Color(0xFF8B3A0F),
+          color: const Color(0xFFFF0080),
           onRefresh: () async {
             await Future.wait([_fetchTrackOrder(), _fetchAddresses()]);
           },
@@ -654,7 +655,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
           ],
         ),
         child: const Center(
-          child: CircularProgressIndicator(color: Color(0xFF8B3A0F)),
+          child: CircularProgressIndicator(color: Color(0xFFFF0080)),
         ),
       );
     }
@@ -679,7 +680,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
               icon: const Icon(Icons.refresh, size: 16),
               label: const Text('Retry'),
               style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF8B3A0F),
+                  backgroundColor: AppColors.loader,
                   foregroundColor: Colors.white),
             ),
           ],
@@ -750,7 +751,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.white,
       elevation: 0,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Colors.black),
@@ -763,10 +764,10 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
         TextButton.icon(
           onPressed: _openWhatsApp,
           icon: const Icon(Icons.headset_mic_outlined,
-              color: Color(0xFF8B3A0F), size: 18),
+              color:AppColors.success, size: 18),
           label: const Text('HELP',
               style: TextStyle(
-                  color: Color(0xFF8B3A0F),
+                  color:  AppColors.success,
                   fontWeight: FontWeight.bold,
                   fontSize: 13)),
         ),
@@ -822,14 +823,14 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                           color: Colors.grey[100],
                           child: const Center(
                               child: Icon(Icons.inventory_2_outlined,
-                                  color: Color(0xFF8B3A0F), size: 48)))))
+                                  color: Color(0xFFFF0080), size: 48)))))
                   : Container(
                   width: double.infinity,
                   height: 140,
                   color: Colors.grey[100],
                   child: const Center(
                       child: Icon(Icons.inventory_2_outlined,
-                          color: Color(0xFF8B3A0F), size: 48))),
+                          color: Color(0xFFFF0080), size: 48))),
             );
           }),
 
@@ -854,7 +855,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                 ),
                 const SizedBox(height: 4),
                 Text('Order #${widget.orderId}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                    style: TextStyle(fontSize: 12, color: Colors.black87)),
 
                 const SizedBox(height: 12),
                 const Divider(height: 1),
@@ -1082,7 +1083,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     color: Colors.grey[100],
     child: const Center(
         child: Icon(Icons.inventory_2_outlined,
-            color: Color(0xFF8B3A0F), size: 36)),
+            color: Color(0xFFFF0080), size: 36)),
   );
 
   Widget _buildOrderTotalsRow(Map<String, dynamic> details) {
@@ -1144,7 +1145,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF8B3A0F), Color(0xFFB5541A)],
+          colors: [AppColors.pink, AppColors.pink],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -1158,7 +1159,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                 color: Colors.white.withOpacity(0.2),
                 shape: BoxShape.circle),
             child: const Icon(Icons.local_shipping,
-                color: Colors.white, size: 20),
+                color: Colors.white, size: 30),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1166,7 +1167,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Estimated Delivery',
-                    style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    style: TextStyle(color: Colors.white, fontSize: 13)),
                 const SizedBox(height: 2),
                 Text(widget.estimatedDelivery,
                     style: const TextStyle(
@@ -1185,7 +1186,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
             child: const Row(
               children: [
                 Icon(Icons.bolt, color: Colors.amber, size: 14),
-                SizedBox(width: 3),
+                SizedBox(width: 8),
                 Text('95% on time',
                     style: TextStyle(color: Colors.white, fontSize: 11)),
               ],
@@ -1261,7 +1262,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                    color: isDisabled ? Colors.grey.shade300 : Colors.red,
+                    color: isDisabled ? Colors.grey.shade300 : AppColors.error,
                     borderRadius: BorderRadius.circular(8)),
                 child: Text('Cancel',
                     style: TextStyle(
@@ -1312,7 +1313,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
               padding: const EdgeInsets.symmetric(
                   horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                  color: Colors.blue,
+                  color: AppColors.info,
                   borderRadius: BorderRadius.circular(8)),
               child: const Text('Return',
                   style: TextStyle(
@@ -1345,7 +1346,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
           Row(
             children: [
               const Icon(Icons.location_on_outlined,
-                  color: Color(0xFF8B3A0F), size: 18),
+                  color: (AppColors.loader), size: 18),
               const SizedBox(width: 6),
               const Text('Delivery Address',
                   style: TextStyle(
@@ -1357,7 +1358,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                 onTap: _openChangeSheet,
                 child: const Text('CHANGE',
                     style: TextStyle(
-                        color: Color(0xFF8B3A0F),
+                        color: Colors.pink,
                         fontSize: 12,
                         fontWeight: FontWeight.bold)),
               ),
@@ -1369,7 +1370,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 16),
                 child: CircularProgressIndicator(
-                    strokeWidth: 2, color: Color(0xFF8B3A0F)),
+                    strokeWidth: 2, color: Color(0xFFFF0080)),
               ),
             )
           else if (_addressError != null)
@@ -1405,7 +1406,7 @@ class _HorizontalStepper extends StatelessWidget {
     required this.iconForStep,
   });
 
-  static const _brown = Color(0xFF8B3A0F);
+  static const _brown = Color(0xFFFF0080);
 
   @override
   Widget build(BuildContext context) {
@@ -1434,7 +1435,7 @@ class _HorizontalStepper extends StatelessWidget {
                   width: (totalWidth - 36) * progressAnim.value,
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
-                        colors: [_brown, Color(0xFFB5541A)]),
+                        colors: [_brown, Color(0xFFFF0080)]),
                   ),
                 ),
               ),
@@ -1491,7 +1492,7 @@ class _StepCircle extends StatelessWidget {
   final TrackStepStatus status;
   final IconData icon;
   const _StepCircle({required this.status, required this.icon});
-  static const _brown = Color(0xFF8B3A0F);
+  static const _brown = Color(0xFFB05A0A);
 
   @override
   Widget build(BuildContext context) {
@@ -1881,12 +1882,12 @@ class _AddressDisplay extends StatelessWidget {
               padding:
               const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                  color: const Color(0xFFFBF0EB),
+                  color: const Color(0xFFFF0080),
                   borderRadius: BorderRadius.circular(6)),
               child: Text(address.name,
                   style: const TextStyle(
                       fontSize: 11,
-                      color: Color(0xFF8B3A0F),
+                      color: Color(0xFFFFFFFF),
                       fontWeight: FontWeight.w600)),
             ),
             if (address.isDefault) ...[
@@ -1910,12 +1911,12 @@ class _AddressDisplay extends StatelessWidget {
               child: const Row(
                 children: [
                   Icon(Icons.edit_outlined,
-                      size: 14, color: Color(0xFF8B3A0F)),
+                      size: 14, color: Color(0xFFFF0080)),
                   SizedBox(width: 4),
                   Text('Edit',
                       style: TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF8B3A0F),
+                          color: Color(0xFFFF0080),
                           fontWeight: FontWeight.w500)),
                 ],
               ),
@@ -1929,11 +1930,11 @@ class _AddressDisplay extends StatelessWidget {
         const SizedBox(height: 4),
         Text(parts,
             style: TextStyle(
-                fontSize: 12, color: Colors.grey[600], height: 1.5)),
+                fontSize: 12, color: Colors.black87, height: 1.5)),
         if (address.phone.isNotEmpty) ...[
           const SizedBox(height: 4),
           Text(address.phone,
-              style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+              style: TextStyle(fontSize: 12, color: Colors.black87)),
         ],
       ],
     );
@@ -1957,7 +1958,7 @@ class _AddressErrorRow extends StatelessWidget {
       TextButton(
           onPressed: onRetry,
           child: const Text('Retry',
-              style: TextStyle(color: Color(0xFF8B3A0F)))),
+              style: TextStyle(color:  AppColors.buttonPrimary,))),
     ],
   );
 }
@@ -2099,7 +2100,7 @@ class _ChangeAddressSheet extends StatelessWidget {
                     ),
                     IconButton(
                       icon: const Icon(Icons.edit_outlined,
-                          size: 18, color: Color(0xFF8B3A0F)),
+                          size: 18, color: Color(0xFFFF0080)),
                       onPressed: () {
                         Navigator.pop(context);
                         onEdit(addr);
@@ -2147,7 +2148,7 @@ class _EditAddressSheetState extends State<_EditAddressSheet> {
   String _labelChoice = 'Home';
   bool _saving = false;
 
-  static const _brown = Color(0xFF8B3A0F);
+  static const _brown = AppColors.headerBanner ;
 
   @override
   void initState() {
@@ -2299,7 +2300,7 @@ class _EditAddressSheetState extends State<_EditAddressSheet> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isChosen ? _brown : Colors.grey[100],
+                        color: isChosen ? Colors.pink : Colors.grey[100],
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(label,
@@ -2307,7 +2308,7 @@ class _EditAddressSheetState extends State<_EditAddressSheet> {
                               fontSize: 12,
                               color: isChosen
                                   ? Colors.white
-                                  : Colors.grey[600],
+                                  : Colors.black87,
                               fontWeight: FontWeight.w600)),
                     ),
                   );
@@ -2392,7 +2393,7 @@ class _EditAddressSheetState extends State<_EditAddressSheet> {
                 child: ElevatedButton(
                   onPressed: _saving ? null : _save,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _brown,
+                    backgroundColor: AppColors.buttonPrimary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(

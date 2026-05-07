@@ -4,12 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mtl_groceriesapp/config/app_color.dart';
 import 'add_new_address.dart';
 
 // ── Data model for a selected address ────────────────────────────────────────
 class SelectedAddress {
-  final String label;
-  final String subtitle;
+  final String  label;
+  final String  subtitle;
   final double? latitude;
   final double? longitude;
   final String? mapsLink;
@@ -24,11 +25,11 @@ class SelectedAddress {
 }
 
 class _RecentAddress {
-  final String label;
-  final String subtitle;
-  final IconData icon;
-  final double? latitude;
-  final double? longitude;
+  final String    label;
+  final String    subtitle;
+  final IconData  icon;
+  final double?   latitude;
+  final double?   longitude;
 
   const _RecentAddress({
     required this.label,
@@ -87,19 +88,17 @@ class SelectLocationScreen extends StatefulWidget {
   final void Function(SelectedAddress) onAddressConfirmed;
   final String token;
 
-  const SelectLocationScreen({super.key, required this.onAddressConfirmed, required this.token});
+  const SelectLocationScreen({
+    super.key,
+    required this.onAddressConfirmed,
+    required this.token,
+  });
 
   @override
   State<SelectLocationScreen> createState() => _SelectLocationScreenState();
 }
 
 class _SelectLocationScreenState extends State<SelectLocationScreen> {
-  // ── Theme ──────────────────────────────────────────────────────────────────
-  static const Color _darkBrown = Color(0xFF3D1F00);
-  static const Color _accent    = Color(0xFFB85C00);
-  static const Color _cream     = Color(0xFFFDF6EC);
-  static const Color _mutedText = Color(0xFFD9C4A8);
-
   bool _locLoading = false;
 
   List<_RecentAddress> _recentAddresses = [];
@@ -121,6 +120,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
     }
   }
 
+  @override
   void dispose() {
     super.dispose();
   }
@@ -147,7 +147,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
       await placemarkFromCoordinates(pos.latitude, pos.longitude);
       final p = placemarks.isNotEmpty ? placemarks.first : null;
 
-      final label   = p?.subLocality?.isNotEmpty == true
+      final label = p?.subLocality?.isNotEmpty == true
           ? p!.subLocality!
           : (p?.locality ?? 'Current Location');
       final subtitle = [
@@ -165,15 +165,18 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
         subtitle:  subtitle.isNotEmpty ? subtitle : 'Your current location',
         latitude:  pos.latitude,
         longitude: pos.longitude,
-        mapsLink:  'https://www.google.com/maps/dir/?api=1&destination=${pos.latitude},${pos.longitude}&travelmode=driving',
+        mapsLink:
+        'https://www.google.com/maps/dir/?api=1&destination=${pos.latitude},${pos.longitude}&travelmode=driving',
       );
-      await _saveRecentAddress(_RecentAddress(
-        label:     label,
-        subtitle:  subtitle.isNotEmpty ? subtitle : 'Your current location',
-        icon:      Icons.my_location,
-        latitude:  pos.latitude,
-        longitude: pos.longitude,
-      ), widget.token);
+      await _saveRecentAddress(
+          _RecentAddress(
+            label:     label,
+            subtitle:  subtitle.isNotEmpty ? subtitle : 'Your current location',
+            icon:      Icons.my_location,
+            latitude:  pos.latitude,
+            longitude: pos.longitude,
+          ),
+          widget.token);
       widget.onAddressConfirmed(addr);
       if (mounted) Navigator.pop(context);
     } catch (e) {
@@ -181,7 +184,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
         setState(() => _locLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content:         Text('Could not get location: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.error,
         ));
       }
     }
@@ -201,7 +204,8 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
               onPressed: () => Navigator.pop(context),
               child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: _accent),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.buttonPrimary),
             onPressed: () {
               Navigator.pop(context);
               Geolocator.openAppSettings();
@@ -227,13 +231,15 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                 : addr.label == 'HOME'
                 ? Icons.home
                 : Icons.location_on;
-            await _saveRecentAddress(_RecentAddress(
-              label:     addr.label,
-              subtitle:  addr.subtitle,
-              icon:      icon,
-              latitude:  addr.latitude,
-              longitude: addr.longitude,
-            ), widget.token);
+            await _saveRecentAddress(
+                _RecentAddress(
+                  label:     addr.label,
+                  subtitle:  addr.subtitle,
+                  icon:      icon,
+                  latitude:  addr.latitude,
+                  longitude: addr.longitude,
+                ),
+                widget.token);
             widget.onAddressConfirmed(addr);
             Navigator.of(context)
               ..pop()
@@ -263,12 +269,12 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFFFDF6EC),
+        color:        AppColors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
-        mainAxisSize:        MainAxisSize.min,
-        crossAxisAlignment:  CrossAxisAlignment.start,
+        mainAxisSize:       MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
 
           const SizedBox(height: 16),
@@ -284,7 +290,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     decoration: BoxDecoration(
-                      color:        _accent,
+                      color:        AppColors.buttonPrimary,
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Column(children: [
@@ -374,7 +380,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
               child: Center(
                 child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color:       Color(0xFFB85C00)),
+                    color:       AppColors.buttonPrimary),
               ),
             )
           else if (_recentAddresses.isEmpty)
@@ -437,7 +443,7 @@ class _RecentTile extends StatelessWidget {
             width:  40,
             height: 40,
             decoration: BoxDecoration(
-                color:        Colors.grey[100],
+                color:        AppColors.white,
                 borderRadius: BorderRadius.circular(10)),
             child: Icon(r.icon, color: Colors.grey[600], size: 20),
           ),

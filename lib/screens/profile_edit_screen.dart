@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import '../config/app_color.dart';
 import '../services/api_config_service.dart';
 import '../services/get_profile_service.dart';
 import '../services/profile_submit_api_service.dart';
@@ -117,7 +118,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
         decoration: const BoxDecoration(
-          color: Colors.white,
+          color: AppColors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
@@ -127,7 +128,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             Container(
               width: 40, height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: AppColors.border,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -137,7 +138,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 20),
@@ -147,7 +148,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 _imageSourceOption(
                   icon: Icons.camera_front,
                   label: 'Selfie',
-                  color: const Color(0xFFCC5500),
+                  color: AppColors.lightBrown,
                   onTap: () async {
                     Navigator.pop(context);
                     final picked = await ImagePicker().pickImage(
@@ -158,7 +159,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     if (picked != null) {
                       setState(() {
                         _pickedImagePath = picked.path;
-                        _serverImageUrl  = null; // user picked new image
+                        _serverImageUrl  = null;
                       });
                     }
                   },
@@ -166,7 +167,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 _imageSourceOption(
                   icon: Icons.photo_library,
                   label: 'Album',
-                  color: const Color(0xFF2E7D32),
+                  color: AppColors.success,
                   onTap: () async {
                     Navigator.pop(context);
                     final picked = await ImagePicker().pickImage(
@@ -176,11 +177,24 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     if (picked != null) {
                       setState(() {
                         _pickedImagePath = picked.path;
-                        _serverImageUrl  = null; // user picked new image
+                        _serverImageUrl  = null;
                       });
                     }
                   },
                 ),
+                if (_pickedImagePath != null || _serverImageUrl != null)
+                  _imageSourceOption(
+                    icon: Icons.delete_outline,
+                    label: 'Remove',
+                    color: AppColors.error,
+                    onTap: () {
+                      Navigator.pop(context);
+                      setState(() {
+                        _pickedImagePath = null;
+                        _serverImageUrl  = null;
+                      });
+                    },
+                  ),
               ],
             ),
             const SizedBox(height: 16),
@@ -189,7 +203,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               child: const Text(
                 'Cancel',
                 style: TextStyle(
-                  color: Colors.grey,
+                  color: AppColors.textMuted,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -274,7 +288,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content:         Text('Profile updated successfully'),
-            backgroundColor: Color(0xFFCC5500),
+            backgroundColor: AppColors.success,
             behavior:        SnackBarBehavior.floating,
             duration:        Duration(seconds: 2),
           ),
@@ -308,7 +322,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content:         Text(message),
-        backgroundColor: Colors.redAccent,
+        backgroundColor: AppColors.error,
         behavior:        SnackBarBehavior.floating,
         duration:        const Duration(seconds: 3),
       ),
@@ -320,7 +334,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     ImageProvider? imageProvider;
 
     if (_pickedImagePath != null && File(_pickedImagePath!).existsSync()) {
-      // User just picked a new image from gallery/camera
       imageProvider = FileImage(File(_pickedImagePath!));
     } else if (_serverImageUrl != null && _serverImageUrl!.isNotEmpty) {
       final fullUrl = _serverImageUrl!.startsWith('http')
@@ -334,10 +347,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       child: Stack(children: [
         CircleAvatar(
           radius: 44,
-          backgroundColor: const Color(0xFFCC5500),
+          backgroundColor: AppColors.buttonPrimary,
           backgroundImage: imageProvider,
           child: imageProvider == null
-              ? const Icon(Icons.person, color: Colors.white, size: 48)
+              ? const Icon(Icons.person, color: AppColors.white, size: 48)
               : null,
         ),
         Positioned(
@@ -345,8 +358,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           child: Container(
             padding: const EdgeInsets.all(6),
             decoration: const BoxDecoration(
-                color: Color(0xFFCC5500), shape: BoxShape.circle),
-            child: const Icon(Icons.camera_alt, color: Colors.white, size: 14),
+                color: AppColors.buttonPrimary, shape: BoxShape.circle),
+            child: const Icon(Icons.camera_alt, color: AppColors.white, size: 14),
           ),
         ),
       ]),
@@ -357,27 +370,30 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      // ── Background: white (AppColors.white) ───────────────────────────────
+      backgroundColor: AppColors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.appBarBg,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: AppColors.appBarIcon),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Profile',
           style: TextStyle(
-              color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
+              color: AppColors.appBarText,
+              fontWeight: FontWeight.bold,
+              fontSize: 18),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: Colors.grey[200]),
+          child: Container(height: 1, color: AppColors.divider),
         ),
       ),
       body: _loading
           ? const Center(
-          child: CircularProgressIndicator(color: Color(0xFFCC5500)))
+          child: CircularProgressIndicator(color: AppColors.loader))
           : SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 32, 20, 32),
         child: Form(
@@ -392,7 +408,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               Center(
                 child: Text(
                   'Tap to change photo',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                  style: TextStyle(
+                      fontSize: 12, color: AppColors.appBarText),
                 ),
               ),
               const SizedBox(height: 28),
@@ -445,9 +462,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 },
               ),
               const SizedBox(height: 4),
-              Text(
+              const Text(
                 'We promise not to spam you',
-                style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                style: TextStyle(
+                    fontSize: 12, color: AppColors.appBarText),
               ),
               const SizedBox(height: 36),
 
@@ -458,9 +476,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 child: ElevatedButton(
                   onPressed: _saving ? null : _submit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF0080),
-                    disabledBackgroundColor:
-                    const Color(0xFFFF0080).withOpacity(0.6),
+                    backgroundColor: AppColors.buttonPrimary,
+                    disabledBackgroundColor: AppColors.buttonPrimaryDisabled,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
                     elevation: 0,
@@ -469,11 +486,12 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       ? const SizedBox(
                       width: 22, height: 22,
                       child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2.5))
+                          color: AppColors.buttonPrimaryText,
+                          strokeWidth: 2.5))
                       : const Text(
                     'Submit',
                     style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.buttonPrimaryText,
                         fontSize: 16,
                         fontWeight: FontWeight.bold),
                   ),
@@ -486,12 +504,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     );
   }
 
+  // ── Field label: black text ────────────────────────────────────────────────
   Widget _fieldLabel(String text) => Text(
     text,
     style: const TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: Color(0xFFCC5500)),
+        color: AppColors.textPrimary),   // black
   );
 
   Widget _buildField({
@@ -508,33 +527,40 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       readOnly:        readOnly,
       inputFormatters: inputFormatters,
       validator:       validator,
-      style: const TextStyle(fontSize: 14, color: Colors.black87),
+      style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
       decoration: InputDecoration(
-        hintText:       hint,
-        hintStyle:      TextStyle(color: Colors.grey[400], fontSize: 14),
-        filled:         true,
-        fillColor:      const Color(0xFFF3EEF9),
+        hintText:  hint,
+        hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+        filled:    true,
+        fillColor: const Color(0xFFFFFFFF),
         contentPadding:
         const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide:   BorderSide.none,
+          borderSide:   BorderSide(color: Colors.black, width: 1.2),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Colors.black, width: 1.2),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide:
-          const BorderSide(color: Color(0xFFCC5500), width: 1.5),
+          const BorderSide(color: AppColors.appBarText, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.red, width: 1.2),
+          borderSide:
+          const BorderSide(color: AppColors.error, width: 1.2),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.red, width: 1.5),
+          borderSide:
+          const BorderSide(color: AppColors.error, width: 1.5),
         ),
         suffixIcon: readOnly
-            ? const Icon(Icons.lock_outline, size: 16, color: Colors.grey)
+            ? const Icon(Icons.lock_outline,
+            size: 16, color: AppColors.textMuted)
             : null,
       ),
     );

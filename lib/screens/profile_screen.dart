@@ -8,6 +8,7 @@ import 'package:mtl_groceriesapp/screens/wishlist.dart';
 import 'package:provider/provider.dart';
 import 'package:mtl_groceriesapp/login/login_screen.dart';
 import 'package:mtl_groceriesapp/screens/saved_address_screen.dart';
+import '../config/app_color.dart';
 import '../model/address_model.dart';
 import '../model/favorites_model.dart';
 import '../model/cart_model.dart';
@@ -36,8 +37,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int     _rewardPoints     = 0;
 
   // ── Theme: warm brown / cream ───────────────────────────────────────────────
-  static const Color _primaryBrown = Color(0xFFCC5500);
-  static const Color _accentBrown  = Color(0xFFB07D4A);
+  static const Color _primaryBrown = Color(0xFFFF0080);
+  static const Color _accentBrown  = Color(0xFFFF0080);
   static const Color _lightCream   = Color(0xFFF5EFE6);
   static const Color _sectionBg    = Color(0xFFF0E9DC);
   static const Color _cardBg       = Color(0xFFFFFFFF);
@@ -61,6 +62,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _onRefresh() async {
     await _loadUserData();
   }
+
   Future<void> _loadUserData() async {
     // First load from local so screen shows something immediately
     final telephone  = await SessionManager.getTelephone();
@@ -70,7 +72,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (mounted) {
       setState(() {
         _telephone        = phone;
-        // Only update name from local if we don't already have a real name
         if (_displayName.isEmpty || _displayName == 'DBM user') {
           _displayName = (savedName != null && savedName.isNotEmpty)
               ? savedName
@@ -178,6 +179,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     }
   }
+
   Future<void> _openRewards() async {
     await Navigator.push(
       context,
@@ -232,7 +234,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (_) => const Center(child: CircularProgressIndicator()),
     );
 
-    context.read<FavoritesModel>().clear();
+    context.read<FavoritesModel>().onLogout();
     context.read<CartModel>().clearCartMemoryOnly();
 
     await LogoutService.logout();
@@ -253,9 +255,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         : '$_addressCount ${_addressCount == 1 ? 'Address' : 'Addresses'}';
 
     return Scaffold(
-      backgroundColor: _lightCream,
+      // ── CHANGED: white background instead of _lightCream ──────────────────
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Color(0xFFFFFFFF),
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black87),
@@ -267,196 +270,213 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 18),
         ),
       ),
-      body: RefreshIndicator(
-        onRefresh: _onRefresh,
-        color: _accentBrown,
-        backgroundColor: Colors.white,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: [
 
-            // ── User Header (brown background) ────────────────────────────
-            Container(
-              color: Color(0xFFFFFFFF),
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-              child: Row(children: [
-                GestureDetector(
-                  onTap: _openProfileEdit,
-                  child: Stack(children: [
-                    CircleAvatar(
-                      radius: 32,
-                      backgroundColor: _accentBrown,
-                      backgroundImage: _profileImagePath != null &&
-                          File(_profileImagePath!).existsSync()
-                          ? FileImage(File(_profileImagePath!)) as ImageProvider
-                          : _serverImageUrl != null
-                          ? NetworkImage(
-                        _serverImageUrl!.startsWith('http')
-                            ? _serverImageUrl!
-                            : '${ApiConfig.imageBase}$_serverImageUrl',
-                      ) as ImageProvider
-                          : null,
-                      child: (_profileImagePath == null ||
-                          !File(_profileImagePath!).existsSync()) &&
-                          _serverImageUrl == null
-                          ? const Icon(Icons.person, color: Colors.white, size: 36)
-                          : null,
+      // ── CHANGED: Column wraps fixed header + scrollable list ──────────────
+      body: Column(
+        children: [
+
+          // ── FIXED: User Header (does NOT scroll) ──────────────────────────
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+            child: Row(children: [
+              GestureDetector(
+                onTap: _openProfileEdit,
+                child: Stack(children: [
+                  CircleAvatar(
+                    radius: 32,
+                    backgroundColor: _accentBrown,
+                    backgroundImage: _profileImagePath != null &&
+                        File(_profileImagePath!).existsSync()
+                        ? FileImage(File(_profileImagePath!)) as ImageProvider
+                        : _serverImageUrl != null
+                        ? NetworkImage(
+                      _serverImageUrl!.startsWith('http')
+                          ? _serverImageUrl!
+                          : '${ApiConfig.imageBase}$_serverImageUrl',
+                    ) as ImageProvider
+                        : null,
+                    child: (_profileImagePath == null ||
+                        !File(_profileImagePath!).existsSync()) &&
+                        _serverImageUrl == null
+                        ? const Icon(Icons.person, color: Colors.white, size: 36)
+                        : null,
+                  ),
+                  Positioned(
+                    bottom: 0, right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                          color: AppColors.buttonPrimary, shape: BoxShape.circle),
+                      child: const Icon(Icons.camera_alt,
+                          color: Colors.white, size: 12),
                     ),
-                    Positioned(
-                      bottom: 0, right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                            color: _accentBrown, shape: BoxShape.circle),
-                        child: const Icon(Icons.camera_alt,
-                            color: Colors.white, size: 12),
-                      ),
-                    ),
-                  ]),
-                ),
-                const SizedBox(width: 16),
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(_displayName,
-                      style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87)),
-                  const SizedBox(height: 4),
-                  Text(
-                    _telephone.isEmpty ? 'Loading...' : '+91 $_telephone',
-                    style: const TextStyle(
-                        fontSize: 14, color: Color(0xDD000000)),
                   ),
                 ]),
+              ),
+              const SizedBox(width: 16),
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(_displayName,
+                    style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        // ── CHANGED: black text ───────────────────────────
+                        color: Colors.black87)),
+                const SizedBox(height: 4),
+                Text(
+                  _telephone.isEmpty ? 'Loading...' : '+91 $_telephone',
+                  style: const TextStyle(
+                      fontSize: 14,
+                      // ── CHANGED: black text ───────────────────────────
+                      color: Colors.black54),
+                ),
               ]),
-            ),
-
-            // ── Icon Tabs: Orders | Wishlist | Support ────────────────────
-            Container(
-              color: _primaryBrown,
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: _sectionBg,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _iconTab(
-                      Icons.shopping_bag_outlined,
-                      'Orders',
-                      isActive: true,
-                      onTap: _openOrders,
-                    ),
-                    _tabDivider(),
-                    _iconTab(Icons.favorite_border, 'Wishlist', onTap: _openWishlist),
-                    _tabDivider(),
-                    _iconTab(Icons.chat_bubble_outline, 'Support', onTap: _openSupport),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // ── Your Information ───────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Text('YOUR INFORMATION',
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.8,
-                      color: Colors.grey[600])),
-            ),
-            const SizedBox(height: 6),
-            _settingsCard([
-              _settingsRowWithSub(
-                Icons.location_on_outlined,
-                'Saved Addresses',
-                addrLabel,
-                onTap: _openAddresses,
-                badge: _addressCount > 0 ? '$_addressCount' : null,
-              ),
-              _divider(),
-              _settingsRow(Icons.person_outline, 'Profile',
-                  onTap: _openProfileEdit),
             ]),
+          ),
 
-            const SizedBox(height: 16),
-
-            // ── Other Information ──────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Text('OTHER INFORMATION',
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.8,
-                      color: Colors.grey[600])),
-            ),
-            const SizedBox(height: 6),
-            _settingsCard([
-              _settingsCard([
-                _settingsRow(Icons.favorite_border, 'Your Wishlist', onTap: _openWishlist),
-                _divider(),
-                _settingsRowWithSub(
-                  Icons.card_giftcard,
-                  'Rewards',
-                  _rewardPoints == 0
-                      ? 'Tap to check points'
-                      : '$_rewardPoints points available',
-                  onTap: _openRewards,
-                ),
-                _divider(),
-                _settingsRow(Icons.notifications_none, 'Notifications'),
-                _divider(),
-                _settingsRow(Icons.description_outlined, 'Terms & Conditions',
-                    onTap: _openTermsConditions),
-                _divider(),
-                _settingsRow(Icons.lock_outline, 'Privacy Policy',
-                    onTap: _openPrivacyPolicy),
-              ]),
-
-            const SizedBox(height: 16),
-
-            // ── Log Out ────────────────────────────────────────────────────
-            Container(
-              color: _cardBg,
-              child: InkWell(
-                onTap: _logout,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 18),
-                  child: Center(
-                    child: Text('Log Out',
-                        style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.red)),
+          // ── FIXED: Icon Tabs: Orders | Wishlist | Support (does NOT scroll)
+          // ── CHANGED: color is white, no brown border wrapper ──────────────
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _iconTab(
+                    Icons.shopping_bag_outlined,
+                    'Orders',
+                    // isActive: true,
+                    onTap: _openOrders,
                   ),
-                ),
+                  _tabDivider(),
+                  _iconTab(Icons.favorite_border, 'Wishlist', onTap: _openWishlist),
+                  _tabDivider(),
+                  _iconTab(Icons.chat_bubble_outline, 'Support', onTap: _openSupport),
+                ],
               ),
             ),
+          ),
 
-            const SizedBox(height: 16),
+          // ── Thin divider between fixed header and scrollable content ───────
+          Divider(height: 1, color: Colors.grey[200]),
 
-            // ── App Version ────────────────────────────────────────────────
-            Center(
-              child: Column(children: [
-                Text('App version 1.0.0',
-                    style: TextStyle(color: Colors.grey[500], fontSize: 12)),
-                const SizedBox(height: 2),
-                Text('Durga Bhavani mart Groceries',
-                    style: TextStyle(color: Colors.grey[400], fontSize: 11)),
-              ]),
+          // ── SCROLLABLE content below ───────────────────────────────────────
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _onRefresh,
+              color: AppColors.pink,
+              backgroundColor: Colors.white,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+
+                  const SizedBox(height: 16),
+
+                  // ── Your Information ─────────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: Text('YOUR INFORMATION',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.8,
+                            color: Colors.grey[600])),
+                  ),
+                  const SizedBox(height: 6),
+                  _settingsCard([
+                    _settingsRowWithSub(
+                      Icons.location_on_outlined,
+                      'Saved Addresses',
+                      addrLabel,
+                      onTap: _openAddresses,
+                      badge: _addressCount > 0 ? '$_addressCount' : null,
+                    ),
+                    _divider(),
+                    _settingsRow(Icons.person_outline, 'Profile',
+                        onTap: _openProfileEdit),
+                  ]),
+
+                  const SizedBox(height: 16),
+
+                  // ── Other Information ────────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: Text('OTHER INFORMATION',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.8,
+                            color: Colors.grey[600])),
+                  ),
+                  const SizedBox(height: 6),
+                  _settingsCard([
+                    _settingsRow(Icons.favorite_border, 'Your Wishlist', onTap: _openWishlist),
+                    _divider(),
+                    _settingsRowWithSub(
+                      Icons.card_giftcard,
+                      'Rewards',
+                      _rewardPoints == 0
+                          ? 'Tap to check points'
+                          : '$_rewardPoints points available',
+                      onTap: _openRewards,
+                    ),
+                    _divider(),
+                    _settingsRow(Icons.notifications_none, 'Notifications'),
+                    _divider(),
+                    _settingsRow(Icons.description_outlined, 'Terms & Conditions',
+                        onTap: _openTermsConditions),
+                    _divider(),
+                    _settingsRow(Icons.lock_outline, 'Privacy Policy',
+                        onTap: _openPrivacyPolicy),
+                  ]),
+
+                  const SizedBox(height: 16),
+
+                  // ── Log Out ──────────────────────────────────────────────
+                  Container(
+                    color: _cardBg,
+                    child: InkWell(
+                      onTap: _logout,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 18),
+                        child: Center(
+                          child: Text('Log Out',
+                              style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red)),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // ── App Version ──────────────────────────────────────────
+                  Center(
+                    child: Column(children: [
+                      Text('App version 1.0.0',
+                          style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                      const SizedBox(height: 2),
+                      Text('Durga Bhavani mart Groceries',
+                          style: TextStyle(color: Colors.grey[400], fontSize: 11)),
+                    ]),
+                  ),
+                  const SizedBox(height: 32),
+
+                ],
+              ),
             ),
-            const SizedBox(height: 32),
-          ],
-        ),
-        ],),
-    ),);
+          ),
+        ],
+      ),
+    );
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -542,7 +562,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: const Color(0xFFCC5500),
+                color: const Color(0xFFFF0080),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(badge,

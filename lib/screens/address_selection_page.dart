@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mtl_groceriesapp/screens/payment_method.dart';
 
+import '../config/app_color.dart';
 import '../model/address_model.dart';
 import '../services/get_address_service.dart';
 import '../services/session_manager.dart';
@@ -88,26 +89,25 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // backgroundColor: Colors.white,
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor: AppColors.white,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFFFFFF),
+          backgroundColor: AppColors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black45),
+          icon: const Icon(Icons.arrow_back, color: AppColors.appBarIcon),
           onPressed: () => Navigator.pop(context),
         ),
         title:  Padding(
           padding: const EdgeInsets.only(right: 60),
           child: Text('Choose Address',
-              style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 18)),
+              style: TextStyle(color: AppColors.appBarText, fontWeight: FontWeight.bold, fontSize: 18)),
         ),
         centerTitle: true,
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel',
-                style: TextStyle(color: Colors.black45, fontWeight: FontWeight.w500)),
+                style: TextStyle(color: AppColors.appBarText, fontWeight: FontWeight.w500)),
           ),
         ],
       ),
@@ -126,7 +126,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                 child: CircularProgressIndicator(color: Color(0xFFFF0080)))
                 : RefreshableScreen(
               onRefresh: _load,
-              color: const Color(0xFFFF0080),
+              color: AppColors.loader,
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -137,7 +137,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
                     child: Text(
                       'Select a saved address',
-                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 13, color: AppColors.appBarText),
                     ),
                   ),
 
@@ -175,7 +175,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                       child: OutlinedButton(
                         onPressed: _goToAddAddress,
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFFFF0080), width: 1.5),
+                          side: const BorderSide(color: AppColors.buttonPrimary, width: 1.5),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30)),
@@ -184,14 +184,14 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                             style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFFFF0080))),
+                                color: AppColors.buttonSecondaryText)),
                       ),
                     ),
                   ),
                   const SizedBox(height: 24),
                   const Center(
                     child: Text('or',
-                        style: TextStyle(fontSize: 14, color: Colors.grey)),
+                        style: TextStyle(fontSize: 14, color: AppColors.appBarText)),
                   ),
                   const SizedBox(height: 16),
                   Center(

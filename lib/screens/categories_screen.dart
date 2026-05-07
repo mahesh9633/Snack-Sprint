@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../config/app_color.dart';
 import '../model/cart_model.dart';
 import '../model/category_data_model.dart';
 import '../model/product_model.dart';
@@ -13,7 +14,7 @@ import '../widgets/floating_cart.dart';
 String get _imgBase => ApiConfig.imageBase;
 const int _previewMax = 20;
 
-// ─── Stock helper ─────────────────────────────────────────────────────────────
+// ─── Stock helper ────────────────────────────────────────────────────────────
 bool _isProductInStock(CategoryDataProduct p) {
   try {
     return p.isInStock;
@@ -36,7 +37,7 @@ Product _toProduct(CategoryDataProduct p) {
     image:              raw,
     imageUrl:           imgUrl,
     category:           p.categoryId,
-    weight:             p.sku.isNotEmpty ? p.sku : '',
+    weight:             p.piece.isNotEmpty ? p.piece : '',
     discountPercentage: p.discountPercent.toDouble(),
     quantity:           _isProductInStock(p) ? 1 : 0,
   );
@@ -170,14 +171,14 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor:AppColors.white,
       floatingActionButton: const Padding(
         padding: EdgeInsets.only(bottom: 8),
         child: FloatingCartBar(),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFFFFFF),
+        backgroundColor:AppColors.white,
         elevation:       0,
         automaticallyImplyLeading: false,
         title: const Text('Categories',
@@ -189,7 +190,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       ),
       body: _loading
           ? const Center(
-          child: CircularProgressIndicator(color: Color(0xFFB85C00)))
+          child: CircularProgressIndicator(color: AppColors.lightBrown))
           : _error != null
           ? _buildError()
           : _subcategories.isEmpty && _parentProducts.isEmpty
@@ -213,7 +214,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
           icon:  const Icon(Icons.refresh, color: Colors.white),
           label: const Text('Retry', style: TextStyle(color: Colors.white)),
           style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFB85C00)),
+              backgroundColor: AppColors.buttonPrimary),
         ),
       ]),
     ),
@@ -221,15 +222,15 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   Widget _buildEmpty() => Center(
     child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Icon(Icons.category_outlined, size: 60, color: Colors.grey[300]),
+      Icon(Icons.category_outlined, size: 60, color:Colors.pink),
       const SizedBox(height: 16),
       Text('No categories found',
-          style: TextStyle(color: Colors.grey[500])),
+          style: TextStyle(color:Colors.black87)),
       const SizedBox(height: 12),
       ElevatedButton(
         onPressed: _fetchData,
         style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFB85C00)),
+            backgroundColor: AppColors.buttonPrimary),
         child: const Text('Retry', style: TextStyle(color: Colors.white)),
       ),
     ]),
@@ -237,7 +238,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   Widget _buildList() {
     return RefreshIndicator(
-      color:     const Color(0xFFB85C00),
+      color: AppColors.buttonPrimary,
       onRefresh: _fetchData,
       child: ListView.builder(
         physics:   const AlwaysScrollableScrollPhysics(),
@@ -254,10 +255,10 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
             decoration: BoxDecoration(
               color:        Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE8C49A), width: 1),
+              border: Border.all(color:AppColors.buttonPrimary, width: 1),
               boxShadow: [
                 BoxShadow(
-                    color:      const Color(0xFFB85C00).withOpacity(0.06),
+                    color:      AppColors.buttonPrimary.withOpacity(0.06),
                     blurRadius: 8,
                     offset:     const Offset(0, 2))
               ],
@@ -274,10 +275,10 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     Container(
                       width: 52, height: 52,
                       decoration: BoxDecoration(
-                        color:        const Color(0xFFFFF3E0),
+                        color:        AppColors.warningLight,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                            color: const Color(0xFFE8C49A), width: 1),
+                            color:AppColors.buttonPrimary, width: 1),
                       ),
                       clipBehavior: Clip.antiAlias,
                       child: imgUrl.isNotEmpty
@@ -291,10 +292,10 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                           style: const TextStyle(
                               fontSize:   15,
                               fontWeight: FontWeight.bold,
-                              color:      Color(0xFF5C3300))),
+                              color:      AppColors.textDark)),
                     ),
                     const Icon(Icons.chevron_right,
-                        color: Color(0xFFB85C00), size: 22),
+                        color: AppColors.buttonPrimary, size: 22),
                   ]),
                 ),
               ),
@@ -306,7 +307,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   }
 
   Widget _catIcon() => Icon(Icons.category,
-      color: const Color(0xFFB85C00).withOpacity(0.7), size: 24);
+      color: AppColors.lightBrown.withOpacity(0.7), size: 24);
 }
 
 // ─── Category Split Screen ────────────────────────────────────────────────────
@@ -427,7 +428,7 @@ class _CategorySplitScreenState extends State<_CategorySplitScreen> {
           _sidebarItems.isEmpty &&
           _rightProducts.isEmpty
           ? const Center(
-          child: CircularProgressIndicator(color: Color(0xFFB85C00)))
+          child: CircularProgressIndicator(color: AppColors.lightBrown))
           : Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -444,7 +445,7 @@ class _CategorySplitScreenState extends State<_CategorySplitScreen> {
     return SizedBox(
       width: 90,
       child: Container(
-        color: const Color(0xFFF5F5F5),
+        color: AppColors.white,
         child: ListView(
           padding: const EdgeInsets.only(top: 8, bottom: 80),
           children: [
@@ -485,7 +486,7 @@ class _CategorySplitScreenState extends State<_CategorySplitScreen> {
   Widget _buildRightPanel() {
     if (_isRightLoading) {
       return const Center(
-          child: CircularProgressIndicator(color: Color(0xFFB85C00)));
+          child: CircularProgressIndicator(color: AppColors.lightBrown));
     }
 
     final products = _rightProducts;
@@ -493,7 +494,7 @@ class _CategorySplitScreenState extends State<_CategorySplitScreen> {
     final rightW   = screenW - 91;
     final cardW    = (rightW - 24) / 2;
     final imgH     = cardW * 0.72;
-    final cardH    = imgH + 118;
+    final cardH    = imgH + 126;
 
     CategoryDataSubcategory currentCat() {
       if (_selectedCatId == widget.parentCat.categoryId) {
@@ -508,7 +509,7 @@ class _CategorySplitScreenState extends State<_CategorySplitScreen> {
     }
 
     return RefreshIndicator(
-      color:     const Color(0xFFB85C00),
+      color:     AppColors.buttonPrimary,
       onRefresh: () async {
         widget.subCache.remove(_selectedCatId);
         widget.productCache.remove(_selectedCatId);
@@ -527,7 +528,7 @@ class _CategorySplitScreenState extends State<_CategorySplitScreen> {
                 Container(
                   width: 3, height: 14,
                   decoration: BoxDecoration(
-                      color:        const Color(0xFFB85C00),
+                      color:        AppColors.buttonPrimary,
                       borderRadius: BorderRadius.circular(2)),
                 ),
                 const SizedBox(width: 7),
@@ -542,13 +543,13 @@ class _CategorySplitScreenState extends State<_CategorySplitScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
-                      color:        const Color(0xFFB85C00).withOpacity(0.1),
+                      color:        AppColors.appBarText.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text('${products.length}',
                         style: const TextStyle(
                             fontSize:   10,
-                            color:      Color(0xFFB85C00),
+                            color:      AppColors.appBarText,
                             fontWeight: FontWeight.bold)),
                   ),
               ]),
@@ -560,15 +561,15 @@ class _CategorySplitScreenState extends State<_CategorySplitScreen> {
               child: Center(
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
                   Icon(Icons.inventory_2_outlined,
-                      size: 48, color: Colors.grey[300]),
+                      size: 48, color: Colors.pink),
                   const SizedBox(height: 10),
                   Text('No products found',
                       style: TextStyle(
-                          color: Colors.grey[400], fontSize: 13)),
+                          color: Colors.black87, fontSize: 13)),
                   const SizedBox(height: 8),
                   Text('Pull down to refresh',
                       style: TextStyle(
-                          color: Colors.grey[400], fontSize: 11)),
+                          color: Colors.black87, fontSize: 11)),
                 ]),
               ),
             )
@@ -638,7 +639,7 @@ class _SidebarTile extends StatelessWidget {
           border: Border(
             left: BorderSide(
               color: isSelected
-                  ? const Color(0xFFB85C00)
+                  ? AppColors.lightBrown
                   : Colors.transparent,
               width: 3,
             ),
@@ -649,12 +650,12 @@ class _SidebarTile extends StatelessWidget {
             width: 56, height: 56,
             decoration: BoxDecoration(
               color: isSelected
-                  ? const Color(0xFFB85C00).withOpacity(0.10)
+                  ? AppColors.lightBrown.withOpacity(0.10)
                   : Colors.white,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: isSelected
-                    ? const Color(0xFFB85C00).withOpacity(0.45)
+                    ? AppColors.lightBrown.withOpacity(0.45)
                     : Colors.grey[300]!,
               ),
             ),
@@ -671,7 +672,7 @@ class _SidebarTile extends StatelessWidget {
               fontSize:   9.5,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
               color: isSelected
-                  ? const Color(0xFFB85C00)
+                  ? AppColors.buttonPrimary
                   : Colors.black87,
             ),
             textAlign: TextAlign.center,
@@ -684,7 +685,7 @@ class _SidebarTile extends StatelessWidget {
   }
 
   Widget _icon() => Icon(Icons.category,
-      color: const Color(0xFFB85C00).withOpacity(0.6), size: 22);
+      color: AppColors.buttonPrimary.withOpacity(0.6), size: 22);
 }
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
@@ -694,7 +695,7 @@ class _ProductCard extends StatelessWidget {
 
   static double cardHeightForWidth(double availableCardWidth) {
     final imgH = availableCardWidth * 0.72;
-    return imgH + 118;
+    return imgH + 126;
   }
 
   @override
@@ -705,27 +706,28 @@ class _ProductCard extends StatelessWidget {
         : '';
     final product = _toProduct(p);
 
-    return GestureDetector(
-      onTap: () => Navigator.push(context,
-          MaterialPageRoute(
-              builder: (_) => ProductDetailScreen(product: product))),
-      child: Container(
-        decoration: BoxDecoration(
-          color:        Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border:       Border.all(color: Colors.grey[200]!),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.04), blurRadius: 4)
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize:       MainAxisSize.max,
-          children: [
+    return Container(
+      decoration: BoxDecoration(
+        color:        Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border:       Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.04), blurRadius: 4)
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize:       MainAxisSize.max,
+        children: [
 
-            // ── Image ─────────────────────────────────────────────────────
-            LayoutBuilder(builder: (_, constraints) {
+          // ── Image ─────────────────────────────────────────────────────
+          // LayoutBuilder(builder: (_, constraints) {
+          GestureDetector(
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(
+                    builder: (_) => ProductDetailScreen(product: product))),
+            child: LayoutBuilder(builder: (_, constraints) {
               final imgH = constraints.maxWidth * 0.72;
               return Stack(children: [
                 ClipRRect(
@@ -749,7 +751,7 @@ class _ProductCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 4, vertical: 2),
                       decoration: BoxDecoration(
-                          color:        const Color(0xFF1B5E20),
+                          color:        AppColors.priceGreen,
                           borderRadius: BorderRadius.circular(4)),
                       child: Text('↓${p.discountPercent}%',
                           style: const TextStyle(
@@ -783,102 +785,103 @@ class _ProductCard extends StatelessWidget {
                   ),
               ]);
             }),
+          ),
 
-            // ── Content ───────────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(6, 6, 6, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize:       MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment:  MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Flexible(
-                        child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 5, vertical: 2),
-                                decoration: BoxDecoration(
-                                    color:        const Color(0xFF388E3C),
-                                    borderRadius: BorderRadius.circular(4)),
-                                child: Text('₹${p.retailPrice.toInt()}',
-                                    style: const TextStyle(
-                                        color:      Colors.white,
-                                        fontSize:   11,
-                                        fontWeight: FontWeight.bold)),
+          // ── Content ───────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(6, 6, 6, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize:       MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment:  MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 5, vertical: 2),
+                              decoration: BoxDecoration(
+                                  color:        AppColors.priceGreen,
+                                  borderRadius: BorderRadius.circular(4)),
+                              child: Text('₹${p.retailPrice.toInt()}',
+                                  style: const TextStyle(
+                                      color:      Colors.white,
+                                      fontSize:   8,
+                                      fontWeight: FontWeight.bold)),
+                            ),
+                            if (p.wholesalePrice > p.retailPrice) ...[
+                              const SizedBox(width: 3),
+                              Flexible(
+                                child: Text(
+                                    '₹${p.wholesalePrice.toInt()}',
+                                    style: TextStyle(
+                                        fontSize:   6,
+                                        color:      Colors.grey[500],
+                                        decoration:
+                                        TextDecoration.lineThrough),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1),
                               ),
-                              if (p.wholesalePrice > p.retailPrice) ...[
-                                const SizedBox(width: 3),
-                                Flexible(
-                                  child: Text(
-                                      '₹${p.wholesalePrice.toInt()}',
-                                      style: TextStyle(
-                                          fontSize:   9,
-                                          color:      Colors.grey[500],
-                                          decoration:
-                                          TextDecoration.lineThrough),
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1),
-                                ),
-                              ],
-                            ]),
+                            ],
+                          ]),
+                    ),
+
+                    if (p.piece.isNotEmpty) ...[
+                      const SizedBox(width: 3),
+                      Flexible(
+                        child: Text(p.piece,
+                            style: TextStyle(
+                                fontSize: 9, color: Colors.black87),
+                            maxLines:  1,
+                            overflow:  TextOverflow.ellipsis,
+                            textAlign: TextAlign.right),
                       ),
-                      if (p.sku.isNotEmpty) ...[
-                        const SizedBox(width: 3),
-                        Flexible(
-                          child: Text(p.sku,
-                              style: TextStyle(
-                                  fontSize: 8, color: Colors.grey[500]),
-                              maxLines:  1,
-                              overflow:  TextOverflow.ellipsis,
-                              textAlign: TextAlign.right),
-                        ),
-                      ],
                     ],
-                  ),
-
-                  const SizedBox(height: 3),
-
-                  if (p.discountPercent > 0) ...[
-                    Text('${p.discountPercent}% off',
-                        style: const TextStyle(
-                            fontSize:   9,
-                            color:      Color(0xFF388E3C),
-                            fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 2),
                   ],
+                ),
 
-                  Text(p.name,
+                const SizedBox(height: 3),
+
+                if (p.discountPercent > 0) ...[
+                  Text('${p.discountPercent}% off',
                       style: const TextStyle(
-                          fontSize:   10,
-                          fontWeight: FontWeight.w500,
-                          color:      Colors.black87,
-                          height:     1.35),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis),
+                          fontSize:   9,
+                          color:      AppColors.priceGreen,
+                          fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 2),
                 ],
-              ),
-            ),
 
-            const Spacer(),
-
-            // ── ADD button ─────────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
-              child: SizedBox(
-                height: 30,
-                width:  double.infinity,
-                child:  _CartButton(
-                    product:   product,
-                    isInStock: _isProductInStock(p)),
-              ),
+                Text(p.name,
+                    style: const TextStyle(
+                        fontSize:   10,
+                        fontWeight: FontWeight.w500,
+                        color:      Colors.black87,
+                        height:     1.35),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
+              ],
             ),
-          ],
-        ),
+          ),
+
+          const Spacer(),
+
+          // ── ADD button ─────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
+            child: SizedBox(
+              height: 30,
+              width:  double.infinity,
+              child:  _CartButton(
+                  product:   product,
+                  isInStock: _isProductInStock(p)),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -926,11 +929,11 @@ class _CartButton extends StatelessWidget {
                 color:        Colors.white,
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
-                    color: const Color(0xFFFF0080), width: 1.2),
+                    color: AppColors.buttonPrimary, width: 1.2),
               ),
               child: const Text('ADD',
                   style: TextStyle(
-                      color:         Color(0xFFFF0080),
+                      color:         AppColors.buttonPrimary,
                       fontSize:      11,
                       fontWeight:    FontWeight.bold,
                       letterSpacing: 0.5)),
@@ -940,7 +943,7 @@ class _CartButton extends StatelessWidget {
         return Container(
           height: 30,
           decoration: BoxDecoration(
-              color:        const Color(0xFFFF0080),
+              color:        AppColors.buttonPrimary,
               borderRadius: BorderRadius.circular(6)),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -987,22 +990,22 @@ class _SeeMoreButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 11),
         decoration: BoxDecoration(
           gradient: LinearGradient(colors: [
-            const Color(0xFFB85C00).withOpacity(0.08),
-            const Color(0xFFB85C00).withOpacity(0.04),
+            AppColors.lightBrown.withOpacity(0.08),
+            AppColors.lightBrown.withOpacity(0.04),
           ]),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-              color: const Color(0xFFB85C00).withOpacity(0.25)),
+              color:AppColors.lightBrown.withOpacity(0.25)),
         ),
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           Text('See all $count products',
               style: const TextStyle(
-                  color:      Color(0xFFB85C00),
+                  color:      AppColors.appBarText,
                   fontWeight: FontWeight.bold,
                   fontSize:   13)),
           const SizedBox(width: 6),
           const Icon(Icons.arrow_forward_ios,
-              size: 12, color: Color(0xFFB85C00)),
+              size: 12, color: AppColors.lightBrown),
         ]),
       ),
     );
@@ -1057,7 +1060,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
     final cardH   = _ProductCard.cardHeightForWidth(cardW);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor: AppColors.white,
       // ── Floating cart bar ─────────────────────────────────────────────────
       floatingActionButton: const Padding(
         padding: EdgeInsets.only(bottom: 8),
@@ -1085,12 +1088,12 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
             margin:  const EdgeInsets.only(right: 16),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color:        const Color(0xFFB85C00).withOpacity(0.1),
+              color:        AppColors.lightBrown.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text('${widget.products.length} items',
                 style: const TextStyle(
-                    color:      Color(0xFFB85C00),
+                    color:      AppColors.appBarText,
                     fontSize:   12,
                     fontWeight: FontWeight.bold)),
           ),
@@ -1107,7 +1110,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                     color: Colors.grey[500], fontSize: 15)),
           ]))
           : RefreshIndicator(
-        color:     const Color(0xFFB85C00),
+        color:     AppColors.buttonPrimary,
         onRefresh: () async {
           setState(() => _visibleCount = _pageSize);
         },
@@ -1128,7 +1131,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                   child: Padding(
                     padding: EdgeInsets.all(16),
                     child: CircularProgressIndicator(
-                        color: Color(0xFFB85C00)),
+                        color: AppColors.lightBrown),
                   ));
             }
             return RepaintBoundary(
