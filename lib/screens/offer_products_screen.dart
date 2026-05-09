@@ -4,7 +4,7 @@ import '../model/product_model.dart';
 
 class OfferProductsScreen extends StatelessWidget {
   final String offerName;
-  final List products;
+  final List<Product> products;
 
   const OfferProductsScreen({
     super.key,
@@ -35,26 +35,7 @@ class OfferProductsScreen extends StatelessWidget {
         itemCount: products.length,
 
         itemBuilder: (_, i) {
-
-          final p = products[i];
-
-          return ProductCard(
-            product: Product(
-              id: p.productId,
-              name: p.name,
-              price: p.retailPrice,
-              originalPrice: p.wholesalePrice > 0
-                  ? p.wholesalePrice
-                  : p.retailPrice,
-              image: p.image,
-              imageUrl: p.imageUrl,
-              category: p.category,
-              weight: p.unit,
-              sku: p.sku,
-              discountPercentage: p.discountPercent,
-              quantity: p.quantity,
-            ),
-          );
+          return ProductCard(product: products[i]);
         },
       ),
     );

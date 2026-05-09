@@ -17,6 +17,7 @@ class OrderApiService {
     required String       paymentMethod,
     String                couponCode       = '',
     double                couponDiscount   = 0.0,
+    double                deliveryCharge   = 0.0,
     String?               screenshotBase64,
     String                utrNumber        = '',
   }) async {
@@ -39,12 +40,13 @@ class OrderApiService {
     }).toList();
 
     final subtotal      = cart.totalPrice;
-    final grandTotal    = subtotal - couponDiscount;
+    final productsTotal = subtotal - couponDiscount;
+    final grandTotal    = productsTotal + deliveryCharge;
     final numberOfItems = cart.items.values.fold<int>(0, (s, i) => s + i.quantity);
 
     final invoiceInfo = {
       'SUBTotal':            subtotal.toInt(),
-      'TotalBeforeRoundoff': grandTotal.toInt(),
+      'TotalBeforeRoundoff': productsTotal.toInt(),
       'NumberOfItems':       cart.items.length,
       'QuantityTotal':       numberOfItems,
       'TotalTax':            0,
@@ -54,6 +56,7 @@ class OrderApiService {
       'InvoiceNumber':       '',
       'Coupon':              couponCode,
       'CouponAmount':        couponDiscount.toInt(),
+      'TakeawayAmount':      deliveryCharge.toInt(),
     };
 
     final orderDetails = <String, dynamic>{
@@ -68,14 +71,16 @@ class OrderApiService {
       'Payment_country':   'India',
       'Payment_zone':      address.state,
       'PaymentThrough': paymentMethod,
-      'CashAmount':     paymentMethod == 'COD' ? grandTotal.toInt() : 0,
-      'UPIAmount':      paymentMethod == 'UPI' ? grandTotal.toInt() : 0,
+      'CashAmount':     paymentMethod == 'COD' ? productsTotal.toInt() : 0,
+      'UPIAmount':      paymentMethod == 'UPI' ? productsTotal.toInt() : 0,
+      'TakeawayAmount': deliveryCharge.toInt(),
       if (utrNumber.isNotEmpty) 'UTRNumber': utrNumber,
       if (screenshotBase64 != null && screenshotBase64.isNotEmpty)
         'PaymentScreenshot': screenshotBase64,
       'coupon':         couponCode,
       'CouponDiscount': couponDiscount.toInt(),
       'TotalReceivedAmount':     grandTotal.toInt(),
+      'TakeawayAmount':          deliveryCharge.toInt(),
       'PendingAmount':           0,
       'ReturnableBalance':       0,
       'SaveReturnableAsAdvance': false,

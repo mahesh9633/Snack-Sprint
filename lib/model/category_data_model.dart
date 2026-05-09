@@ -10,6 +10,7 @@ class CategoryDataProduct {
   final String sku;
   final String parentId;
   final String piece;   // ← ADD THIS
+  final List<Map<String, dynamic>> pieces;
 
   CategoryDataProduct({
     required this.productId,
@@ -23,6 +24,7 @@ class CategoryDataProduct {
     required this.sku,
     required this.parentId,
     required this.piece,  // ← ADD THIS
+    this.pieces = const [],
   });
 
   // ── Convenience getters ──────────────────────────────────────────────────
@@ -73,6 +75,9 @@ class CategoryDataProduct {
       piece:           (json['piece']?.toString().isNotEmpty == true
           ? json['piece'].toString()
           : json['barcode_type']?.toString() ?? ''),
+      pieces: (json['pieces'] as List? ?? [])
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList(),
     );
   }
 

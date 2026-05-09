@@ -10,6 +10,7 @@ import '../services/api_config_service.dart';
 import '../services/api_server.dart';
 import '../services/session_manager.dart';
 import '../widgets/floating_cart.dart';
+import '../widgets/piece_selector_sheet.dart';
 
 String get _imgBase => ApiConfig.imageBase;
 const int _previewMax = 20;
@@ -40,6 +41,7 @@ Product _toProduct(CategoryDataProduct p) {
     weight:             p.piece.isNotEmpty ? p.piece : '',
     discountPercentage: p.discountPercent.toDouble(),
     quantity:           _isProductInStock(p) ? 1 : 0,
+    pieces:             p.pieces.map((e) => ProductPiece.fromJson(e)).toList(),
   );
 }
 
@@ -494,7 +496,7 @@ class _CategorySplitScreenState extends State<_CategorySplitScreen> {
     final rightW   = screenW - 91;
     final cardW    = (rightW - 24) / 2;
     final imgH     = cardW * 0.72;
-    final cardH    = imgH + 126;
+    final cardH    = imgH + 138;
 
     CategoryDataSubcategory currentCat() {
       if (_selectedCatId == widget.parentCat.categoryId) {
@@ -695,7 +697,7 @@ class _ProductCard extends StatelessWidget {
 
   static double cardHeightForWidth(double availableCardWidth) {
     final imgH = availableCardWidth * 0.72;
-    return imgH + 126;
+    return imgH + 138;
   }
 
   @override
@@ -874,7 +876,7 @@ class _ProductCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
             child: SizedBox(
-              height: 30,
+              height: 36,
               width:  double.infinity,
               child:  _CartButton(
                   product:   product,
@@ -912,6 +914,42 @@ class _CartButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(6)),
         child: Text('Unavailable',
             style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+      );
+    }
+
+    if (product.pieces.isNotEmpty) {
+      return GestureDetector(
+        onTap: () => handleAddToCart(
+          context: context,
+          product: product,
+          pieces:  product.pieces,
+        ),
+        child: Container(
+          width:     double.infinity,
+          height:    36,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color:        Colors.white,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: AppColors.buttonPrimary, width: 1.2),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('ADD',
+                  style: TextStyle(
+                      color:         AppColors.buttonPrimary,
+                      fontSize:      11,
+                      fontWeight:    FontWeight.bold,
+                      letterSpacing: 0.5)),
+              if (product.pieces.length > 1)
+                Text('${product.pieces.length} options',
+                    style: const TextStyle(
+                        color:   AppColors.buttonPrimary,
+                        fontSize: 8)),
+            ],
+          ),
+        ),
       );
     }
 

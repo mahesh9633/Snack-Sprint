@@ -8,6 +8,7 @@ import '../model/product_model.dart';
 import '../services/api_config_service.dart';
 import '../products/product_detail_screen.dart';
 import '../widgets/floating_cart.dart';
+import '../widgets/piece_selector_sheet.dart';
 import '../widgets/refreshable_screen.dart';
 
 class WishlistScreen extends StatefulWidget {
@@ -386,7 +387,9 @@ class _WishlistCard extends StatelessWidget {
 
                       if (qty == 0) {
                         return GestureDetector(
-                          onTap: () => cart.addItem(product),
+                          onTap: () => product.pieces.isNotEmpty
+                              ? handleAddToCart(context: context, product: product, pieces: product.pieces)
+                              : cart.addItem(product),
                           child: Container(
                             width: 90,
                             height: 40,
@@ -397,12 +400,22 @@ class _WishlistCard extends StatelessWidget {
                                   color: AppColors.buttonPrimary, width: 1.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Text('ADD',
-                                style: TextStyle(
-                                    color: AppColors.buttonPrimary,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 0.5)),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text('ADD',
+                                    style: TextStyle(
+                                        color: AppColors.buttonPrimary,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.5)),
+                                if (product.pieces.length > 1)
+                                  Text('${product.pieces.length} options',
+                                      style: const TextStyle(
+                                          color: AppColors.buttonPrimary,
+                                          fontSize: 8)),
+                              ],
+                            ),
                           ),
                         );
                       }

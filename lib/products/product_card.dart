@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../model/cart_model.dart';
 import '../model/product_model.dart';
 import '../services/api_config_service.dart';
+import '../widgets/piece_selector_sheet.dart';
 
 final String _kImgBase = ApiConfig.imageBase;
 
@@ -27,12 +28,6 @@ class ProductCard extends StatelessWidget {
       compactCart ? _buildCompact(context) : _buildFull(context);
 
   // ── Full card ──────────────────────────────────────────────────────────────
-  // Widget _buildFull(BuildContext context) {
-  //   return GestureDetector(
-  //     onTap: () => Navigator.push(context,
-  //         MaterialPageRoute(
-  //             builder: (_) => ProductDetailScreen(product: product))),
-  //     child: Container(
   Widget _buildFull(BuildContext context) {
     return Container(
         margin: EdgeInsets.only(right: cardRightMargin),
@@ -120,9 +115,7 @@ class ProductCard extends StatelessWidget {
             ),
 
             // ── Content (price / discount / name) ────────────────────
-            // Padding(
-            //   padding: const EdgeInsets.fromLTRB(7, 6, 7, 0),
-            //   child: Column(
+
     // ── Content (price / discount / name) ────────────────────
     GestureDetector(
     onTap: () {},
@@ -445,6 +438,43 @@ class _CartButton extends StatelessWidget {
       );
     }
 
+
+    // ── Has piece variants? Show "2 options" style label ──────────────
+    if (product.pieces.isNotEmpty) {
+      return GestureDetector(
+        onTap: () => handleAddToCart(
+          context: context,
+          product: product,
+          pieces:  product.pieces,
+        ),
+        child: Container(
+          width:     double.infinity,
+          height:    36,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color:        Colors.white,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: const Color(0xFFFF0080), width: 1.2),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('ADD',
+                  style: TextStyle(
+                      color:         Color(0xFFFF0080),
+                      fontSize:      11,
+                      fontWeight:    FontWeight.bold,
+                      letterSpacing: 0.5)),
+              Text('${product.pieces.length} options',
+                  style: const TextStyle(
+                      color:   Color(0xFFFF0080),
+                      fontSize: 8)),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Consumer<CartModel>(
       builder: (_, cart, __) {
         final qty = cart.getQuantity(product);
@@ -453,7 +483,7 @@ class _CartButton extends StatelessWidget {
             onTap: () => cart.addItem(product),
             child: Container(
               width:     double.infinity,
-              height:    30,
+              height:    36,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color:        Colors.white,
@@ -471,7 +501,7 @@ class _CartButton extends StatelessWidget {
           );
         }
         return Container(
-          height: 30,
+          height: 36,
           decoration: BoxDecoration(
               color:        const Color(0xFFFF0080),
               borderRadius: BorderRadius.circular(6)),
@@ -481,7 +511,7 @@ class _CartButton extends StatelessWidget {
               GestureDetector(
                 onTap: () => cart.decrementQuantity(product.id),
                 child: const SizedBox(
-                    width: 32, height: 30,
+                    width: 32, height: 36,
                     child: Icon(Icons.remove, color: Colors.white, size: 15)),
               ),
               Text('$qty',
@@ -492,7 +522,7 @@ class _CartButton extends StatelessWidget {
               GestureDetector(
                 onTap: () => cart.addItem(product),
                 child: const SizedBox(
-                    width: 32, height: 30,
+                    width: 32, height: 36,
                     child: Icon(Icons.add, color: Colors.white, size: 15)),
               ),
             ],

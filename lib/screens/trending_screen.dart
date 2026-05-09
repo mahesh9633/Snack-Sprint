@@ -12,6 +12,7 @@ import '../services/api_config_service.dart';
 import '../services/api_server.dart';
 import '../services/session_manager.dart';
 import '../widgets/floating_cart.dart';
+import '../widgets/piece_selector_sheet.dart';
 
 String get _tImgBase => ApiConfig.imageBase;
 const Duration _kTrendingRefreshInterval = Duration(seconds: 30);
@@ -33,6 +34,7 @@ Product _toProduct(CategoryDataProduct p) {
     discountPercentage: p.discountPercent.toDouble(),
     quantity:           qty, //added this line
     posQuantity:        qty, //added this line
+    pieces:             p.pieces.map((e) => ProductPiece.fromJson(e)).toList(),
   );
 }
 
@@ -920,7 +922,7 @@ class _CartControl extends StatelessWidget {
 
     if (outOfStock) {
       return Container(
-        width: double.infinity, height: 28,
+        width: double.infinity, height: 36,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: Colors.grey[200],
@@ -935,9 +937,11 @@ class _CartControl extends StatelessWidget {
 
     if (qty == 0) {
       return GestureDetector(
-        onTap: () => cart.addItem(product),
+        onTap: () => product.pieces.isNotEmpty
+            ? handleAddToCart(context: context, product: product, pieces: product.pieces)
+            : cart.addItem(product),
         child: Container(
-          width: double.infinity, height: 28,
+          width: double.infinity, height: 36,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: Colors.white,
@@ -945,15 +949,24 @@ class _CartControl extends StatelessWidget {
                 color: AppColors.buttonPrimary, width: 1.2),
             borderRadius: BorderRadius.circular(6),
           ),
-          child: const Text('ADD',
-              style: TextStyle(
-                  color: AppColors.buttonPrimary, fontSize: 11,
-                  fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('ADD',
+                  style: TextStyle(
+                      color: AppColors.buttonPrimary, fontSize: 11,
+                      fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+              if (product.pieces.length > 1)
+                Text('${product.pieces.length} options',
+                    style: const TextStyle(
+                        color: AppColors.buttonPrimary, fontSize: 8)),
+            ],
+          ),
         ),
       );
     }
     return Container(
-      height: 28,
+      height: 36,
       decoration: BoxDecoration(
           color: AppColors.buttonPrimary,
           borderRadius: BorderRadius.circular(6)),
@@ -962,7 +975,7 @@ class _CartControl extends StatelessWidget {
         children: [
           GestureDetector(
             onTap: () => cart.decrementQuantity(product.id),
-            child: const SizedBox(width: 28, height: 28,
+            child: const SizedBox(width: 36, height: 36,
                 child: Icon(Icons.remove, color: Colors.white, size: 14)),
           ),
           Text('$qty',

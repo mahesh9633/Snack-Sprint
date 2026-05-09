@@ -1,3 +1,5 @@
+import '../widgets/piece_selector_sheet.dart';
+
 class Product {
   final String id;
   final String name;
@@ -17,6 +19,7 @@ class Product {
   final List<String> highlights;
   final int    quantity;
   final int posQuantity;
+  final List<ProductPiece> pieces;   // <-- new field
 
   const Product({
     required this.id,
@@ -37,6 +40,7 @@ class Product {
     this.highlights         = const [],
     this.quantity           = 0,
     this.posQuantity = 0,
+    this.pieces = const [],
   });
   // ── copyWith ──────────────────────────────────────────────────────────────
 
@@ -59,6 +63,7 @@ class Product {
     List<String>? highlights,
     int?          quantity,
     int? posQuantity,
+    List<ProductPiece>? pieces,
   }) {
     return Product(
       id:                 id                 ?? this.id,
@@ -79,6 +84,7 @@ class Product {
       highlights:         highlights         ?? this.highlights,
       quantity:           quantity           ?? this.quantity,
       posQuantity: posQuantity               ?? this.posQuantity,
+      pieces:             pieces             ?? this.pieces,
     );
   }
 

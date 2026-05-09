@@ -244,6 +244,9 @@ class _OrderCard extends StatelessWidget {
           productId:         order.products.isNotEmpty
               ? order.products.first.productId
               : '',
+          invoiceNo: info.invoiceNo.trim().isNotEmpty
+              ? '${info.invoicePrefix}${info.invoiceNo}'
+              : 'Order #${info.orderId}',
           // ✅ NEW — pass all products as a list of maps
           products: order.products.map((p) => {
             'product_id':    p.productId,
@@ -269,9 +272,7 @@ class _OrderCard extends StatelessWidget {
     final status  = info.orderStatus;
     final color   = _statusColor(status);
 
-    final invoiceLabel = info.invoiceNo.trim().isNotEmpty
-        ? '${info.invoicePrefix}${info.invoiceNo}'
-        : 'Order #${info.orderId}';
+    final invoiceLabel = 'Order #${info.orderId}';
 
     return GestureDetector(
       onTap: () => Navigator.push(context,

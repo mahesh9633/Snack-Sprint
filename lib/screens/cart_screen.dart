@@ -72,6 +72,12 @@ class _CartScreenState extends State<CartScreen> {
   void initState() {
     super.initState();
     _fetchMinOrderValue();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final cart = Provider.of<CartModel>(context, listen: false);
+      if (cart.totalPrice > 0) {
+        _fetchDeliveryFee(cart.totalPrice);
+      }
+    });
   }
 
   @override
@@ -113,6 +119,51 @@ class _CartScreenState extends State<CartScreen> {
         }
       }
     } catch (_) {}
+  }
+  void _showClearCartDialog(BuildContext context, CartModel cart) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.delete_outline, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Clear Cart',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to remove all items from your cart?',
+        ),
+        actions: [
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: AppColors.buttonPrimary),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('No',
+                style: TextStyle(color: AppColors.buttonPrimary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () {
+              cart.clearCart();
+              Navigator.pop(context);
+            },
+            child: const Text('Yes, Clear',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _goToHome(BuildContext context) {
@@ -180,14 +231,17 @@ class _CartScreenState extends State<CartScreen> {
     Navigator.pop(context);
     if (!mounted) return;
 
+    final deliveryFee = _deliveryFee;
+    final finalTotal = _finalTotal > 0 ? _finalTotal : totalPrice + _deliveryFee;
+
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => AddressSelectionScreen(
           token: token,
           customerId: customerId,
-          deliveryFee: _deliveryFee,
-          finalTotal: _finalTotal,
+          deliveryFee: deliveryFee,
+          finalTotal: finalTotal,
         ),
       ),
     );
@@ -233,7 +287,7 @@ class _CartScreenState extends State<CartScreen> {
           if (_lastFetchedAmount != cart.totalPrice) {
             _lastFetchedAmount = cart.totalPrice;
             _debounce?.cancel();
-            _debounce = Timer(const Duration(milliseconds: 600), () {
+            _debounce = Timer(const Duration(milliseconds: 300), () {
               _fetchDeliveryFee(cart.totalPrice);
             });
           }
@@ -381,17 +435,49 @@ class _CartScreenState extends State<CartScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+
                             Padding(
                               padding: EdgeInsets.fromLTRB(
                                   screenW * 0.04,
                                   screenH * 0.018,
                                   screenW * 0.04,
                                   screenH * 0.005),
-                              child: Text('Items in your cart',
-                                  style: TextStyle(
-                                      fontSize: screenW * 0.04,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.textPrimary)),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Items in your cart',
+                                      style: TextStyle(
+                                          fontSize: screenW * 0.04,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.textPrimary)),
+                                  GestureDetector(
+                                    onTap: () => _showClearCartDialog(context, cart),
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: screenW * 0.03,
+                                          vertical: screenH * 0.005),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.shade50,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: Colors.red.shade300, width: 1),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.delete_outline,
+                                              color: Colors.red.shade600, size: 15),
+                                          SizedBox(width: 4),
+                                          Text('Clear All',
+                                              style: TextStyle(
+                                                  fontSize: screenW * 0.032,
+                                                  color: Colors.red.shade600,
+                                                  fontWeight: FontWeight.w600)),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                             ...cart.items.values.toList().map((item) {
                               return Column(

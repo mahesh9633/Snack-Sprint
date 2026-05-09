@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../services/api_config_service.dart';
 import '../services/api_server.dart';
 
@@ -15,6 +17,7 @@ class ApiProduct {
   final double wholesalePrice;
   final double specialPrice;
   final int    quantity;
+  final List<Map<String, dynamic>> pieces;
 
   const ApiProduct({
     required this.productId,
@@ -27,6 +30,7 @@ class ApiProduct {
     required this.wholesalePrice,
     required this.specialPrice,
     required this.quantity,
+    this.pieces = const [],
   });
 
   String get imageUrl {
@@ -54,7 +58,6 @@ class ApiProduct {
     sku:            j['sku']?.toString()                 ?? '',
     image:          j['image']?.toString()               ?? '',
     category:       j['category']?.toString() ?? '',
-    // unit:           j['unit']?.toString() ?? '',
     unit: (() {
       for (final key in ['piece', 'unit', 'weight', 'net_qty', 'barcode_type']) {
         final val = j[key]?.toString() ?? '';
@@ -71,6 +74,9 @@ class ApiProduct {
             : j['pos_quantity']?.toString().isNotEmpty == true
             ? j['pos_quantity']
             : j['quantity'])?.toString() ?? '') ?? 0,
+    pieces: (j['pieces'] as List? ?? [])
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList(),
   );
 }
 

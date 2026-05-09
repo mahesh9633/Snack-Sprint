@@ -27,6 +27,7 @@ class OrderTrackingScreen extends StatefulWidget {
   final String productId;
   // ✅ NEW: list of all purchased products in this order
   final List<Map<String, dynamic>> products;
+  final String invoiceNo;
 
   const OrderTrackingScreen({
     super.key,
@@ -39,6 +40,7 @@ class OrderTrackingScreen extends StatefulWidget {
     this.productDetails,
     this.productId = '',
     this.products = const [],   // ✅ NEW
+    this.invoiceNo = '',
   });
 
   @override
@@ -528,8 +530,20 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                       color: Colors.black87),
                 ),
                 const Spacer(),
-                Text('Order #${widget.orderId}',
-                    style: TextStyle(fontSize: 11, color: Colors.grey[400])),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (widget.invoiceNo.isNotEmpty)
+                      Text(
+                        widget.invoiceNo,
+                        style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                      ),
+                    Text(
+                      'Order #${widget.orderId}',
+                      style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
