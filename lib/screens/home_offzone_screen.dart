@@ -5,6 +5,7 @@ import '../products/product_card.dart';
 import '../services/api_config_service.dart';
 import '../services/api_server.dart';
 import '../services/session_manager.dart';
+import '../widgets/piece_selector_sheet.dart';
 
 class OffZoneTabBody extends StatefulWidget {
   const OffZoneTabBody({super.key});
@@ -127,6 +128,9 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
             weight:             p['sku']?.toString()          ?? '',
             discountPercentage: disc,
             quantity:           qty,
+            pieces: (p['pieces'] as List? ?? [])
+                .map((e) => ProductPiece.fromJson(e as Map<String, dynamic>))
+                .toList(),
           ));
 
           if (pid.isNotEmpty) addedIds.add(pid);
@@ -182,6 +186,9 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
               weight:             p['piece']?.toString() ?? '',
               discountPercentage: disc,
               quantity:           qty,
+              pieces: (p['pieces'] as List? ?? [])
+                  .map((e) => ProductPiece.fromJson(e as Map<String, dynamic>))
+                  .toList(),
             ));
 
             if (pid.isNotEmpty) addedIds.add(pid);

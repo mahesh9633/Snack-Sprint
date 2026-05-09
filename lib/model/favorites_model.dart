@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../widgets/piece_selector_sheet.dart';
 import 'product_model.dart';
 import '../services/api_config_service.dart';
 
@@ -68,6 +69,7 @@ class FavoritesModel extends ChangeNotifier {
     if (liveProducts != null) {
       bool changed = false;
       for (int i = 0; i < _favorites.length; i++) {
+        if (_favorites[i].id.contains('_piece_')) continue; // skip piece variants
         final live = liveProducts.where((p) => p.id == _favorites[i].id).toList();
         if (live.isNotEmpty) {
           _favorites[i] = _favorites[i].copyWith(
@@ -77,6 +79,7 @@ class FavoritesModel extends ChangeNotifier {
             originalPrice:      live.first.originalPrice,
             discountPercentage: live.first.discountPercentage,
             weight:             live.first.weight,
+            pieces:             live.first.pieces,
           );
           changed = true;
         }
@@ -114,6 +117,7 @@ class FavoritesModel extends ChangeNotifier {
           _favorites.add(p);
         }
       }
+      await _saveToPrefs(); // re-save to fix any stale entries missing pieces
       notifyListeners();
     } catch (e) { }
   }
@@ -127,9 +131,18 @@ class FavoritesModel extends ChangeNotifier {
     'imageUrl':           p.imageUrl,
     'category':           p.category,
     'weight':             p.weight,
+    'sku':                p.sku,
     'discountPercentage': p.discountPercentage,
-    'quantity':           p.quantity,        // ← ADD THIS
-    'posQuantity':        p.posQuantity,   // ← ADD THIS
+    'quantity':           p.quantity,
+    'posQuantity':        p.posQuantity,
+    'isPieceVariant':     p.id.contains('_piece_'),
+    'pieces': p.pieces.map((piece) => {
+      'piece_id':     piece.pieceId,
+      'piece':        piece.label,
+      'price':        piece.price.toString(),
+      'special_price': piece.specialPrice.toString(),
+      'image':        piece.image,
+    }).toList(),
   };
 
   Product _productFromJson(Map<String, dynamic> j) {
@@ -145,6 +158,11 @@ class FavoritesModel extends ChangeNotifier {
         ? '${ApiConfig.imageBase}$raw'
         : '';
 
+    final rawPieces = j['pieces'] as List<dynamic>? ?? [];
+    final pieces = rawPieces
+        .map((e) => ProductPiece.fromJson(e as Map<String, dynamic>))
+        .toList();
+
     return Product(
       id:                 j['id']                  as String,
       name:               j['name']                as String,
@@ -154,9 +172,11 @@ class FavoritesModel extends ChangeNotifier {
       imageUrl:           imageUrl,
       category:           j['category']            as String? ?? '',
       weight:             j['weight']              as String? ?? '',
+      sku:                j['sku']                 as String? ?? '',
       discountPercentage: (j['discountPercentage'] as num).toDouble(),
-      quantity:           (j['quantity']           as num?)?.toInt() ?? 1,  // ← ADD THIS
-      posQuantity:        (j['posQuantity']        as num?)?.toInt() ?? 0,  // ← ADD THIS
+      quantity:           (j['quantity']           as num?)?.toInt() ?? 1,
+      posQuantity:        (j['posQuantity']        as num?)?.toInt() ?? 0,
+      pieces:             pieces,
     );
   }
 }

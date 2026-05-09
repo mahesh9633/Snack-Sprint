@@ -326,6 +326,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
         paymentMethod:    _paymentApiValue,
         couponCode:       _couponApplied ? _couponCode     : '',
         couponDiscount:   _couponApplied ? _couponDiscount : 0.0,
+        deliveryCharge:   _deliveryFee,
         screenshotBase64: screenshotBase64,
         utrNumber:        _selectedPayment == 'upi' ? _utrController.text.trim() : '',
       );
