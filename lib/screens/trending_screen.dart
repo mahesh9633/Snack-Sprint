@@ -22,6 +22,29 @@ Product _toProduct(CategoryDataProduct p) {
   final imgUrl = (raw.isNotEmpty && raw != 'no_image.png')
       ? '$_tImgBase$raw' : '';
   final int qty = int.tryParse(p.quantity) ?? 0;
+  // return Product(
+  //   id:                 p.productId,
+  //   name:               p.name,
+  //   price:              p.retailPrice,
+  //   originalPrice:      p.wholesalePrice > 0 ? p.wholesalePrice : p.retailPrice,
+  //   image:              raw,
+  //   imageUrl:           imgUrl,
+  //   category:           p.categoryId,
+  //   weight:             p.piece.isNotEmpty ? p.piece : p.sku.isNotEmpty ? p.sku : '',
+  //   discountPercentage: p.discountPercent.toDouble(),
+  //   quantity:           qty, //added this line
+  //   posQuantity:        qty, //added this line
+  //   pieces:             p.pieces.map((e) => ProductPiece.fromJson(e)).toList(),
+  // );
+  String defaultWeight = '';
+  try {
+    final defaultPiece = p.pieces.firstWhere(
+          (e) => e['piece_default']?.toString() == '1',
+      orElse: () => p.pieces.isNotEmpty ? p.pieces.first : {},
+    );
+    defaultWeight = defaultPiece['piece']?.toString() ?? '';
+  } catch (_) {}
+
   return Product(
     id:                 p.productId,
     name:               p.name,
@@ -30,10 +53,10 @@ Product _toProduct(CategoryDataProduct p) {
     image:              raw,
     imageUrl:           imgUrl,
     category:           p.categoryId,
-    weight:             p.piece.isNotEmpty ? p.piece : p.sku.isNotEmpty ? p.sku : '',
+    weight:             defaultWeight.isNotEmpty ? defaultWeight : (p.piece.isNotEmpty ? p.piece : ''),
     discountPercentage: p.discountPercent.toDouble(),
-    quantity:           qty, //added this line
-    posQuantity:        qty, //added this line
+    quantity:           qty,
+    posQuantity:        qty,
     pieces:             p.pieces.map((e) => ProductPiece.fromJson(e)).toList(),
   );
 }
@@ -949,6 +972,19 @@ class _CartControl extends StatelessWidget {
                 color: AppColors.buttonPrimary, width: 1.2),
             borderRadius: BorderRadius.circular(6),
           ),
+          // child: Column(
+          //   mainAxisAlignment: MainAxisAlignment.center,
+          //   children: [
+          //     const Text('ADD',
+          //         style: TextStyle(
+          //             color: AppColors.buttonPrimary, fontSize: 11,
+          //             fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+          //     if (product.pieces.length > 1)
+          //       Text('${product.pieces.length} options',
+          //           style: const TextStyle(
+          //               color: AppColors.buttonPrimary, fontSize: 8)),
+          //   ],
+          // ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -956,8 +992,10 @@ class _CartControl extends StatelessWidget {
                   style: TextStyle(
                       color: AppColors.buttonPrimary, fontSize: 11,
                       fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-              if (product.pieces.length > 1)
-                Text('${product.pieces.length} options',
+              if (product.pieces.isNotEmpty)
+                Text(product.pieces.length == 1
+                    ? product.pieces.first.label
+                    : '${product.pieces.length} options',
                     style: const TextStyle(
                         color: AppColors.buttonPrimary, fontSize: 8)),
             ],

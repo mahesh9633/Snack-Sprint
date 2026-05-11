@@ -33,8 +33,8 @@ class CategoryDataProduct {
 
   /// In stock when qty != 0
   bool get isInStock {
-    final qty = int.tryParse(quantity) ?? 0;
-    return qty != 0;
+    final qty = int.tryParse(quantity.trim()) ?? 1;
+    return qty > 0;
   }
 
   /// Discount % = (MRP - selling) / MRP * 100
@@ -46,15 +46,13 @@ class CategoryDataProduct {
   }
 
   factory CategoryDataProduct.fromJson(Map<String, dynamic> json) {
-    // quantity field name varies — handle all variants (API has typo "pos_quentity")
-    final String resolvedQty =
-    json['pos_quentity']?.toString().isNotEmpty == true
-        ? json['pos_quentity'].toString()
-        : json['pos_quantity']?.toString().isNotEmpty == true
-        ? json['pos_quantity'].toString()
-        : json['quantity']?.toString().isNotEmpty == true
-        ? json['quantity'].toString()
-        : '1';
+    final String resolvedQty = () {
+      for (final key in ['pos_quentity', 'pos_quantity', 'quantity']) {
+        final v = json[key]?.toString().trim() ?? '';
+        if (v.isNotEmpty) return v;
+      }
+      return '0';
+    }();
 
     // API sends: "price" = MRP,  "special_price" = offer price
     final double rawPrice     = double.tryParse(json['price']?.toString()         ?? '0') ?? 0;

@@ -487,23 +487,51 @@ class _MtlTabBodyState extends State<MtlTabBody> {
 
   LayerLink get searchLayerLink => _searchLayerLink;
 
-  Product _toProduct(ApiProduct p) => Product(
-    id:                 p.productId.isNotEmpty ? p.productId : (p.sku.isNotEmpty ? p.sku : p.name),
-    name:               p.name,
-    price: (p.specialPrice > 0 && p.specialPrice < p.retailPrice) ? p.specialPrice : p.retailPrice,
-    originalPrice:      p.retailPrice,
-    image:              p.image,
-    imageUrl:           p.imageUrl,
-    category:           p.category,
-    weight:             p.unit,
-    sku:                p.sku,
-    discountPercentage: p.discountPercent,
-    quantity:           p.quantity,
-    posQuantity:        p.quantity,
-    pieces: p.pieces                              // ← add this line
-        .map((e) => ProductPiece.fromJson(e))
-        .toList(),
-  );
+  // Product _toProduct(ApiProduct p) => Product(
+  //   id:                 p.productId.isNotEmpty ? p.productId : (p.sku.isNotEmpty ? p.sku : p.name),
+  //   name:               p.name,
+  //   price: (p.specialPrice > 0 && p.specialPrice < p.retailPrice) ? p.specialPrice : p.retailPrice,
+  //   originalPrice:      p.retailPrice,
+  //   image:              p.image,
+  //   imageUrl:           p.imageUrl,
+  //   category:           p.category,
+  //   weight:             p.unit,
+  //   sku:                p.sku,
+  //   discountPercentage: p.discountPercent,
+  //   quantity:           p.quantity,
+  //   posQuantity:        p.quantity,
+  //   pieces: p.pieces                              // ← add this line
+  //       .map((e) => ProductPiece.fromJson(e))
+  //       .toList(),
+  // );
+  Product _toProduct(ApiProduct p) {
+    // Find default piece for weight display
+    final allPieces = p.pieces.map((e) => ProductPiece.fromJson(e)).toList();
+    String defaultWeight = '';
+    try {
+      final defaultPiece = p.pieces.firstWhere(
+            (e) => e['piece_default']?.toString() == '1',
+        orElse: () => p.pieces.isNotEmpty ? p.pieces.first : {},
+      );
+      defaultWeight = defaultPiece['piece']?.toString() ?? '';
+    } catch (_) {}
+
+    return Product(
+      id:                 p.productId.isNotEmpty ? p.productId : (p.sku.isNotEmpty ? p.sku : p.name),
+      name:               p.name,
+      price: (p.specialPrice > 0 && p.specialPrice < p.retailPrice) ? p.specialPrice : p.retailPrice,
+      originalPrice:      p.retailPrice,
+      image:              p.image,
+      imageUrl:           p.imageUrl,
+      category:           p.category,
+      weight:             defaultWeight.isNotEmpty ? defaultWeight : p.unit,
+      sku:                p.sku,
+      discountPercentage: p.discountPercent,
+      quantity:           p.quantity,
+      posQuantity:        p.quantity,
+      pieces:             allPieces,
+    );
+  }
 
   ApiCategory? get _selectedCategory {
     if (_selectedCatId.isEmpty || _data == null) return null;
@@ -548,12 +576,17 @@ class _MtlTabBodyState extends State<MtlTabBody> {
         // ── Scrollable content ─────────────────────────────────────────────
         SliverList(
           delegate: SliverChildListDelegate([
+            // _buildRefreshHint(),
+            // _buildDayBanner(),
+            // const SizedBox(height: 16),
+            // const SizedBox(height: 16),
+            // if (_selectedCatId.isNotEmpty) _buildCategoryDetailSection(),
+            // if (_selectedCatId.isNotEmpty) const SizedBox(height: 16),
+            // _buildFeaturedProducts(),
             _buildRefreshHint(),
             _buildDayBanner(),
-            const SizedBox(height: 16),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             if (_selectedCatId.isNotEmpty) _buildCategoryDetailSection(),
-            if (_selectedCatId.isNotEmpty) const SizedBox(height: 16),
             _buildFeaturedProducts(),
             const SizedBox(height: 4),
             _buildRunningBanners(),
@@ -707,13 +740,16 @@ class _MtlTabBodyState extends State<MtlTabBody> {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       if (hasChildSubs)
         Container(
+          // margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+          // padding: const EdgeInsets.all(14),
+          // decoration: _cardDecoration(false),
+          // child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          //
+          //   GridView.builder(
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
           decoration: _cardDecoration(false),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
-            // NEW - just the spacing
-            const SizedBox(height: 8),
 
             GridView.builder(
               shrinkWrap: true,
@@ -721,10 +757,10 @@ class _MtlTabBodyState extends State<MtlTabBody> {
 
               // NEW
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount:   4,
-                childAspectRatio: 0.78,
+                crossAxisCount:   5,
+                childAspectRatio: 0.85,
                 crossAxisSpacing: 8,
-                mainAxisSpacing:  8,
+                mainAxisSpacing:  6,
               ),
               itemCount: detail.childSubs.length,
               itemBuilder: (_, i) {
@@ -749,75 +785,124 @@ class _MtlTabBodyState extends State<MtlTabBody> {
                   },
 
                   // NEW - matches image 2 style with light blue background, name on top, image below
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE3F4FB), // light blue background like image 2
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: isSelected
-                            ? const Color(0xFF90CAF9)
-                            : Colors.transparent,
-                        width: isSelected ? 2 : 0,
+                  // child: AnimatedContainer(
+                  //   duration: const Duration(milliseconds: 200),
+                  //   decoration: BoxDecoration(
+                  //     color: const Color(0xFFE3F4FB), // light blue background like image 2
+                  //     borderRadius: BorderRadius.circular(14),
+                  //     border: Border.all(
+                  //       color: isSelected
+                  //           ? const Color(0xFF90CAF9)
+                  //           : Colors.transparent,
+                  //       width: isSelected ? 2 : 0,
+                  //     ),
+                  //     boxShadow: [
+                  //       BoxShadow(
+                  //         color:      Colors.black.withOpacity(0.06),
+                  //         blurRadius: 4,
+                  //         offset:     const Offset(0, 2),
+                  //       ),
+                  //     ],
+                  //   ),
+                  //   child: Column(
+                  //     crossAxisAlignment: CrossAxisAlignment.stretch,
+                  //     children: [
+                  //       // ── Text label on top ──────────────────────────
+                  //       Container(
+                  //         padding: const EdgeInsets.symmetric(
+                  //             horizontal: 4, vertical: 6),
+                  //         decoration: const BoxDecoration(
+                  //           color: Color(0xFFE3F4FB),
+                  //           borderRadius: BorderRadius.vertical(
+                  //               top: Radius.circular(13)),
+                  //         ),
+                  //         child: Text(
+                  //           sub.name,
+                  //           style: const TextStyle(
+                  //             fontSize:   10,
+                  //             fontWeight: FontWeight.w700,
+                  //             color:      Colors.black87,
+                  //             height:     1.2,
+                  //           ),
+                  //           textAlign: TextAlign.center,
+                  //           maxLines:  2,
+                  //           overflow:  TextOverflow.ellipsis,
+                  //         ),
+                  //       ),
+                  //       // ── Image on bottom ────────────────────────────
+                  //       Expanded(
+                  //         child: ClipRRect(
+                  //           borderRadius: const BorderRadius.vertical(
+                  //               bottom: Radius.circular(13)),
+                  //           child: sub.imageUrl.isNotEmpty
+                  //               ? Image.network(
+                  //             sub.imageUrl,
+                  //             fit: BoxFit.contain,
+                  //             errorBuilder: (_, __, ___) => Container(
+                  //               color: const Color(0xFFE3F4FB),
+                  //               child: Icon(Icons.category,
+                  //                   color: Colors.grey[400], size: 24),
+                  //             ),
+                  //           )
+                  //               : Container(
+                  //             color: const Color(0xFFE3F4FB),
+                  //             child: Icon(Icons.category,
+                  //                 color: Colors.grey[400],
+                  //                 size: 24),
+                  //           ),
+                  //         ),
+                  //       ),
+                  //     ],
+                  //   ),
+                  // ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: 48, height: 48,
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppColors.textMuted
+                              : AppColors.textMuted.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.textMuted
+                                : AppColors.textMuted.withOpacity(0.25),
+                            width: 1.5,
+                          ),
+                          boxShadow: isSelected
+                              ? [BoxShadow(
+                              color: AppColors.textMuted.withOpacity(0.4),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3))]
+                              : [],
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: sub.imageUrl.isNotEmpty
+                            ? Image.network(sub.imageUrl, fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Icon(Icons.category,
+                                color: isSelected ? Colors.white : AppColors.buttonPrimary,
+                                size: 22))
+                            : Icon(Icons.category,
+                            color: isSelected ? Colors.white : AppColors.buttonPrimary,
+                            size: 22),
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color:      Colors.black.withOpacity(0.06),
-                          blurRadius: 4,
-                          offset:     const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // ── Text label on top ──────────────────────────
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 4, vertical: 6),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFE3F4FB),
-                            borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(13)),
+                      const SizedBox(height: 3),
+                      SizedBox(
+                        width: 60,
+                        child: Text(sub.name,
+                          style: TextStyle(
+                            fontSize: 9, fontWeight: FontWeight.w600,
+                            color: isSelected ? AppColors.buttonPrimary : Colors.black87,
                           ),
-                          child: Text(
-                            sub.name,
-                            style: const TextStyle(
-                              fontSize:   10,
-                              fontWeight: FontWeight.w700,
-                              color:      Colors.black87,
-                              height:     1.2,
-                            ),
-                            textAlign: TextAlign.center,
-                            maxLines:  2,
-                            overflow:  TextOverflow.ellipsis,
-                          ),
+                          textAlign: TextAlign.center, maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: true,
                         ),
-                        // ── Image on bottom ────────────────────────────
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: const BorderRadius.vertical(
-                                bottom: Radius.circular(13)),
-                            child: sub.imageUrl.isNotEmpty
-                                ? Image.network(
-                              sub.imageUrl,
-                              fit: BoxFit.contain,
-                              errorBuilder: (_, __, ___) => Container(
-                                color: const Color(0xFFE3F4FB),
-                                child: Icon(Icons.category,
-                                    color: Colors.grey[400], size: 24),
-                              ),
-                            )
-                                : Container(
-                              color: const Color(0xFFE3F4FB),
-                              child: Icon(Icons.category,
-                                  color: Colors.grey[400],
-                                  size: 24),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 );
               },
@@ -917,36 +1002,62 @@ class _MtlTabBodyState extends State<MtlTabBody> {
     );
   }
 
+  // Widget _buildDirectProducts(String catName, List<_SubProduct> prods) {
+  //   return Container(
+  //     width: double.infinity,
+  //     margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+  //     decoration: _cardDecoration(false),
+  //     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  //
+  //       if (catName.isNotEmpty)
+  //         Padding(
+  //           padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+  //           child: Row(children: [
+  //             Container(
+  //               width: 4, height: 16,
+  //               decoration: BoxDecoration(
+  //                   color:AppColors.lightBrown,
+  //                   borderRadius: BorderRadius.circular(2)),
+  //             ),
+  //             const SizedBox(width: 8),
+  //             Expanded(
+  //               child: Text(catName,
+  //                   style: const TextStyle(
+  //                       fontSize: 15, fontWeight: FontWeight.bold),
+  //                   overflow: TextOverflow.ellipsis),
+  //             ),
+  //           ]),
+  //         ),
+  //       // _HorizontalProductRow(products: prods, cap: null, onSeeMore: null),
+  //       // const SizedBox(height: 10),
+  //       _HorizontalProductRow(products: prods, cap: null, onSeeMore: null),
+  //     ]),
+  //   );
+  // }
   Widget _buildDirectProducts(String catName, List<_SubProduct> prods) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-      decoration: _cardDecoration(false),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
-        if (catName.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
-            child: Row(children: [
-              Container(
-                width: 4, height: 16,
-                decoration: BoxDecoration(
-                    color:AppColors.lightBrown,
-                    borderRadius: BorderRadius.circular(2)),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(catName,
-                    style: const TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.bold),
-                    overflow: TextOverflow.ellipsis),
-              ),
-            ]),
-          ),
-        _HorizontalProductRow(products: prods, cap: null, onSeeMore: null),
-        const SizedBox(height: 10),
-      ]),
-    );
+    if (prods.isEmpty) return const SizedBox.shrink();
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      if (catName.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: Row(children: [
+            Container(
+              width: 4, height: 16,
+              decoration: BoxDecoration(
+                  color: AppColors.lightBrown,
+                  borderRadius: BorderRadius.circular(2)),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(catName,
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis),
+            ),
+          ]),
+        ),
+      _HorizontalProductRow(products: prods, cap: null, onSeeMore: null),
+    ]);
   }
 
   void _goToFullCategoryPage({
@@ -1066,17 +1177,17 @@ class _MtlTabBodyState extends State<MtlTabBody> {
     final cardH   = imgH + 134.0;
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Padding(
-        padding: EdgeInsets.fromLTRB(16, 0, 16, 10),
-        child: Row(children: [
-          Icon(Icons.local_offer, color: AppColors.buttonPrimary, size: 18),
-          SizedBox(width: 6),
-          Text(
-            'Special Offers',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-        ]),
-      ),
+      // const Padding(
+      //   padding: EdgeInsets.fromLTRB(16, 0, 16, 10),
+      //   child: Row(children: [
+      //     Icon(Icons.local_offer, color: AppColors.buttonPrimary, size: 18),
+      //     SizedBox(width: 6),
+      //     Text(
+      //       'Special Offers',
+      //       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      //     ),
+      //   ]),
+      // ),
 
       for (final offer in offers) ...[
         if (offer.products.isNotEmpty) ...[
@@ -1110,7 +1221,7 @@ class _MtlTabBodyState extends State<MtlTabBody> {
           ),
 
           SizedBox(
-            height: cardH +24,
+            height: cardH +12,
             child: Builder(
               builder: (context) {
                 final previewProducts = offer.products.take(4).toList();
@@ -1187,7 +1298,7 @@ class _MtlTabBodyState extends State<MtlTabBody> {
             ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 4),
         ],
       ],
     ]);
@@ -1326,74 +1437,134 @@ class _HorizontalProductRow extends StatelessWidget {
     this.onSeeMore,
   });
 
+  // @override
+  // Widget build(BuildContext context) {
+  //   if (products.isEmpty) return const SizedBox.shrink();
+  //
+  //   final screenW   = MediaQuery.of(context).size.width;
+  //   final cardW     = screenW * 0.42;
+  //   final imgH      = cardW * 0.75;
+  //   final cardH     = imgH + 134.0;
+  //   // const seeMoreH  = 36.0;
+  //   // final rowHeight = cardH + seeMoreH + 24.0;
+  //   const seeMoreH  = 0.0;
+  //   final rowHeight = cardH + 12.0;
+  //
+  //   final shown     = cap != null ? products.take(cap!).toList() : products;
+  //   final lastIndex = shown.length - 1;
+  //   final hasSeeMore = onSeeMore != null;
+  //
+  //   return SizedBox(
+  //     height: rowHeight,
+  //     child: ListView.builder(
+  //       scrollDirection: Axis.horizontal,
+  //       padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+  //       itemCount: shown.length,
+  //       itemBuilder: (_, i) {
+  //         final isLastCard = i == lastIndex && hasSeeMore;
+  //         return SizedBox(
+  //           width: cardW,
+  //           child: Padding(
+  //             padding: const EdgeInsets.only(right: 10),
+  //             child: Column(
+  //               mainAxisSize: MainAxisSize.min,
+  //               crossAxisAlignment: CrossAxisAlignment.center,
+  //               children: [
+  //                 SizedBox(
+  //                   height: cardH,
+  //                   width:  cardW,
+  //                   child:  _MtlProductCard(p: shown[i], imgH: imgH),
+  //                 ),
+  //                 if (isLastCard) ...[
+  //                   const SizedBox(height: 6),
+  //                   GestureDetector(
+  //                     onTap: onSeeMore,
+  //                     child: Padding(
+  //                       padding: const EdgeInsets.only(right: 40),
+  //                       child: Container(
+  //                         decoration: BoxDecoration(
+  //                           color: AppColors.warningLight,
+  //                           borderRadius: BorderRadius.circular(20),
+  //                           border: Border.all(
+  //                               color: AppColors.buttonPrimary, width: 1),
+  //                         ),
+  //                         child: const Text(
+  //                           'View All',
+  //                           style: TextStyle(
+  //                             fontSize:   10,
+  //                             color:      AppColors.buttonPrimary,
+  //                             fontWeight: FontWeight.w600,
+  //                           ),
+  //                         ),
+  //                       ),
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ],
+  //             ),
+  //           ),
+  //         );
+  //       },
+  //     ),
+  //   );
+  // }
   @override
   Widget build(BuildContext context) {
     if (products.isEmpty) return const SizedBox.shrink();
 
-    final screenW   = MediaQuery.of(context).size.width;
-    final cardW     = screenW * 0.42;
-    final imgH      = cardW * 0.75;
-    final cardH     = imgH + 134.0;
-    const seeMoreH  = 36.0;
-    final rowHeight = cardH + seeMoreH + 24.0;
+    final screenW  = MediaQuery.of(context).size.width;
+    final cardW    = screenW * 0.42;
+    final imgH     = cardW * 0.75;
+    final cardH    = imgH + 134.0;
 
-    final shown     = cap != null ? products.take(cap!).toList() : products;
-    final lastIndex = shown.length - 1;
+    final shown      = cap != null ? products.take(cap!).toList() : products;
+    final lastIndex  = shown.length - 1;
     final hasSeeMore = onSeeMore != null;
 
-    return SizedBox(
-      height: rowHeight,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
-        itemCount: shown.length,
-        itemBuilder: (_, i) {
-          final isLastCard = i == lastIndex && hasSeeMore;
-          return SizedBox(
-            width: cardW,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 10),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    height: cardH,
-                    width:  cardW,
-                    child:  _MtlProductCard(p: shown[i], imgH: imgH),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          height: cardH + 12,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(14, 6, 14, 6),
+            itemCount: shown.length,
+            itemBuilder: (_, i) {
+              return SizedBox(
+                width: cardW,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: _MtlProductCard(p: shown[i], imgH: imgH),
+                ),
+              );
+            },
+          ),
+        ),
+        if (hasSeeMore)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: GestureDetector(
+              onTap: onSeeMore,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.warningLight,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.buttonPrimary, width: 1),
+                ),
+                child: const Text(
+                  'View All',
+                  style: TextStyle(
+                    fontSize:   10,
+                    color:      AppColors.buttonPrimary,
+                    fontWeight: FontWeight.w600,
                   ),
-                  if (isLastCard) ...[
-                    const SizedBox(height: 30),
-                    GestureDetector(
-                      onTap: onSeeMore,
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 40),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: AppColors.warningLight,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                                color: AppColors.buttonPrimary, width: 1),
-                          ),
-                          child: const Text(
-                            'View All',
-                            style: TextStyle(
-                              fontSize:   10,
-                              color:      AppColors.buttonPrimary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ] else
-                    const SizedBox(height: seeMoreH),
-                ],
+                ),
               ),
             ),
-          );
-        },
-      ),
+          ),
+      ],
     );
   }
 }
@@ -1445,9 +1616,26 @@ class _SubProduct {
 
   static _SubProduct? fromJson(Map<String, dynamic> j) {
     try {
-      final rawUnit = (j['piece']?.toString() ?? '').isNotEmpty
-          ? j['piece'].toString()
-          : (j['barcode_type']?.toString() ?? '');
+      // final rawUnit = (j['piece']?.toString() ?? '').isNotEmpty
+      //     ? j['piece'].toString()
+      //     : (j['barcode_type']?.toString() ?? '');
+      // Get default piece weight from pieces array
+      String rawUnit = '';
+      final piecesList = j['pieces'] as List? ?? [];
+      try {
+        final defaultPiece = piecesList.firstWhere(
+              (e) => e['piece_default']?.toString() == '1',
+          orElse: () => piecesList.isNotEmpty ? piecesList.first : null,
+        );
+        if (defaultPiece != null) {
+          rawUnit = defaultPiece['piece']?.toString() ?? '';
+        }
+      } catch (_) {}
+      if (rawUnit.isEmpty) {
+        rawUnit = (j['piece']?.toString() ?? '').isNotEmpty
+            ? j['piece'].toString()
+            : (j['barcode_type']?.toString() ?? '');
+      }
 
 
       final double rawPrice     = double.tryParse(j['price']?.toString()         ?? '0') ?? 0;
@@ -1519,6 +1707,7 @@ class _SubProduct {
     sku:                sku,
     discountPercentage: discountPercent.toDouble(),
     quantity:           qty,
+    pieces:             pieces,
   );
 }
 
@@ -1783,7 +1972,13 @@ class _CartBtn extends StatelessWidget {
                       fontSize:     11,
                       fontWeight:   FontWeight.bold,
                       letterSpacing: 0.5)),
-              Text('${pieces.length} options',
+              // Text('${pieces.length} options',
+              //     style: const TextStyle(
+              //         color:   AppColors.buttonPrimary,
+              //         fontSize: 8)),
+              Text(pieces.length == 1
+                  ?  '1 option'
+                  : '${pieces.length} options',
                   style: const TextStyle(
                       color:   AppColors.buttonPrimary,
                       fontSize: 8)),
@@ -2145,62 +2340,133 @@ class _SidebarItem extends StatelessWidget {
     required this.onTap,
   });
 
+  // @override
+  // Widget build(BuildContext context) {
+  //   return GestureDetector(
+  //     onTap: onTap,
+  //     child: AnimatedContainer(
+  //       duration: const Duration(milliseconds: 180),
+  //       width:   double.infinity,
+  //       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+  //       decoration: BoxDecoration(
+  //         color: isSelected ? const Color(0xFFFFF8F0) : Colors.white,
+  //         border: Border(
+  //           left: BorderSide(
+  //             color: isSelected
+  //                 ? AppColors.lightBrown
+  //                 : Colors.transparent,
+  //             width: 3,
+  //           ),
+  //         ),
+  //       ),
+  //       child: Column(children: [
+  //         Container(
+  //           width:  52,
+  //           height: 52,
+  //           decoration: BoxDecoration(
+  //             color: isSelected
+  //                 ? AppColors.white.withOpacity(0.12)
+  //                 : Colors.white,
+  //             borderRadius: BorderRadius.circular(10),
+  //           ),
+  //           clipBehavior: Clip.antiAlias,
+  //           child: imageUrl.isNotEmpty
+  //               ? Image.network(imageUrl,
+  //               fit: BoxFit.cover,
+  //               errorBuilder: (_, __, ___) => Icon(Icons.category,
+  //                   color: isSelected
+  //                       ? AppColors.lightBrown
+  //                       : Colors.grey[400],
+  //                   size: 22))
+  //               : Icon(Icons.category,
+  //               color: isSelected
+  //                   ? AppColors.pink
+  //                   : Colors.white,
+  //               size: 22),
+  //         ),
+  //         const SizedBox(height: 5),
+  //         Text(label,
+  //           style: TextStyle(
+  //             fontSize:   10,
+  //             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+  //             color: isSelected ? AppColors.pink : Colors.black87,
+  //           ),
+  //           textAlign: TextAlign.center,
+  //           maxLines:  2,
+  //           overflow:  TextOverflow.ellipsis,
+  //         ),
+  //       ]),
+  //     ),
+  //   );
+  // }
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        width:   double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFFFFF8F0) : Colors.white,
           border: Border(
             left: BorderSide(
-              color: isSelected
-                  ? AppColors.lightBrown
-                  : Colors.transparent,
+              color: isSelected ? AppColors.lightBrown : Colors.transparent,
               width: 3,
             ),
           ),
         ),
-        child: Column(children: [
-          Container(
-            width:  52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? AppColors.white.withOpacity(0.12)
-                  : Colors.white,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: imageUrl.isNotEmpty
-                ? Image.network(imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Icon(Icons.category,
-                    color: isSelected
-                        ? AppColors.lightBrown
-                        : Colors.grey[400],
-                    size: 22))
-                : Icon(Icons.category,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 52, height: 52,
+              decoration: BoxDecoration(
                 color: isSelected
-                    ? AppColors.pink
-                    : Colors.white,
-                size: 22),
-          ),
-          const SizedBox(height: 5),
-          Text(label,
-            style: TextStyle(
-              fontSize:   10,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              color: isSelected ? AppColors.pink : Colors.black87,
+                    ? AppColors.textMuted
+                    : AppColors.textMuted.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.textMuted
+                      : AppColors.textMuted.withOpacity(0.25),
+                  width: 1.5,
+                ),
+                boxShadow: isSelected
+                    ? [BoxShadow(
+                    color: AppColors.textMuted.withOpacity(0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3))]
+                    : [],
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: imageUrl.isNotEmpty
+                  ? Image.network(imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Icon(Icons.category,
+                      color: isSelected ? Colors.white : AppColors.buttonPrimary,
+                      size: 22))
+                  : Icon(Icons.category,
+                  color: isSelected ? Colors.white : AppColors.buttonPrimary,
+                  size: 22),
             ),
-            textAlign: TextAlign.center,
-            maxLines:  2,
-            overflow:  TextOverflow.ellipsis,
-          ),
-        ]),
+            const SizedBox(height: 3),
+            SizedBox(
+              width: 60,
+              child: Text(label,
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? AppColors.buttonPrimary : Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                softWrap: true,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

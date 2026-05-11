@@ -143,6 +143,7 @@ class OrderInfo {
   final String dateAdded;
   final String dateModified;
   final String currencyCode;
+  final String takeaway_amount;
 
   const OrderInfo({
     required this.orderId,
@@ -160,6 +161,7 @@ class OrderInfo {
     required this.dateAdded,
     required this.dateModified,
     required this.currencyCode,
+    required this.takeaway_amount,
   });
 
   String get fullName => '$firstname $lastname'.trim();
@@ -192,6 +194,7 @@ class OrderInfo {
       dateAdded:     json['date_added']?.toString() ?? '',
       dateModified:  json['date_modified']?.toString() ?? '',
       currencyCode:  json['currency_code']?.toString() ?? 'INR',
+      takeaway_amount:  json['takeaway_amount']?.toString() ?? '0.00',
     );
   }
 }

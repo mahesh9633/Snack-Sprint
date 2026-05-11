@@ -42,6 +42,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   Future<void> _loadFullProduct() async {
     if (mounted) setState(() => _loadingDetail = true);
+
     try {
       final token = await SessionManager.getToken();
       final uri = Uri.parse(
@@ -53,6 +54,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
       if (response.statusCode == 200 && response.body.isNotEmpty) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
+        if (data['product'] != null) {
+        }
         if (data['status']?.toString() == 'success' &&
             data['product'] != null) {
           final full = Product.fromApiMap(
@@ -71,7 +74,37 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     } catch (_) {
     }
 
-    if (mounted) setState(() => _loadingDetail = false);
+    // API failed — fix the fallback product's imageUrl and quantity
+    if (mounted) {
+      final p = widget.product;
+      String fixedUrl = '';
+      if (p.imageUrl.startsWith('http')) {
+        fixedUrl = p.imageUrl;
+      } else if (p.image.startsWith('http')) {
+        fixedUrl = p.image;
+      } else if (p.imageUrl.isNotEmpty && p.imageUrl != 'no_image.png') {
+        fixedUrl = '${ApiConfig.imageBase}${p.imageUrl}';
+      } else if (p.image.isNotEmpty && p.image != 'no_image.png') {
+        fixedUrl = '${ApiConfig.imageBase}${p.image}';
+      }
+      _fullProduct = Product(
+        id:                 p.id,
+        name:               p.name,
+        price:              p.price,
+        originalPrice:      p.originalPrice,
+        image:              p.image,
+        imageUrl:           fixedUrl,
+        category:           p.category,
+        quantity:           p.quantity,
+        posQuantity:        p.posQuantity,
+        deliveryTime:       p.deliveryTime,
+        weight:             p.weight,
+        discountPercentage: p.discountPercentage,
+        pieces:             p.pieces,
+        sku:                p.sku,
+      );
+      setState(() => _loadingDetail = false);
+    }
   }
 
   void _openSimilarProduct(SimilarProduct similar) {
@@ -570,12 +603,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   );
 
   Widget _buildHeroImage() {
-    final raw = _product.imageUrl.isNotEmpty
-        ? _product.imageUrl
-        : buildImageUrl(_product.image);
-    final url = (raw.startsWith('http://') || raw.startsWith('https://'))
-        ? raw
-        : '';
+    String url = '';
+    if (_product.imageUrl.startsWith('http')) {
+      url = _product.imageUrl;
+    } else if (_product.image.startsWith('http')) {
+      url = _product.image;
+    } else if (_product.imageUrl.isNotEmpty && _product.imageUrl != 'no_image.png') {
+      url = '${ApiConfig.imageBase}${_product.imageUrl}';
+    } else if (_product.image.isNotEmpty && _product.image != 'no_image.png') {
+      url = '${ApiConfig.imageBase}${_product.image}';
+    }
 
     if (url.isNotEmpty) {
       return SizedBox(
