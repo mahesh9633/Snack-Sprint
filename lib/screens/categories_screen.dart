@@ -30,6 +30,16 @@ Product _toProduct(CategoryDataProduct p) {
   final imgUrl = (raw.isNotEmpty && raw != 'no_image.png')
       ? '$_imgBase$raw'
       : '';
+
+  String defaultWeight = '';
+  try {
+    final defaultPiece = p.pieces.firstWhere(
+          (e) => e['piece_default']?.toString() == '1',
+      orElse: () => p.pieces.isNotEmpty ? p.pieces.first : {},
+    );
+    defaultWeight = defaultPiece['piece']?.toString() ?? '';
+  } catch (_) {}
+
   return Product(
     id:                 p.productId,
     name:               p.name,
@@ -38,9 +48,10 @@ Product _toProduct(CategoryDataProduct p) {
     image:              raw,
     imageUrl:           imgUrl,
     category:           p.categoryId,
-    weight:             p.piece.isNotEmpty ? p.piece : '',
+    weight:             defaultWeight.isNotEmpty ? defaultWeight : (p.piece.isNotEmpty ? p.piece : ''),
     discountPercentage: p.discountPercent.toDouble(),
-    quantity:           _isProductInStock(p) ? 1 : 0,
+    quantity:    int.tryParse(p.quantity) ?? 0,
+    posQuantity: int.tryParse(p.quantity) ?? 0,
     pieces:             p.pieces.map((e) => ProductPiece.fromJson(e)).toList(),
   );
 }
@@ -833,10 +844,10 @@ class _ProductCard extends StatelessWidget {
                           ]),
                     ),
 
-                    if (p.piece.isNotEmpty) ...[
+                    if (product.displayWeight.isNotEmpty) ...[
                       const SizedBox(width: 3),
                       Flexible(
-                        child: Text(p.piece,
+                        child: Text(product.displayWeight,
                             style: TextStyle(
                                 fontSize: 9, color: Colors.black87),
                             maxLines:  1,
@@ -942,8 +953,10 @@ class _CartButton extends StatelessWidget {
                       fontSize:      11,
                       fontWeight:    FontWeight.bold,
                       letterSpacing: 0.5)),
-              if (product.pieces.length > 1)
-                Text('${product.pieces.length} options',
+              if (product.pieces.isNotEmpty)
+                Text(product.pieces.length == 1
+                    ? '1 option'
+                    : '${product.pieces.length} options',
                     style: const TextStyle(
                         color:   AppColors.buttonPrimary,
                         fontSize: 8)),

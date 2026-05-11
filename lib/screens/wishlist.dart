@@ -409,8 +409,10 @@ class _WishlistCard extends StatelessWidget {
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
                                         letterSpacing: 0.5)),
-                                if (product.pieces.length > 1)
-                                  Text('${product.pieces.length} options',
+                                if (product.pieces.isNotEmpty)
+                                  Text(product.pieces.length == 1
+                                      ? '1 option'
+                                      : '${product.pieces.length} options',
                                       style: const TextStyle(
                                           color: AppColors.buttonPrimary,
                                           fontSize: 8)),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/app_color.dart';
+import '../services/api_config_service.dart';
 import '../services/your_orders_service.dart';
 import '../services/session_manager.dart';
 import '../widgets/refreshable_screen.dart';
@@ -249,11 +250,13 @@ class _OrderCard extends StatelessWidget {
               : 'Order #${info.orderId}',
           // ✅ NEW — pass all products as a list of maps
           products: order.products.map((p) => {
-            'product_id':    p.productId,
-            'name':          p.name,
-            'image':         p.image,
-            'price':         p.price,
-            'special_price': '0',
+            'product_id':       p.productId,
+            'name':             p.name,
+            'image':            p.image.isNotEmpty
+                ? '${ApiConfig.imageBase}${p.image}'
+                : '',
+            'price':            p.price,
+            'special_price':    '0',
             'ordered_quantity': p.quantity,
           }).toList(),
         ),
@@ -403,37 +406,81 @@ class _OrderCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
               child: Column(children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(children: [
-                      const Icon(Icons.payment,
-                          size: 14, color: Color(0xFFFF0080)),
-                      const SizedBox(width: 4),
-                      Text(
-                        invoice?.amountThrough ?? info.paymentMethod,
-                        style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFFFF0080),
-                            fontWeight: FontWeight.w500),
+                Builder(builder: (_) {
+                  final grandTotal      = double.tryParse(invoice?.totalReceived ?? info.total) ?? 0.0;
+                  final subTotal        = double.tryParse(invoice?.subTotal ?? '0') ?? 0.0;
+                  final totalTax        = double.tryParse(invoice?.totalTax ?? '0') ?? 0.0;
+                  final discount        = double.tryParse(invoice?.discount ?? '0') ?? 0.0;
+// same formula as order_details_screen
+                  final calculatedTotal = subTotal + totalTax - discount;
+                  final deliveryRaw     = invoice != null && subTotal > 0
+                      ? (grandTotal - calculatedTotal)
+                      : 0.0;
+                  final delivery        = deliveryRaw > 0.5 ? deliveryRaw : 0.0;
+                  final paymentLabel    = invoice?.amountThrough ?? info.paymentMethod;
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(children: [
+                            const Icon(Icons.payment,
+                                size: 14, color: Color(0xFFFF0080)),
+                            const SizedBox(width: 4),
+                            Text(paymentLabel,
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFFFF0080),
+                                    fontWeight: FontWeight.w500)),
+                          ]),
+                          Text('₹${subTotal.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.w500)),
+                        ],
                       ),
-                    ]),
-                    RichText(
-                      text: TextSpan(children: [
-                        TextSpan(
-                            text: 'Total  ',
-                            style: TextStyle(
-                                color: Colors.black87, fontSize: 12)),
-                        TextSpan(
-                            text: '\u20b9${info.total}',
-                            style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold)),
-                      ]),
-                    ),
-                  ],
-                ),
+                      if (delivery > 0) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(children: [
+                              const Icon(Icons.local_shipping_outlined,
+                                  size: 13, color: Colors.grey),
+                              const SizedBox(width: 4),
+                              const Text('Delivery Charges',
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.grey)),
+                            ]),
+                            Text('+ ₹${delivery.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.grey)),
+                          ],
+                        ),
+                      ],
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 5),
+                        child: Divider(height: 1, color: Color(0xFFEEEEEE)),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Total',
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.black87)),
+                          Text('₹${(double.tryParse(invoice?.totalReceived ?? info.total) ?? 0.0).toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black)),
+                        ],
+                      ),
+                    ],
+                  );
+                }),
 
                 const SizedBox(height: 10),
 

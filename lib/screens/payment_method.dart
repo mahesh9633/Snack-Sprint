@@ -338,9 +338,29 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       final orderId   = result['order_id']?.toString() ?? '';
 
       if (isSuccess) {
+        // final purchasedItems = cart.items.values.toList();
+        // final baseTotal = cart.totalPrice + _deliveryFee;
+        // final total     = baseTotal - _couponDiscount;
+        // cart.clearCart();
+        //
+        // Navigator.pushAndRemoveUntil(
+        //   context,
+        //   MaterialPageRoute(
+        //     builder: (nc) => _OrderSuccessScreen(
+        //       orderId:        orderId,
+        //       total:          total,
+        //       paymentLabel:   _paymentLabel,
+        //       address:        _defaultAddress!,
+        //       purchasedItems: purchasedItems,
+        //       onContinue: () async {
+        // final purchasedItems = cart.items.values.toList();
+        // final baseTotal = cart.totalPrice + _deliveryFee;
+        // final total     = baseTotal - _couponDiscount;
+        // cart.clearCart();
         final purchasedItems = cart.items.values.toList();
-        final baseTotal = cart.totalPrice + _deliveryFee;
-        final total     = baseTotal - _couponDiscount;
+        final cartSubTotal   = cart.totalPrice;
+        final baseTotal      = cartSubTotal + _deliveryFee;
+        final total          = baseTotal - _couponDiscount;
         cart.clearCart();
 
         Navigator.pushAndRemoveUntil(
@@ -352,6 +372,9 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
               paymentLabel:   _paymentLabel,
               address:        _defaultAddress!,
               purchasedItems: purchasedItems,
+              deliveryFee:    _deliveryFee,
+              // subTotal:       cart.totalPrice,
+              subTotal:       cartSubTotal,
               onContinue: () async {
                 final token      = await SessionManager.getToken()      ?? '';
                 final customerId = await SessionManager.getCustomerId() ?? '';
@@ -1620,15 +1643,18 @@ class _OrderSuccessScreen extends StatelessWidget {
   final AddressModel   address;
   final List<CartItem> purchasedItems;
   final VoidCallback   onContinue;
+  final double         deliveryFee;
+  final double         subTotal;
 
   const _OrderSuccessScreen({
     required this.orderId,
     required this.total,
     required this.paymentLabel,
-
     required this.address,
     required this.purchasedItems,
     required this.onContinue,
+    required this.deliveryFee,
+    required this.subTotal,
   });
 
   @override
@@ -1797,22 +1823,71 @@ class _OrderSuccessScreen extends StatelessWidget {
                           decoration: BoxDecoration(
                               color: const Color(0xFFF5F5F5),
                               borderRadius: BorderRadius.circular(8)),
-                          child: Row(
-                              mainAxisAlignment:
-                              MainAxisAlignment.spaceBetween,
+                          // child: Row(
+                          //     mainAxisAlignment:
+                          //     MainAxisAlignment.spaceBetween,
+                          //     children: [
+                          //       Text(
+                          //         '${purchasedItems.fold(0, (s, i) => s + i.quantity)} item(s)  •  Free Delivery',
+                          //         style: TextStyle(
+                          //             fontSize: 12,
+                          //             color: Colors.grey[600]),
+                          //       ),
+                          //       Text('₹${total.toStringAsFixed(0)}',
+                          //           style: const TextStyle(
+                          //               fontSize: 14,
+                          //               fontWeight: FontWeight.bold,
+                          //               color: Color(0xFF1B5E20))),
+                          //     ]),
+                          child: Column(children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  '${purchasedItems.fold(0, (s, i) => s + i.quantity)} item(s)  •  Free Delivery',
+                                  '${purchasedItems.fold(0, (s, i) => s + i.quantity)} item(s)',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                ),
+                                Text('₹${subTotal.toStringAsFixed(0)}',
+                                    style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(children: [
+                                  Icon(Icons.local_shipping_outlined,
+                                      size: 13, color: deliveryFee > 0 ? Colors.grey[600] : Colors.green),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    deliveryFee > 0 ? 'Delivery' : 'Free Delivery',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: deliveryFee > 0 ? Colors.grey[600] : Colors.green),
+                                  ),
+                                ]),
+                                Text(
+                                  deliveryFee > 0 ? '₹${deliveryFee.toStringAsFixed(0)}' : 'FREE',
                                   style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey[600]),
+                                      fontWeight: FontWeight.w600,
+                                      color: deliveryFee > 0 ? Colors.grey[600] : Colors.green),
                                 ),
+                              ],
+                            ),
+                            const Divider(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Total', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                                 Text('₹${total.toStringAsFixed(0)}',
                                     style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
                                         color: Color(0xFF1B5E20))),
-                              ]),
+                              ],
+                            ),
+                          ]),
                         ),
                         _div(top: 16),
                         Padding(

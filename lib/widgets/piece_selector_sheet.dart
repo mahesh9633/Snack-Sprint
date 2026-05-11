@@ -53,10 +53,10 @@ void handleAddToCart({
     context.read<CartModel>().addItem(product);
     return;
   }
-  if (pieces.length == 1) {
-    _addPiece(context, product, pieces.first);
-    return;
-  }
+  // if (pieces.length == 1) {
+  //   _addPiece(context, product, pieces.first);
+  //   return;
+  // }
   showModalBottomSheet(
     context:            context,
     isScrollControlled: true,
@@ -93,9 +93,9 @@ class _PieceSelectorSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
-      initialChildSize: 0.52,
-      minChildSize:     0.52,
-      maxChildSize:     0.52,
+      initialChildSize: 0.75,
+      minChildSize:     0.50,
+      maxChildSize:     0.92,
       expand:           false,
       snap:             false,
       builder: (_, scrollCtrl) => Stack(
@@ -127,8 +127,12 @@ class _PieceSelectorSheet extends StatelessWidget {
                     Expanded(
                       child: Text(
                         product.name,
+                        // style: const TextStyle(
+                        //     fontSize: 18, fontWeight: FontWeight.bold),
                         style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
+                            fontSize: 15, fontWeight: FontWeight.w700),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     GestureDetector(
@@ -147,7 +151,7 @@ class _PieceSelectorSheet extends StatelessWidget {
                     onNotification: (_) => true, // block scroll bubbling to sheet
                     child: ListView.separated(
                       controller:       scrollCtrl,
-                      padding:          const EdgeInsets.fromLTRB(16, 8, 16, 90),
+                      padding:          const EdgeInsets.fromLTRB(16, 8, 16, 100),
                       itemCount:        pieces.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 10),
                       itemBuilder:      (ctx, i) =>
@@ -161,7 +165,7 @@ class _PieceSelectorSheet extends StatelessWidget {
 
           // ── Floating cart bar pinned at bottom of sheet ────────────
           const Positioned(
-            bottom: 10,
+            bottom: 16,
             left:   16,
             right:  16,
             child:  FloatingCartBar(),
@@ -295,6 +299,58 @@ class _PieceCartBtn extends StatelessWidget {
         );
         final qty = cart.getQuantity(tempProduct);
 
+        // if (qty == 0) {
+        //   return GestureDetector(
+        //     onTap: () => _addPiece(ctx, product, piece),
+        //     child: Container(
+        //       padding: const EdgeInsets.symmetric(
+        //           horizontal: 18, vertical: 8),
+        //       decoration: BoxDecoration(
+        //         color:        Colors.white,
+        //         borderRadius: BorderRadius.circular(8),
+        //         border: Border.all(
+        //             color: const Color(0xFFFF0080), width: 1.5),
+        //       ),
+        //       child: const Text('ADD',
+        //           style: TextStyle(
+        //               color:         Color(0xFFFF0080),
+        //               fontSize:      13,
+        //               fontWeight:    FontWeight.bold,
+        //               letterSpacing: 0.5)),
+        //     ),
+        //   );
+        // }
+        //
+        // return Container(
+        //   height: 36,
+        //   decoration: BoxDecoration(
+        //       color:        const Color(0xFFFF0080),
+        //       borderRadius: BorderRadius.circular(8)),
+        //   child: Row(mainAxisSize: MainAxisSize.min, children: [
+        //     GestureDetector(
+        //       onTap: () => cart.decrementQuantity(pieceId),
+        //       child: const SizedBox(
+        //           width: 34, height: 36,
+        //           child: Icon(Icons.remove,
+        //               color: Colors.white, size: 16)),
+        //     ),
+        //     Padding(
+        //       padding: const EdgeInsets.symmetric(horizontal: 4),
+        //       child: Text('$qty',
+        //           style: const TextStyle(
+        //               color:      Colors.white,
+        //               fontSize:   14,
+        //               fontWeight: FontWeight.bold)),
+        //     ),
+        //     GestureDetector(
+        //       onTap: () => _addPiece(ctx, product, piece),
+        //       child: const SizedBox(
+        //           width: 34, height: 36,
+        //           child: Icon(Icons.add,
+        //               color: Colors.white, size: 16)),
+        //     ),
+        //   ]),
+        // );
         if (qty == 0) {
           return GestureDetector(
             onTap: () => _addPiece(ctx, product, piece),
@@ -317,35 +373,50 @@ class _PieceCartBtn extends StatelessWidget {
           );
         }
 
-        return Container(
-          height: 36,
-          decoration: BoxDecoration(
-              color:        const Color(0xFFFF0080),
-              borderRadius: BorderRadius.circular(8)),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            GestureDetector(
-              onTap: () => cart.decrementQuantity(pieceId),
-              child: const SizedBox(
-                  width: 34, height: 36,
-                  child: Icon(Icons.remove,
-                      color: Colors.white, size: 16)),
+        final total = (qty * piece.effectivePrice).toInt();
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              height: 36,
+              decoration: BoxDecoration(
+                  color:        const Color(0xFFFF0080),
+                  borderRadius: BorderRadius.circular(8)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                GestureDetector(
+                  onTap: () => cart.decrementQuantity(pieceId),
+                  child: const SizedBox(
+                      width: 34, height: 36,
+                      child: Icon(Icons.remove,
+                          color: Colors.white, size: 16)),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text('$qty',
+                      style: const TextStyle(
+                          color:      Colors.white,
+                          fontSize:   14,
+                          fontWeight: FontWeight.bold)),
+                ),
+                GestureDetector(
+                  onTap: () => _addPiece(ctx, product, piece),
+                  child: const SizedBox(
+                      width: 34, height: 36,
+                      child: Icon(Icons.add,
+                          color: Colors.white, size: 16)),
+                ),
+              ]),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text('$qty',
-                  style: const TextStyle(
-                      color:      Colors.white,
-                      fontSize:   14,
-                      fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(
+              '₹$total',
+              style: const TextStyle(
+                  color:      Color(0xFFFF0080),
+                  fontSize:   11,
+                  fontWeight: FontWeight.bold),
             ),
-            GestureDetector(
-              onTap: () => _addPiece(ctx, product, piece),
-              child: const SizedBox(
-                  width: 34, height: 36,
-                  child: Icon(Icons.add,
-                      color: Colors.white, size: 16)),
-            ),
-          ]),
+          ],
         );
       },
     );
