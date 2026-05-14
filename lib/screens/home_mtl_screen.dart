@@ -22,7 +22,7 @@ import '../widgets/home_banner_slider.dart';
 final String _kImgBase = ApiConfig.imageBase;
 const int    _kPreviewMax = 4;
 
-const Duration _kAutoRefreshInterval = Duration(seconds: 30);
+const Duration _kAutoRefreshInterval = Duration(seconds: 15);
 
 class MtlTabBody extends StatefulWidget {
   final TextEditingController? externalSearchController;
@@ -51,6 +51,7 @@ class _MtlTabBodyState extends State<MtlTabBody> {
   // ── Running banners ────────────────────────────────────────────────────────
   List<ApiBanner> _runningBanners = [];
   bool            _bannersLoaded  = false;
+  final HomeBannerSlider _bannerWidget = const HomeBannerSlider();
 
   final Map<String, _CatDetail> _catCache   = {};
   final Map<String, bool>       _catLoading = {};
@@ -89,33 +90,92 @@ class _MtlTabBodyState extends State<MtlTabBody> {
       _checkForNewData();
     });
   }
-
   Future<void> _checkForNewData() async {
     if (!mounted || _isRefreshing) return;
     try {
       final token      = await SessionManager.getToken();
       final customerId = await SessionManager.getCustomerId();
-      final result     = await getInitialData(customerId: customerId, token: token);
+      final result     = await getInitialData(
+          customerId: customerId, token: token);
       if (!mounted) return;
       if (result['success'] == true) {
-        final newModel = InitialDataModel.fromJson(result['data'] as Map<String, dynamic>);
-        // Compare product count or offer count to detect changes
+        final newModel = InitialDataModel.fromJson(
+            result['data'] as Map<String, dynamic>);
+
+
         final currentProductCount = _data?.randomProducts.length ?? 0;
         final newProductCount     = newModel.randomProducts.length;
         final currentOfferCount   = _data?.offers.length ?? 0;
         final newOfferCount       = newModel.offers.length;
 
-        if (newProductCount != currentProductCount || newOfferCount != currentOfferCount) {
-          if (mounted) {
-            setState(() {
-              _pendingData      = newModel;
-              _newDataAvailable = true;
-            });
+        bool dataChanged = false;
+
+        // ── Check count changes ──────────────────────────────────────
+        if (newProductCount != currentProductCount ||
+            newOfferCount   != currentOfferCount) {
+          dataChanged = true;
+        }
+
+        // ── Deep check: compare raw piece data ───────────────────────
+        if (!dataChanged &&
+            newProductCount == currentProductCount) {
+          for (int i = 0; i < newModel.randomProducts.length; i++) {
+            final newP = newModel.randomProducts[i];
+            final oldP = _data?.randomProducts[i];
+            if (oldP == null) { dataChanged = true; break; }
+
+            // Check resolved prices
+            if (newP.retailPrice    != oldP.retailPrice ||
+                newP.wholesalePrice != oldP.wholesalePrice) {
+              dataChanged = true;
+              break;
+            }
+
+            // Check piece count
+            if (newP.pieces.length != oldP.pieces.length) {
+              dataChanged = true;
+              break;
+            }
+
+            // ── Check every piece raw price ──────────────────────────
+            for (int k = 0; k < newP.pieces.length; k++) {
+              final newPiece = newP.pieces[k];
+              final oldPiece = oldP.pieces[k];
+
+              final newPrice = double.tryParse(
+                  newPiece['price']?.toString() ?? '0') ?? 0;
+              final oldPrice = double.tryParse(
+                  oldPiece['price']?.toString() ?? '0') ?? 0;
+              final newSp    = double.tryParse(
+                  newPiece['special_price']?.toString() ?? '0') ?? 0;
+              final oldSp    = double.tryParse(
+                  oldPiece['special_price']?.toString() ?? '0') ?? 0;
+              final newDef   = newPiece['piece_default']?.toString();
+              final oldDef   = oldPiece['piece_default']?.toString();
+              final newLabel = newPiece['piece']?.toString() ?? '';
+              final oldLabel = oldPiece['piece']?.toString() ?? '';
+
+              if (newPrice != oldPrice ||
+                  newSp    != oldSp    ||
+                  newDef   != oldDef   ||
+                  newLabel != oldLabel) {
+                dataChanged = true;
+                break;
+              }
+            }
+
+            if (dataChanged) break;
           }
         }
+
+        if (dataChanged && mounted) {
+          setState(() {
+            _pendingData      = newModel;
+            _newDataAvailable = true;
+          });
+        }
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   /// Applies the pending data and dismisses the banner.
@@ -163,9 +223,15 @@ class _MtlTabBodyState extends State<MtlTabBody> {
       });
     }
   }
-
   Future<void> _fetchInitialData() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+      _catCache.clear();
+      _subCache.clear();
+      _catLoading.clear();
+      _subLoading.clear();
+    });
     final token      = await SessionManager.getToken();
     final customerId = await SessionManager.getCustomerId();
     final result     = await getInitialData(customerId: customerId, token: token);
@@ -173,6 +239,9 @@ class _MtlTabBodyState extends State<MtlTabBody> {
     if (!mounted) return;
     if (result['success'] == true) {
       final model = InitialDataModel.fromJson(result['data'] as Map<String, dynamic>);
+      if (model.randomProducts.isNotEmpty) {
+        final p = model.randomProducts.first;
+      }
 
       for (final cat in model.categories) {
         for (final sub in cat.subcategories) {
@@ -193,6 +262,7 @@ class _MtlTabBodyState extends State<MtlTabBody> {
         _newDataAvailable = false;
         _pendingData      = null;
       });
+
       _fetchRunningBanners();
       _prefetchAllCategories(model); // ← add this
 
@@ -487,44 +557,20 @@ class _MtlTabBodyState extends State<MtlTabBody> {
 
   LayerLink get searchLayerLink => _searchLayerLink;
 
-  // Product _toProduct(ApiProduct p) => Product(
-  //   id:                 p.productId.isNotEmpty ? p.productId : (p.sku.isNotEmpty ? p.sku : p.name),
-  //   name:               p.name,
-  //   price: (p.specialPrice > 0 && p.specialPrice < p.retailPrice) ? p.specialPrice : p.retailPrice,
-  //   originalPrice:      p.retailPrice,
-  //   image:              p.image,
-  //   imageUrl:           p.imageUrl,
-  //   category:           p.category,
-  //   weight:             p.unit,
-  //   sku:                p.sku,
-  //   discountPercentage: p.discountPercent,
-  //   quantity:           p.quantity,
-  //   posQuantity:        p.quantity,
-  //   pieces: p.pieces                              // ← add this line
-  //       .map((e) => ProductPiece.fromJson(e))
-  //       .toList(),
-  // );
   Product _toProduct(ApiProduct p) {
-    // Find default piece for weight display
     final allPieces = p.pieces.map((e) => ProductPiece.fromJson(e)).toList();
-    String defaultWeight = '';
-    try {
-      final defaultPiece = p.pieces.firstWhere(
-            (e) => e['piece_default']?.toString() == '1',
-        orElse: () => p.pieces.isNotEmpty ? p.pieces.first : {},
-      );
-      defaultWeight = defaultPiece['piece']?.toString() ?? '';
-    } catch (_) {}
 
+    // ApiProduct.fromJson already resolved retailPrice/wholesalePrice/unit
+    // correctly — just use them directly, no re-calculation needed
     return Product(
       id:                 p.productId.isNotEmpty ? p.productId : (p.sku.isNotEmpty ? p.sku : p.name),
       name:               p.name,
-      price: (p.specialPrice > 0 && p.specialPrice < p.retailPrice) ? p.specialPrice : p.retailPrice,
-      originalPrice:      p.retailPrice,
+      price:              p.retailPrice,
+      originalPrice:      p.wholesalePrice,
       image:              p.image,
       imageUrl:           p.imageUrl,
       category:           p.category,
-      weight:             defaultWeight.isNotEmpty ? defaultWeight : p.unit,
+      weight:             p.unit,
       sku:                p.sku,
       discountPercentage: p.discountPercent,
       quantity:           p.quantity,
@@ -576,13 +622,6 @@ class _MtlTabBodyState extends State<MtlTabBody> {
         // ── Scrollable content ─────────────────────────────────────────────
         SliverList(
           delegate: SliverChildListDelegate([
-            // _buildRefreshHint(),
-            // _buildDayBanner(),
-            // const SizedBox(height: 16),
-            // const SizedBox(height: 16),
-            // if (_selectedCatId.isNotEmpty) _buildCategoryDetailSection(),
-            // if (_selectedCatId.isNotEmpty) const SizedBox(height: 16),
-            // _buildFeaturedProducts(),
             _buildRefreshHint(),
             _buildDayBanner(),
             const SizedBox(height: 8),
@@ -740,12 +779,6 @@ class _MtlTabBodyState extends State<MtlTabBody> {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       if (hasChildSubs)
         Container(
-          // margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-          // padding: const EdgeInsets.all(14),
-          // decoration: _cardDecoration(false),
-          // child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          //
-          //   GridView.builder(
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
           padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
           decoration: _cardDecoration(false),
@@ -784,77 +817,6 @@ class _MtlTabBodyState extends State<MtlTabBody> {
                     }
                   },
 
-                  // NEW - matches image 2 style with light blue background, name on top, image below
-                  // child: AnimatedContainer(
-                  //   duration: const Duration(milliseconds: 200),
-                  //   decoration: BoxDecoration(
-                  //     color: const Color(0xFFE3F4FB), // light blue background like image 2
-                  //     borderRadius: BorderRadius.circular(14),
-                  //     border: Border.all(
-                  //       color: isSelected
-                  //           ? const Color(0xFF90CAF9)
-                  //           : Colors.transparent,
-                  //       width: isSelected ? 2 : 0,
-                  //     ),
-                  //     boxShadow: [
-                  //       BoxShadow(
-                  //         color:      Colors.black.withOpacity(0.06),
-                  //         blurRadius: 4,
-                  //         offset:     const Offset(0, 2),
-                  //       ),
-                  //     ],
-                  //   ),
-                  //   child: Column(
-                  //     crossAxisAlignment: CrossAxisAlignment.stretch,
-                  //     children: [
-                  //       // ── Text label on top ──────────────────────────
-                  //       Container(
-                  //         padding: const EdgeInsets.symmetric(
-                  //             horizontal: 4, vertical: 6),
-                  //         decoration: const BoxDecoration(
-                  //           color: Color(0xFFE3F4FB),
-                  //           borderRadius: BorderRadius.vertical(
-                  //               top: Radius.circular(13)),
-                  //         ),
-                  //         child: Text(
-                  //           sub.name,
-                  //           style: const TextStyle(
-                  //             fontSize:   10,
-                  //             fontWeight: FontWeight.w700,
-                  //             color:      Colors.black87,
-                  //             height:     1.2,
-                  //           ),
-                  //           textAlign: TextAlign.center,
-                  //           maxLines:  2,
-                  //           overflow:  TextOverflow.ellipsis,
-                  //         ),
-                  //       ),
-                  //       // ── Image on bottom ────────────────────────────
-                  //       Expanded(
-                  //         child: ClipRRect(
-                  //           borderRadius: const BorderRadius.vertical(
-                  //               bottom: Radius.circular(13)),
-                  //           child: sub.imageUrl.isNotEmpty
-                  //               ? Image.network(
-                  //             sub.imageUrl,
-                  //             fit: BoxFit.contain,
-                  //             errorBuilder: (_, __, ___) => Container(
-                  //               color: const Color(0xFFE3F4FB),
-                  //               child: Icon(Icons.category,
-                  //                   color: Colors.grey[400], size: 24),
-                  //             ),
-                  //           )
-                  //               : Container(
-                  //             color: const Color(0xFFE3F4FB),
-                  //             child: Icon(Icons.category,
-                  //                 color: Colors.grey[400],
-                  //                 size: 24),
-                  //           ),
-                  //         ),
-                  //       ),
-                  //     ],
-                  //   ),
-                  // ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -1002,38 +964,6 @@ class _MtlTabBodyState extends State<MtlTabBody> {
     );
   }
 
-  // Widget _buildDirectProducts(String catName, List<_SubProduct> prods) {
-  //   return Container(
-  //     width: double.infinity,
-  //     margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-  //     decoration: _cardDecoration(false),
-  //     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-  //
-  //       if (catName.isNotEmpty)
-  //         Padding(
-  //           padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
-  //           child: Row(children: [
-  //             Container(
-  //               width: 4, height: 16,
-  //               decoration: BoxDecoration(
-  //                   color:AppColors.lightBrown,
-  //                   borderRadius: BorderRadius.circular(2)),
-  //             ),
-  //             const SizedBox(width: 8),
-  //             Expanded(
-  //               child: Text(catName,
-  //                   style: const TextStyle(
-  //                       fontSize: 15, fontWeight: FontWeight.bold),
-  //                   overflow: TextOverflow.ellipsis),
-  //             ),
-  //           ]),
-  //         ),
-  //       // _HorizontalProductRow(products: prods, cap: null, onSeeMore: null),
-  //       // const SizedBox(height: 10),
-  //       _HorizontalProductRow(products: prods, cap: null, onSeeMore: null),
-  //     ]),
-  //   );
-  // }
   Widget _buildDirectProducts(String catName, List<_SubProduct> prods) {
     if (prods.isEmpty) return const SizedBox.shrink();
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1078,7 +1008,7 @@ class _MtlTabBodyState extends State<MtlTabBody> {
 
 
   Widget _buildDayBanner() {
-    return const HomeBannerSlider();
+    return _bannerWidget;
   }
 
   Widget _buildFeaturedProducts() {
@@ -1177,17 +1107,6 @@ class _MtlTabBodyState extends State<MtlTabBody> {
     final cardH   = imgH + 134.0;
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      // const Padding(
-      //   padding: EdgeInsets.fromLTRB(16, 0, 16, 10),
-      //   child: Row(children: [
-      //     Icon(Icons.local_offer, color: AppColors.buttonPrimary, size: 18),
-      //     SizedBox(width: 6),
-      //     Text(
-      //       'Special Offers',
-      //       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-      //     ),
-      //   ]),
-      // ),
 
       for (final offer in offers) ...[
         if (offer.products.isNotEmpty) ...[
@@ -1436,78 +1355,6 @@ class _HorizontalProductRow extends StatelessWidget {
     required this.cap,
     this.onSeeMore,
   });
-
-  // @override
-  // Widget build(BuildContext context) {
-  //   if (products.isEmpty) return const SizedBox.shrink();
-  //
-  //   final screenW   = MediaQuery.of(context).size.width;
-  //   final cardW     = screenW * 0.42;
-  //   final imgH      = cardW * 0.75;
-  //   final cardH     = imgH + 134.0;
-  //   // const seeMoreH  = 36.0;
-  //   // final rowHeight = cardH + seeMoreH + 24.0;
-  //   const seeMoreH  = 0.0;
-  //   final rowHeight = cardH + 12.0;
-  //
-  //   final shown     = cap != null ? products.take(cap!).toList() : products;
-  //   final lastIndex = shown.length - 1;
-  //   final hasSeeMore = onSeeMore != null;
-  //
-  //   return SizedBox(
-  //     height: rowHeight,
-  //     child: ListView.builder(
-  //       scrollDirection: Axis.horizontal,
-  //       padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
-  //       itemCount: shown.length,
-  //       itemBuilder: (_, i) {
-  //         final isLastCard = i == lastIndex && hasSeeMore;
-  //         return SizedBox(
-  //           width: cardW,
-  //           child: Padding(
-  //             padding: const EdgeInsets.only(right: 10),
-  //             child: Column(
-  //               mainAxisSize: MainAxisSize.min,
-  //               crossAxisAlignment: CrossAxisAlignment.center,
-  //               children: [
-  //                 SizedBox(
-  //                   height: cardH,
-  //                   width:  cardW,
-  //                   child:  _MtlProductCard(p: shown[i], imgH: imgH),
-  //                 ),
-  //                 if (isLastCard) ...[
-  //                   const SizedBox(height: 6),
-  //                   GestureDetector(
-  //                     onTap: onSeeMore,
-  //                     child: Padding(
-  //                       padding: const EdgeInsets.only(right: 40),
-  //                       child: Container(
-  //                         decoration: BoxDecoration(
-  //                           color: AppColors.warningLight,
-  //                           borderRadius: BorderRadius.circular(20),
-  //                           border: Border.all(
-  //                               color: AppColors.buttonPrimary, width: 1),
-  //                         ),
-  //                         child: const Text(
-  //                           'View All',
-  //                           style: TextStyle(
-  //                             fontSize:   10,
-  //                             color:      AppColors.buttonPrimary,
-  //                             fontWeight: FontWeight.w600,
-  //                           ),
-  //                         ),
-  //                       ),
-  //                     ),
-  //                   ),
-  //                 ],
-  //               ],
-  //             ),
-  //           ),
-  //         );
-  //       },
-  //     ),
-  //   );
-  // }
   @override
   Widget build(BuildContext context) {
     if (products.isEmpty) return const SizedBox.shrink();
@@ -1616,32 +1463,39 @@ class _SubProduct {
 
   static _SubProduct? fromJson(Map<String, dynamic> j) {
     try {
-      // final rawUnit = (j['piece']?.toString() ?? '').isNotEmpty
-      //     ? j['piece'].toString()
-      //     : (j['barcode_type']?.toString() ?? '');
-      // Get default piece weight from pieces array
-      String rawUnit = '';
-      final piecesList = j['pieces'] as List? ?? [];
-      try {
-        final defaultPiece = piecesList.firstWhere(
-              (e) => e['piece_default']?.toString() == '1',
-          orElse: () => piecesList.isNotEmpty ? piecesList.first : null,
-        );
-        if (defaultPiece != null) {
-          rawUnit = defaultPiece['piece']?.toString() ?? '';
+      final piecesList = (j['pieces'] as List? ?? [])
+          .map((e) => e as Map<String, dynamic>)
+          .toList();
+
+// Find default piece ONCE — used for BOTH unit label AND price
+      Map<String, dynamic>? defaultPieceMap;
+      for (final p in piecesList) {
+        if (p['piece_default']?.toString() == '1') {
+          defaultPieceMap = p;
+          break;
         }
-      } catch (_) {}
-      if (rawUnit.isEmpty) {
-        rawUnit = (j['piece']?.toString() ?? '').isNotEmpty
-            ? j['piece'].toString()
-            : (j['barcode_type']?.toString() ?? '');
+      }
+// fallback: highest price piece
+      if (defaultPieceMap == null && piecesList.isNotEmpty) {
+        defaultPieceMap = piecesList.reduce((a, b) {
+          final aP = double.tryParse(a['price']?.toString() ?? '0') ?? 0;
+          final bP = double.tryParse(b['price']?.toString() ?? '0') ?? 0;
+          return aP >= bP ? a : b;
+        });
       }
 
+// Unit label from the SAME default piece
+      final String rawUnit = defaultPieceMap?['piece']?.toString().isNotEmpty == true
+          ? defaultPieceMap!['piece'].toString()
+          : (j['piece']?.toString() ?? '').isNotEmpty
+          ? j['piece'].toString()
+          : (j['barcode_type']?.toString() ?? '');
 
       final double rawPrice     = double.tryParse(j['price']?.toString()         ?? '0') ?? 0;
       final double specialPrice = double.tryParse(j['special_price']?.toString() ?? '0') ?? 0;
-      final bool   hasOffer     = specialPrice > 0 && specialPrice < rawPrice;
 
+      final double piecePrice   = double.tryParse(defaultPieceMap?['price']?.toString()         ?? '0') ?? 0;
+      final double pieceSp      = double.tryParse(defaultPieceMap?['special_price']?.toString() ?? '0') ?? 0;
       final stockStatus = j['stock_status']?.toString().toLowerCase() ?? '';
       final subtract    = j['subtract']?.toString()    ?? '';
       final rawQtyStr   = j['pos_quentity']?.toString()
@@ -1665,12 +1519,34 @@ class _SubProduct {
         if (qty == 0 && stockStatus.isEmpty && subtract.isEmpty) qty = 1;
       }
 
+      // ── Resolve price — same logic as CategoryDataProduct ────────────────
+      final double finalPrice;
+      final double finalWholesale;
+      final bool pieceHasOffer = pieceSp > 0 && pieceSp < piecePrice;
+      final bool productHasOffer = specialPrice > 0 && specialPrice < rawPrice;
+
+      if (pieceHasOffer) {
+        finalPrice     = pieceSp;
+        finalWholesale = piecePrice;
+      } else if (piecePrice > 0 && productHasOffer) {
+        finalPrice     = specialPrice;
+        finalWholesale = rawPrice;
+      } else if (piecePrice > 0) {
+        finalPrice     = piecePrice;
+        finalWholesale = 0;
+      } else if (productHasOffer) {
+        finalPrice     = specialPrice;
+        finalWholesale = rawPrice;
+      } else {
+        finalPrice     = rawPrice;
+        finalWholesale = 0;
+      }
       return _SubProduct(
         productId: j['product_id']?.toString() ?? '',
         name:      j['name']?.toString()       ?? '',
         image:     j['image']?.toString()      ?? '',
-        price:     hasOffer ? specialPrice : rawPrice,
-        wholesale: hasOffer ? rawPrice     : 0,
+        price:     finalPrice,
+        wholesale: finalWholesale,
         qty:       qty,
         sku:       j['sku']?.toString() ?? '',
         unit:      rawUnit,
@@ -1948,50 +1824,59 @@ class _CartBtn extends StatelessWidget {
 
     // ── Has piece variants ────────────────────────────────────────────
     if (pieces.isNotEmpty) {
-      return GestureDetector(
-        onTap: () => handleAddToCart(
-          context: context,
-          product: product,
-          pieces:  pieces,
-        ),
-        child: Container(
-          width:     double.infinity,
-          height:    36,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color:        Colors.white,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: AppColors.buttonPrimary, width: 1.2),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('ADD',
-                  style: TextStyle(
-                      color:        AppColors.buttonPrimary,
-                      fontSize:     11,
-                      fontWeight:   FontWeight.bold,
-                      letterSpacing: 0.5)),
-              // Text('${pieces.length} options',
-              //     style: const TextStyle(
-              //         color:   AppColors.buttonPrimary,
-              //         fontSize: 8)),
-              Text(pieces.length == 1
-                  ?  '1 option'
-                  : '${pieces.length} options',
-                  style: const TextStyle(
-                      color:   AppColors.buttonPrimary,
-                      fontSize: 8)),
-            ],
-          ),
-        ),
+      return Consumer<CartModel>(
+        builder: (_, cart, __) {
+          final qty = cart.getPieceQuantity(product.id);
+          final bool hasQty = qty > 0;
+          final Color btnColor = hasQty ? Colors.green : AppColors.buttonPrimary;
+          final String optionLabel = pieces.length == 1 ? '1 option' : '${pieces.length} options';
+          final String priceLabel  = '₹${product.price.toInt()}';
+
+          return GestureDetector(
+            onTap: () => handleAddToCart(
+              context: context,
+              product: product,
+              pieces:  pieces,
+            ),
+            child: Container(
+              width:     double.infinity,
+              height:    36,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color:        Colors.white,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: btnColor, width: 1.2),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    hasQty ? 'ADD (${pieces.length} opp)' : 'ADD',
+                    style: TextStyle(
+                        color:         btnColor,
+                        fontSize:      11,
+                        fontWeight:    FontWeight.bold,
+                        letterSpacing: 0.5),
+                  ),
+                  Text(
+                    hasQty ? priceLabel : optionLabel,
+                    style: TextStyle(
+                        color:   btnColor,
+                        fontSize: 8),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       );
     }
 
     // ── Normal ADD / stepper ──────────────────────────────────────────
     return Consumer<CartModel>(
       builder: (_, cart, __) {
-        final qty = cart.getQuantity(product);
+        // final qty = cart.getQuantity(product);
+        final qty = cart.getPieceQuantity(product.id);
         if (qty == 0) {
           return GestureDetector(
             onTap: () => cart.addItem(product),
@@ -2340,65 +2225,6 @@ class _SidebarItem extends StatelessWidget {
     required this.onTap,
   });
 
-  // @override
-  // Widget build(BuildContext context) {
-  //   return GestureDetector(
-  //     onTap: onTap,
-  //     child: AnimatedContainer(
-  //       duration: const Duration(milliseconds: 180),
-  //       width:   double.infinity,
-  //       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
-  //       decoration: BoxDecoration(
-  //         color: isSelected ? const Color(0xFFFFF8F0) : Colors.white,
-  //         border: Border(
-  //           left: BorderSide(
-  //             color: isSelected
-  //                 ? AppColors.lightBrown
-  //                 : Colors.transparent,
-  //             width: 3,
-  //           ),
-  //         ),
-  //       ),
-  //       child: Column(children: [
-  //         Container(
-  //           width:  52,
-  //           height: 52,
-  //           decoration: BoxDecoration(
-  //             color: isSelected
-  //                 ? AppColors.white.withOpacity(0.12)
-  //                 : Colors.white,
-  //             borderRadius: BorderRadius.circular(10),
-  //           ),
-  //           clipBehavior: Clip.antiAlias,
-  //           child: imageUrl.isNotEmpty
-  //               ? Image.network(imageUrl,
-  //               fit: BoxFit.cover,
-  //               errorBuilder: (_, __, ___) => Icon(Icons.category,
-  //                   color: isSelected
-  //                       ? AppColors.lightBrown
-  //                       : Colors.grey[400],
-  //                   size: 22))
-  //               : Icon(Icons.category,
-  //               color: isSelected
-  //                   ? AppColors.pink
-  //                   : Colors.white,
-  //               size: 22),
-  //         ),
-  //         const SizedBox(height: 5),
-  //         Text(label,
-  //           style: TextStyle(
-  //             fontSize:   10,
-  //             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-  //             color: isSelected ? AppColors.pink : Colors.black87,
-  //           ),
-  //           textAlign: TextAlign.center,
-  //           maxLines:  2,
-  //           overflow:  TextOverflow.ellipsis,
-  //         ),
-  //       ]),
-  //     ),
-  //   );
-  // }
   @override
   Widget build(BuildContext context) {
     return GestureDetector(

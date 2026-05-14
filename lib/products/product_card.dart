@@ -115,8 +115,6 @@ class ProductCard extends StatelessWidget {
           ),
 
           // ── Content (price / discount / name) ────────────────────
-
-          // ── Content (price / discount / name) ────────────────────
           GestureDetector(
             onTap: () {},
             behavior: HitTestBehavior.opaque,
@@ -147,7 +145,7 @@ class ProductCard extends StatelessWidget {
                                       fontSize:   9,
                                       fontWeight: FontWeight.bold)),
                             ),
-                            if (product.originalPrice > product.price) ...[
+                            if (product.originalPrice > product.price && product.price > 0) ...[
                               const SizedBox(width: 4),
                               Flexible(
                                 child: Text(
@@ -440,47 +438,6 @@ class _CartButton extends StatelessWidget {
 
 
     // ── Has piece variants? Show "2 options" style label ──────────────
-    // if (product.pieces.isNotEmpty) {
-    //   return GestureDetector(
-    //     onTap: () => handleAddToCart(
-    //       context: context,
-    //       product: product,
-    //       pieces:  product.pieces,
-    //     ),
-    //     child: Container(
-    //       width:     double.infinity,
-    //       height:    36,
-    //       alignment: Alignment.center,
-    //       decoration: BoxDecoration(
-    //         color:        Colors.white,
-    //         borderRadius: BorderRadius.circular(6),
-    //         border: Border.all(color: const Color(0xFFFF0080), width: 1.2),
-    //       ),
-    //       child: Column(
-    //         mainAxisAlignment: MainAxisAlignment.center,
-    //         children: [
-    //           const Text('ADD',
-    //               style: TextStyle(
-    //                   color:         Color(0xFFFF0080),
-    //                   fontSize:      11,
-    //                   fontWeight:    FontWeight.bold,
-    //                   letterSpacing: 0.5)),
-    //           // Text('${product.pieces.length} options',
-    //           //     style: const TextStyle(
-    //           //         color:   Color(0xFFFF0080),
-    //           //         fontSize: 8)),
-    //           Text(product.pieces.length == 1
-    //               ? '1 option'
-    //               : '${product.pieces.length} options',
-    //               style: const TextStyle(
-    //                   color:   Color(0xFFFF0080),
-    //                   fontSize: 8)),
-    //         ],
-    //       ),
-    //     ),
-    //   );
-    // }
-    // ── Has piece variants? Show "2 options" style label ──────────────
     if (product.pieces.isNotEmpty) {
       return Consumer<CartModel>(
         builder: (_, cart, __) {
@@ -511,55 +468,6 @@ class _CartButton extends StatelessWidget {
           final borderClr = hasItems ? const Color(0xFF388E3C) : const Color(0xFFFF0080);
           final textClr   = hasItems ? const Color(0xFF388E3C) : const Color(0xFFFF0080);
 
-          // return Column(
-          //   mainAxisSize: MainAxisSize.min,
-          //   children: [
-          //     if (hasItems) ...[
-          //       Text(
-          //         '₹${totalAmt.toInt()} added',
-          //         style: const TextStyle(
-          //             color:      Color(0xFF388E3C),
-          //             fontSize:   9,
-          //             fontWeight: FontWeight.bold),
-          //       ),
-          //       const SizedBox(height: 3),
-          //     ],
-          //     GestureDetector(
-          //       onTap: () => handleAddToCart(
-          //         context: context,
-          //         product: product,
-          //         pieces:  product.pieces,
-          //       ),
-          //       child: Container(
-          //         width:     double.infinity,
-          //         height:    36,
-          //         alignment: Alignment.center,
-          //         decoration: BoxDecoration(
-          //           color:        Colors.white,
-          //           borderRadius: BorderRadius.circular(6),
-          //           border: Border.all(color: borderClr, width: 1.2),
-          //         ),
-          //         child: Column(
-          //           mainAxisAlignment: MainAxisAlignment.center,
-          //           children: [
-          //             Text('ADD',
-          //                 style: TextStyle(
-          //                     color:         textClr,
-          //                     fontSize:      11,
-          //                     fontWeight:    FontWeight.bold,
-          //                     letterSpacing: 0.5)),
-          //             Text(product.pieces.length == 1
-          //                 ? '1 option'
-          //                 : '${product.pieces.length} options',
-          //                 style: TextStyle(
-          //                     color:   textClr,
-          //                     fontSize: 8)),
-          //           ],
-          //         ),
-          //       ),
-          //     ),
-          //   ],
-          // );
           return GestureDetector(
             onTap: () => handleAddToCart(
               context: context,
@@ -575,72 +483,23 @@ class _CartButton extends StatelessWidget {
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: borderClr, width: 1.2),
               ),
-              // child: Stack(
-              //   alignment: Alignment.center,
-              //   children: [
-              //     // ADD text centered
-              //     Text('ADD',
-              //         style: TextStyle(
-              //             color:         textClr,
-              //             fontSize:      11,
-              //             fontWeight:    FontWeight.bold,
-              //             letterSpacing: 0.5)),
-              //     // Price pinned to bottom-left
-              //     if (hasItems)
-              //       Positioned(
-              //         bottom: 3,
-              //         left:   6,
-              //         child: Text(
-              //           '₹${totalAmt.toInt()}',
-              //           style: TextStyle(
-              //               color:      textClr,
-              //               fontSize:   7,
-              //               fontWeight: FontWeight.w600),
-              //         ),
-              //       ),
-              //     // Options text pinned to bottom-left when no items
-              //     if (!hasItems)
-              //       Positioned(
-              //         bottom: 3,
-              //         left: 0, right: 0,
-              //         child: Text(
-              //           product.pieces.length == 1
-              //               ? '1 option'
-              //               : '${product.pieces.length} options',
-              //           textAlign: TextAlign.center,
-              //           style: TextStyle(
-              //               color:   textClr,
-              //               fontSize: 7),
-              //         ),
-              //       ),
-              //   ],
-              // ),
+
               child: hasItems
-                  ? Row(
+                  ? Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text('ADD',
+                  Text('ADD (${product.pieces.length} opp)',
                       style: TextStyle(
                           color:         textClr,
                           fontSize:      11,
                           fontWeight:    FontWeight.bold,
                           letterSpacing: 0.5)),
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 5, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: textClr.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      '₹${totalAmt.toInt()}',
-                      style: TextStyle(
-                          color:      textClr,
-                          fontSize:   9,
-                          fontWeight: FontWeight.w700),
-                    ),
+                  Text(
+                    '₹${totalAmt.toInt()}',
+                    style: TextStyle(
+                        color:      textClr,
+                        fontSize:   9,
+                        fontWeight: FontWeight.w700),
                   ),
                 ],
               )

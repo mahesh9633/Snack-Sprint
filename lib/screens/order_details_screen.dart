@@ -717,62 +717,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           final productId = p['product_id']?.toString() ?? '';
 
           return GestureDetector(
-            // onTap: productId.isNotEmpty ? () => Navigator.push(
-            //   context,
-            //   MaterialPageRoute(
-            //     builder: (_) => ProductDetailScreen(
-            //       product: Product(
-            //         id:           productId,
-            //         name:         p['name'] ?? '',
-            //         price:        double.tryParse(p['price'].toString()) ?? 0,
-            //         originalPrice: double.tryParse(p['price'].toString()) ?? 0,
-            //         image:        p['image'] ?? '',
-            //         imageUrl:     p['image'] != null
-            //             ? '${ApiConfig.imageBase}${p['image']}'
-            //             : '',
-            //         category:     '',
-            //         quantity:     1,
-            //         posQuantity:  1,
-            //         deliveryTime: '',
-            //       ),
-            //     ),
-            //   ),
-            // ) : null,
+
             onTap: productId.isNotEmpty ? () {
-              final rawImg = p['image']?.toString() ?? '';
+              final rawImg = (p['product_image'] ?? p['image'])?.toString()?.trim() ?? '';
               final fixedUrl = rawImg.startsWith('http')
                   ? rawImg
                   : rawImg.isNotEmpty && rawImg != 'no_image.png'
                   ? '${ApiConfig.imageBase}$rawImg'
                   : '';
-              print('DEBUG product fields: ${p.keys.toList()}');
-              print('DEBUG pos_quentity: ${p['pos_quentity']}');
-              print('DEBUG quantity: ${p['quantity']}');
-              print('DEBUG image: ${p['image']}');
-              print('DEBUG rawImg: $rawImg');
-              print('DEBUG fixedUrl: $fixedUrl');
-              // final stockQty = int.tryParse(
-              //     p['pos_quentity']?.toString() ??
-              //         p['quantity']?.toString() ?? '0') ?? 0;
-              // Navigator.push(
-              //   context,
-              //   MaterialPageRoute(
-              //     builder: (_) => ProductDetailScreen(
-              //       product: Product(
-              //         id:           productId,
-              //         name:         p['name'] ?? '',
-              //         price:        double.tryParse(p['price'].toString()) ?? 0,
-              //         originalPrice: double.tryParse(p['price'].toString()) ?? 0,
-              //         image:        rawImg,
-              //         imageUrl:     fixedUrl,
-              //         category:     '',
-              //         quantity:     stockQty > 0 ? stockQty : 1,
-              //         posQuantity:  stockQty > 0 ? stockQty : 1,
-              //         deliveryTime: '',
-              //       ),
-              //     ),
-              //   ),
-              // );
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -785,8 +737,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       image:        rawImg,
                       imageUrl:     fixedUrl,
                       category:     '',
-                      quantity:     int.tryParse(p['pos_quentity']?.toString() ?? '0') ?? 0,
-                      posQuantity:  int.tryParse(p['pos_quentity']?.toString() ?? '0') ?? 0,
+                      // quantity:     int.tryParse(p['pos_quentity']?.toString() ?? '0') ?? 0,
+                      // posQuantity:  int.tryParse(p['pos_quentity']?.toString() ?? '0') ?? 0,
+                      quantity:     (int.tryParse(p['quantity']?.toString() ?? '') ?? 0) > 0 ? int.tryParse(p['quantity'].toString())! : 1,
+                      posQuantity:  (int.tryParse(p['quantity']?.toString() ?? '') ?? 0) > 0 ? int.tryParse(p['quantity'].toString())! : 1,
                       deliveryTime: '',
                     ),
                   ),
@@ -837,55 +791,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
-  // Widget _buildInvoiceCard(
-  //     Map<String, dynamic> inv, List<Map<String, dynamic>> taxes) {
-  //   final subTotal   = double.tryParse(inv['sub_total'].toString())       ?? 0;
-  //   final totalTax   = double.tryParse(inv['total_tax'].toString())       ?? 0;
-  //   final discount   = double.tryParse(inv['discount'].toString())        ?? 0;
-  //   final roundoff   = double.tryParse(inv['roundoff_amount'].toString()) ?? 0;
-  //   final grandTotal = double.tryParse(inv['total_received'].toString())  ?? 0;
-  //   final couponCode = inv['coupon']?.toString() ?? '';
-  //
-  //   return _card(
-  //     title: 'Bill Summary',
-  //     icon: Icons.summarize_outlined,
-  //     child: Column(children: [
-  //       _billRow('Subtotal', subTotal),
-  //       if (taxes.isNotEmpty) ...[
-  //         const SizedBox(height: 4),
-  //         ...taxes.map((t) => _billRow(
-  //             t['name'] ?? 'Tax',
-  //             double.tryParse(t['value'].toString()) ?? 0,
-  //             color: Colors.grey[700])),
-  //       ] else
-  //         _billRow('Tax', totalTax, color: Colors.grey[700]),
-  //       if (discount > 0) ...[
-  //         const SizedBox(height: 4),
-  //         _billRow(
-  //           couponCode.isNotEmpty ? 'Coupon ($couponCode)' : 'Discount',
-  //           -discount,
-  //           color: Colors.green[700],
-  //         ),
-  //       ],
-  //
-  //       if (roundoff != 0) ...[
-  //         const SizedBox(height: 4),
-  //         _billRow('Round Off', roundoff, color: Colors.grey[600]),
-  //       ],
-  //       const Divider(height: 20),
-  //       Row(children: [
-  //         const Text('Total Paid',
-  //             style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-  //         const Spacer(),
-  //         Text('₹${_fmt(grandTotal)}',
-  //             style: const TextStyle(
-  //                 fontSize: 16,
-  //                 fontWeight: FontWeight.bold,
-  //                 color: AppColors.lightBrown)),
-  //       ]),
-  //     ]),
-  //   );
-  // }
   Widget _buildInvoiceCard(
       Map<String, dynamic> inv, List<Map<String, dynamic>> taxes) {
     final subTotal   = double.tryParse(inv['sub_total'].toString())       ?? 0;
@@ -968,39 +873,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       }
     } catch (_) {}
 
-    // final cashAmt =
-    //     double.tryParse(inv?['cash_amount']?.toString() ?? '0') ?? 0;
-    // final upiAmt =
-    //     double.tryParse(inv?['upi_amount']?.toString() ?? '0') ?? 0;
-    // final upiRef  = inv?['upi_ref']?.toString() ?? '';
-    // final pending =
-    //     double.tryParse(inv?['pending_amount']?.toString() ?? '0') ?? 0;
-    //
-    // return _card(
-    //   title: 'Payment Details',
-    //   icon: Icons.payment_outlined,
-    //   child: Column(children: [
-    //     _infoRow(Icons.payments_outlined, 'Method', paymentMethod),
-    //     if (cashAmt > 0) ...[
-    //       const SizedBox(height: 8),
-    //       _infoRow(Icons.money, 'Cash', '₹${_fmt(cashAmt)}'),
-    //     ],
-    //     if (upiAmt > 0) ...[
-    //       const SizedBox(height: 8),
-    //       _infoRow(Icons.qr_code, 'UPI', '₹${_fmt(upiAmt)}'),
-    //     ],
-    //     if (upiRef.isNotEmpty && upiRef != 'null') ...[
-    //       const SizedBox(height: 8),
-    //       _infoRow(Icons.tag, 'UPI Ref', upiRef),
-    //     ],
-    //     if (pending > 0) ...[
-    //       const SizedBox(height: 8),
-    //       _infoRow(Icons.warning_amber_outlined, 'Pending',
-    //           '₹${_fmt(pending)}',
-    //           valueColor: Colors.red),
-    //     ],
-    //   ]),
-    // );
     final cashAmt =
         double.tryParse(inv?['cash_amount']?.toString() ?? '0') ?? 0;
     final upiAmt =

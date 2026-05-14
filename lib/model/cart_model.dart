@@ -45,6 +45,13 @@ class CartModel extends ChangeNotifier {
 
   int getQuantity(Product product) => _items[product.id]?.quantity ?? 0;
 
+  /// Total quantity across all piece variants for a base product id
+  int getPieceQuantity(String productId) {
+    return _items.entries
+        .where((e) => e.key == productId || e.key.startsWith('${productId}_piece_'))
+        .fold(0, (sum, e) => sum + e.value.quantity);
+  }
+
   bool contains(Product product) => _items.containsKey(product.id);
 
   // ── Load cart for a specific user (call after login & on app start) ─────────

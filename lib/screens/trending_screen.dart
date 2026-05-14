@@ -22,38 +22,18 @@ Product _toProduct(CategoryDataProduct p) {
   final imgUrl = (raw.isNotEmpty && raw != 'no_image.png')
       ? '$_tImgBase$raw' : '';
   final int qty = int.tryParse(p.quantity) ?? 0;
-  // return Product(
-  //   id:                 p.productId,
-  //   name:               p.name,
-  //   price:              p.retailPrice,
-  //   originalPrice:      p.wholesalePrice > 0 ? p.wholesalePrice : p.retailPrice,
-  //   image:              raw,
-  //   imageUrl:           imgUrl,
-  //   category:           p.categoryId,
-  //   weight:             p.piece.isNotEmpty ? p.piece : p.sku.isNotEmpty ? p.sku : '',
-  //   discountPercentage: p.discountPercent.toDouble(),
-  //   quantity:           qty, //added this line
-  //   posQuantity:        qty, //added this line
-  //   pieces:             p.pieces.map((e) => ProductPiece.fromJson(e)).toList(),
-  // );
-  String defaultWeight = '';
-  try {
-    final defaultPiece = p.pieces.firstWhere(
-          (e) => e['piece_default']?.toString() == '1',
-      orElse: () => p.pieces.isNotEmpty ? p.pieces.first : {},
-    );
-    defaultWeight = defaultPiece['piece']?.toString() ?? '';
-  } catch (_) {}
 
+  // p.price and p.wholesalePrice are already correctly resolved
+  // by CategoryDataProduct.fromJson (piece-aware logic)
   return Product(
     id:                 p.productId,
     name:               p.name,
-    price:              p.retailPrice,
-    originalPrice:      p.wholesalePrice > 0 ? p.wholesalePrice : p.retailPrice,
+    price:              p.price,
+    originalPrice:      p.wholesalePrice > 0 ? p.wholesalePrice : p.price,
     image:              raw,
     imageUrl:           imgUrl,
     category:           p.categoryId,
-    weight:             defaultWeight.isNotEmpty ? defaultWeight : (p.piece.isNotEmpty ? p.piece : ''),
+    weight:             p.piece.isNotEmpty ? p.piece : '',
     discountPercentage: p.discountPercent.toDouble(),
     quantity:           qty,
     posQuantity:        qty,
@@ -932,18 +912,59 @@ class _MostBoughtCard extends StatelessWidget {
 }
 
 // ─── Cart Control ─────────────────────────────────────────────────────────────
+// ─── Cart Control ─────────────────────────────────────────────────────────────
 class _CartControl extends StatelessWidget {
   final Product   product;
   final CartModel cart;
   const _CartControl({required this.product, required this.cart});
 
+  int _totalPieceQty() {
+    int total = 0;
+    for (final piece in product.pieces) {
+      final pieceProduct = Product(
+        id:                 piece.cartId(product.id),
+        name:               '${product.name} – ${piece.label}',
+        price:              piece.effectivePrice,
+        originalPrice:      piece.hasDiscount ? piece.price : piece.effectivePrice,
+        image:              product.image,
+        imageUrl:           product.imageUrl,
+        category:           product.category,
+        weight:             piece.label,
+        sku:                product.sku,
+        discountPercentage: piece.discountPct.toDouble(),
+        quantity:           product.quantity,
+        posQuantity:        product.posQuantity,
+      );
+      total += cart.getQuantity(pieceProduct);
+    }
+    return total;
+  }
+
+  double _totalPieceAmt() {
+    double total = 0;
+    for (final piece in product.pieces) {
+      final pieceProduct = Product(
+        id:                 piece.cartId(product.id),
+        name:               '${product.name} – ${piece.label}',
+        price:              piece.effectivePrice,
+        originalPrice:      piece.hasDiscount ? piece.price : piece.effectivePrice,
+        image:              product.image,
+        imageUrl:           product.imageUrl,
+        category:           product.category,
+        weight:             piece.label,
+        sku:                product.sku,
+        discountPercentage: piece.discountPct.toDouble(),
+        quantity:           product.quantity,
+        posQuantity:        product.posQuantity,
+      );
+      total += cart.getQuantity(pieceProduct) * piece.effectivePrice;
+    }
+    return total;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final qty = cart.getQuantity(product);
-
-    final bool outOfStock = !product.isInStock;
-
-    if (outOfStock) {
+    if (!product.isInStock) {
       return Container(
         width: double.infinity, height: 36,
         alignment: Alignment.center,
@@ -958,51 +979,88 @@ class _CartControl extends StatelessWidget {
       );
     }
 
-    if (qty == 0) {
+    // ── Pieces product ────────────────────────────────────────────────────
+    if (product.pieces.isNotEmpty) {
+      final totalQty = _totalPieceQty();
+      final totalAmt = _totalPieceAmt();
+      final hasItems = totalQty > 0;
+      final Color accent = hasItems
+          ? AppColors.priceGreen
+          : AppColors.buttonPrimary;
+
       return GestureDetector(
-        onTap: () => product.pieces.isNotEmpty
-            ? handleAddToCart(context: context, product: product, pieces: product.pieces)
-            : cart.addItem(product),
+        onTap: () => handleAddToCart(
+            context: context, product: product, pieces: product.pieces),
         child: Container(
           width: double.infinity, height: 36,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: Colors.white,
-            border: Border.all(
-                color: AppColors.buttonPrimary, width: 1.2),
+            border: Border.all(color: accent, width: 1.2),
             borderRadius: BorderRadius.circular(6),
           ),
-          // child: Column(
-          //   mainAxisAlignment: MainAxisAlignment.center,
-          //   children: [
-          //     const Text('ADD',
-          //         style: TextStyle(
-          //             color: AppColors.buttonPrimary, fontSize: 11,
-          //             fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-          //     if (product.pieces.length > 1)
-          //       Text('${product.pieces.length} options',
-          //           style: const TextStyle(
-          //               color: AppColors.buttonPrimary, fontSize: 8)),
-          //   ],
-          // ),
-          child: Column(
+          child: hasItems
+              ? Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('ADD',
+              Text(
+                  'ADD (${product.pieces.length} opp)',
                   style: TextStyle(
-                      color: AppColors.buttonPrimary, fontSize: 11,
-                      fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-              if (product.pieces.isNotEmpty)
-                Text(product.pieces.length == 1
-                    ? product.pieces.first.label
-                    : '${product.pieces.length} options',
-                    style: const TextStyle(
-                        color: AppColors.buttonPrimary, fontSize: 8)),
+                      color:         accent,
+                      fontSize:      11,
+                      fontWeight:    FontWeight.bold,
+                      letterSpacing: 0.5)),
+              Text('₹${totalAmt.toInt()}',
+                  style: TextStyle(
+                      color:      accent,
+                      fontSize:   9,
+                      fontWeight: FontWeight.w700)),
+            ],
+          )
+              : Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('ADD',
+                  style: TextStyle(
+                      color:         accent,
+                      fontSize:      11,
+                      fontWeight:    FontWeight.bold,
+                      letterSpacing: 0.5)),
+              Text(
+                  product.pieces.length == 1
+                      ? '1 option'
+                      : '${product.pieces.length} options',
+                  style: TextStyle(color: accent, fontSize: 8)),
             ],
           ),
         ),
       );
     }
+
+    // ── No pieces, qty == 0 → plain ADD ──────────────────────────────────
+    final qty = cart.getQuantity(product);
+    if (qty == 0) {
+      return GestureDetector(
+        onTap: () => cart.addItem(product),
+        child: Container(
+          width: double.infinity, height: 36,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: AppColors.buttonPrimary, width: 1.2),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: const Text('ADD',
+              style: TextStyle(
+                  color:         AppColors.buttonPrimary,
+                  fontSize:      11,
+                  fontWeight:    FontWeight.bold,
+                  letterSpacing: 0.5)),
+        ),
+      );
+    }
+
+    // ── No pieces, qty > 0 → stepper ─────────────────────────────────────
     return Container(
       height: 36,
       decoration: BoxDecoration(

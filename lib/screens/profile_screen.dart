@@ -57,6 +57,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.didChangeDependencies();
     _refreshAddressCount();
   }
+  @override
+  void didUpdateWidget(covariant ProfileScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _refreshAddressCount();
+  }
 
   // ── Pull-to-refresh handler ────────────────────────────────────────────────
   Future<void> _onRefresh() async {
@@ -115,8 +120,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _refreshAddressCount() async {
-    final list = await AddressStorage.load();
-    if (mounted) setState(() => _addressCount = list.length);
+    try {
+      final list = await AddressStorage.load();
+      if (mounted) setState(() => _addressCount = list.length);
+    } catch (_) {
+      // keep existing count if load fails
+    }
   }
 
   Future<void> _openWishlist() async {
@@ -147,6 +156,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
+    // Refresh twice: once immediately, once after a short delay
+    // to account for async save operations completing
+    await _refreshAddressCount();
+    await Future.delayed(const Duration(milliseconds: 300));
     await _refreshAddressCount();
   }
 
@@ -245,7 +258,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context,
       MaterialPageRoute(builder: (_) => const LoginScreen()),
           (route) => false,
-    );
+     );
+  }
+
+  @override
+  void didPopNext() {
+    // Called when coming back to this screen from any pushed route
+    _refreshAddressCount();
   }
 
   @override

@@ -54,28 +54,82 @@ class CategoryDataProduct {
       return '0';
     }();
 
-    // API sends: "price" = MRP,  "special_price" = offer price
+    // ── Find default piece (piece_default == 1, else highest price piece) ──
+    final rawPiecesList = (json['pieces'] as List? ?? [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+
+    Map<String, dynamic>? defaultPieceMap;
+    for (final p in rawPiecesList) {
+      if (p['piece_default']?.toString() == '1') {
+        defaultPieceMap = p;
+        break;
+      }
+    }
+    // No piece_default flag → pick piece with highest price
+    if (defaultPieceMap == null && rawPiecesList.isNotEmpty) {
+      defaultPieceMap = rawPiecesList.reduce((a, b) {
+        final aPrice = double.tryParse(a['price']?.toString() ?? '0') ?? 0;
+        final bPrice = double.tryParse(b['price']?.toString() ?? '0') ?? 0;
+        return aPrice >= bPrice ? a : b;
+      });
+    }
+
+    final double piecePrice = double.tryParse(defaultPieceMap?['price']?.toString()         ?? '0') ?? 0;
+    final double pieceSp    = double.tryParse(defaultPieceMap?['special_price']?.toString() ?? '0') ?? 0;
+    final bool   pieceHasOffer = pieceSp > 0 && pieceSp < piecePrice;
+
+    // ── Product-level price ──────────────────────────────────────────
     final double rawPrice     = double.tryParse(json['price']?.toString()         ?? '0') ?? 0;
     final double specialPrice = double.tryParse(json['special_price']?.toString() ?? '0') ?? 0;
-    final bool   hasOffer     = specialPrice > 0 && specialPrice < rawPrice;
+    final bool   productHasOffer = specialPrice > 0 && specialPrice < rawPrice;
+
+    // ── Resolve final display price and original price ───────────────
+    final double finalPrice;
+    final double finalWholesale;
+
+    if (pieceHasOffer) {
+      // Default piece has valid offer — use it
+      finalPrice     = pieceSp;
+      finalWholesale = piecePrice;
+    } else if (piecePrice > 0 && productHasOffer) {
+      // Piece exists but no piece offer; product-level has offer
+      finalPrice     = specialPrice;
+      finalWholesale = rawPrice;
+    } else if (piecePrice > 0) {
+      // Piece exists, no offer anywhere
+      finalPrice     = piecePrice;
+      finalWholesale = 0;
+    } else if (productHasOffer) {
+      // No piece, product-level offer
+      finalPrice     = specialPrice;
+      finalWholesale = rawPrice;
+    } else {
+      // No offer anywhere
+      finalPrice     = rawPrice;
+      finalWholesale = 0;
+    }
+
+    // ── Weight label from default piece ─────────────────────────────
+    final String pieceLabel = defaultPieceMap?['piece']?.toString() ?? '';
 
     return CategoryDataProduct(
       productId:       json['product_id']?.toString() ?? '',
       categoryId:      json['category_id']?.toString() ?? '',
       name:            json['name']?.toString() ?? '',
       image:           json['image']?.toString() ?? '',
-      price:           hasOffer ? specialPrice : rawPrice,  // ← offer price as selling price
-      wholesalePrice:  hasOffer ? rawPrice     : 0,          // ← MRP shown as strikethrough
+      price:           finalPrice,
+      wholesalePrice:  finalWholesale,
       additionalPrice: double.tryParse(json['additional_price']?.toString() ?? '0') ?? 0,
       quantity:        resolvedQty,
       sku:             json['sku']?.toString() ?? '',
       parentId:        json['parent_id']?.toString() ?? '',
-      piece:           (json['piece']?.toString().isNotEmpty == true
+      piece:           pieceLabel.isNotEmpty
+          ? pieceLabel
+          : (json['piece']?.toString().isNotEmpty == true
           ? json['piece'].toString()
           : json['barcode_type']?.toString() ?? ''),
-      pieces: (json['pieces'] as List? ?? [])
-          .map((e) => Map<String, dynamic>.from(e as Map))
-          .toList(),
+      pieces:          rawPiecesList,
     );
   }
 

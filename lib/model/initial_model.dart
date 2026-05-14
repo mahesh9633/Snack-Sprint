@@ -42,42 +42,92 @@ class ApiProduct {
   bool get inStock => quantity > 0;
 
   double get discountPercent {
-    final effectivePrice = (specialPrice > 0 && specialPrice < retailPrice)
-        ? specialPrice
-        : retailPrice;
-    if (retailPrice > effectivePrice && retailPrice > 0) {
-      return ((retailPrice - effectivePrice) / retailPrice * 100)
-          .clamp(0.0, 100.0);
-    }
-    return 0;
+    if (wholesalePrice <= 0 || wholesalePrice <= retailPrice) return 0;
+    return ((wholesalePrice - retailPrice) / wholesalePrice * 100)
+        .clamp(0.0, 100.0);
   }
 
-  factory ApiProduct.fromJson(Map<String, dynamic> j) => ApiProduct(
-    productId:      j['product_id']?.toString()         ?? '',
-    name:           j['name']?.toString()                ?? '',
-    sku:            j['sku']?.toString()                 ?? '',
-    image:          j['image']?.toString()               ?? '',
-    category:       j['category']?.toString() ?? '',
-    unit: (() {
-      for (final key in ['piece', 'unit', 'weight', 'net_qty', 'barcode_type']) {
-        final val = j[key]?.toString() ?? '';
-        if (val.isNotEmpty && val != '0' && val != '0.000' && val != 'null') return val;
+  factory ApiProduct.fromJson(Map<String, dynamic> j) {
+    final rawPieces = (j['pieces'] as List? ?? [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+
+    // ── Find default piece (piece_default == 1, else highest price piece) ──
+    Map<String, dynamic>? defaultPiece;
+    for (final p in rawPieces) {
+      if (p['piece_default']?.toString() == '1') {
+        defaultPiece = p;
+        break;
       }
-      return '';
-    })(),
-    retailPrice:    double.tryParse(j['price']?.toString()           ?? '') ?? 0.0,
-    wholesalePrice: double.tryParse(j['wholesale_price']?.toString() ?? '') ?? 0.0,
-    specialPrice:   double.tryParse(j['special_price']?.toString()   ?? '') ?? 0.0,
-    quantity: int.tryParse(
+    }
+    // No piece_default flag → pick piece with highest price (same as category)
+    if (defaultPiece == null && rawPieces.isNotEmpty) {
+      defaultPiece = rawPieces.reduce((a, b) {
+        final aP = double.tryParse(a['price']?.toString() ?? '0') ?? 0;
+        final bP = double.tryParse(b['price']?.toString() ?? '0') ?? 0;
+        return aP >= bP ? a : b;
+      });
+    }
+
+    final double piecePrice = double.tryParse(defaultPiece?['price']?.toString()         ?? '0') ?? 0;
+    final double pieceSp    = double.tryParse(defaultPiece?['special_price']?.toString() ?? '0') ?? 0;
+    final bool   pieceHasOffer = pieceSp > 0 && pieceSp < piecePrice;
+
+    final double rawPrice     = double.tryParse(j['price']?.toString()         ?? '0') ?? 0;
+    final double specialPrice = double.tryParse(j['special_price']?.toString() ?? '0') ?? 0;
+    final bool   productHasOffer = specialPrice > 0 && specialPrice < rawPrice;
+
+    // ── Resolve price — IDENTICAL to CategoryDataProduct.fromJson ────────
+    final double resolvedRetailPrice;
+    final double resolvedWholesalePrice;
+
+    if (pieceHasOffer) {
+      resolvedRetailPrice    = pieceSp;
+      resolvedWholesalePrice = piecePrice;
+    } else if (piecePrice > 0 && productHasOffer) {
+      resolvedRetailPrice    = specialPrice;
+      resolvedWholesalePrice = rawPrice;
+    } else if (piecePrice > 0) {
+      resolvedRetailPrice    = piecePrice;
+      resolvedWholesalePrice = 0;
+    } else if (productHasOffer) {
+      resolvedRetailPrice    = specialPrice;
+      resolvedWholesalePrice = rawPrice;
+    } else {
+      resolvedRetailPrice    = rawPrice;
+      resolvedWholesalePrice = 0;
+    }
+
+    // ── Unit label — MUST come from the same defaultPiece used for price ──
+    final String pieceLabel = defaultPiece?['piece']?.toString() ?? '';
+    final String unit = pieceLabel.isNotEmpty && pieceLabel != 'null'
+        ? pieceLabel
+        : (j['piece']?.toString()?.isNotEmpty == true
+        ? j['piece'].toString()
+        : j['barcode_type']?.toString() ?? '');
+
+    // ── Quantity ──────────────────────────────────────────────────────────
+    final int quantity = int.tryParse(
         (j['pos_quentity']?.toString().isNotEmpty == true
             ? j['pos_quentity']
             : j['pos_quantity']?.toString().isNotEmpty == true
             ? j['pos_quantity']
-            : j['quantity'])?.toString() ?? '') ?? 0,
-    pieces: (j['pieces'] as List? ?? [])
-        .map((e) => Map<String, dynamic>.from(e))
-        .toList(),
-  );
+            : j['quantity'])?.toString() ?? '') ?? 0;
+
+    return ApiProduct(
+      productId:      j['product_id']?.toString() ?? '',
+      name:           j['name']?.toString()        ?? '',
+      sku:            j['sku']?.toString()          ?? '',
+      image:          j['image']?.toString()        ?? '',
+      category:       j['category']?.toString()     ?? '',
+      unit:           unit,
+      specialPrice:   specialPrice,
+      retailPrice:    resolvedRetailPrice,
+      wholesalePrice: resolvedWholesalePrice,
+      quantity:       quantity,
+      pieces:         rawPieces,
+    );
+  }
 }
 
 // ─── ApiSubcategory ──────────────────────────────────────────────────────────

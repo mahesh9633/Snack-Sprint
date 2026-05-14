@@ -12,7 +12,8 @@ class HomeBannerSlider extends StatefulWidget {
   State<HomeBannerSlider> createState() => _HomeBannerSliderState();
 }
 
-class _HomeBannerSliderState extends State<HomeBannerSlider> {
+class _HomeBannerSliderState extends State<HomeBannerSlider>
+    with AutomaticKeepAliveClientMixin {
   List<BannerItem> _banners     = [];
   bool             _loading     = true;
   int              _currentPage = 0;
@@ -23,6 +24,9 @@ class _HomeBannerSliderState extends State<HomeBannerSlider> {
   static const Duration _autoScrollInterval = Duration(seconds: 4);
   static const Duration _animDuration       = Duration(milliseconds: 500);
   static const double   _bannerAspectRatio  = 1200 / 420;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -88,7 +92,7 @@ class _HomeBannerSliderState extends State<HomeBannerSlider> {
   // ── BUILD ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    // ── Loading state ────────────────────────────────────────────────────────
+    super.build(context);
     if (_loading) {
       return Container(
         margin: const EdgeInsets.symmetric(horizontal: 16),
