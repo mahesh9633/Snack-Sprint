@@ -24,34 +24,27 @@ bool _isProductInStock(CategoryDataProduct p) {
   }
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 Product _toProduct(CategoryDataProduct p) {
   final raw    = p.image;
   final imgUrl = (raw.isNotEmpty && raw != 'no_image.png')
       ? '$_imgBase$raw'
       : '';
+  final int qty = int.tryParse(p.quantity) ?? 0;
 
-  String defaultWeight = '';
-  try {
-    final defaultPiece = p.pieces.firstWhere(
-          (e) => e['piece_default']?.toString() == '1',
-      orElse: () => p.pieces.isNotEmpty ? p.pieces.first : {},
-    );
-    defaultWeight = defaultPiece['piece']?.toString() ?? '';
-  } catch (_) {}
-
+  // p.price and p.wholesalePrice are already correctly resolved
+  // by CategoryDataProduct.fromJson (piece-aware logic)
   return Product(
     id:                 p.productId,
     name:               p.name,
-    price:              p.retailPrice,
-    originalPrice:      p.wholesalePrice > 0 ? p.wholesalePrice : p.retailPrice,
+    price:              p.price,
+    originalPrice:      p.wholesalePrice > 0 ? p.wholesalePrice : p.price,
     image:              raw,
     imageUrl:           imgUrl,
     category:           p.categoryId,
-    weight:             defaultWeight.isNotEmpty ? defaultWeight : (p.piece.isNotEmpty ? p.piece : ''),
+    weight:             p.piece.isNotEmpty ? p.piece : '',
     discountPercentage: p.discountPercent.toDouble(),
-    quantity:    int.tryParse(p.quantity) ?? 0,
-    posQuantity: int.tryParse(p.quantity) ?? 0,
+    quantity:           qty,
+    posQuantity:        qty,
     pieces:             p.pieces.map((e) => ProductPiece.fromJson(e)).toList(),
   );
 }
@@ -718,6 +711,7 @@ class _ProductCard extends StatelessWidget {
         ? '$_imgBase$raw'
         : '';
     final product = _toProduct(p);
+    final inStock = _isProductInStock(p);
 
     return Container(
       decoration: BoxDecoration(
@@ -821,17 +815,18 @@ class _ProductCard extends StatelessWidget {
                               decoration: BoxDecoration(
                                   color:        AppColors.priceGreen,
                                   borderRadius: BorderRadius.circular(4)),
-                              child: Text('₹${p.retailPrice.toInt()}',
+                              // child: Text('₹${p.retailPrice.toInt()}',
+                              child: Text('₹${product.price.toInt()}',
                                   style: const TextStyle(
                                       color:      Colors.white,
                                       fontSize:   8,
                                       fontWeight: FontWeight.bold)),
                             ),
-                            if (p.wholesalePrice > p.retailPrice) ...[
+                            if (product.originalPrice > product.price) ...[
                               const SizedBox(width: 3),
                               Flexible(
                                 child: Text(
-                                    '₹${p.wholesalePrice.toInt()}',
+                                    '₹${product.originalPrice.toInt()}',
                                     style: TextStyle(
                                         fontSize:   6,
                                         color:      Colors.grey[500],
@@ -891,7 +886,7 @@ class _ProductCard extends StatelessWidget {
               width:  double.infinity,
               child:  _CartButton(
                   product:   product,
-                  isInStock: _isProductInStock(p)),
+                  isInStock: inStock),
             ),
           ),
         ],
@@ -928,46 +923,92 @@ class _CartButton extends StatelessWidget {
       );
     }
 
-    if (product.pieces.isNotEmpty) {
-      return GestureDetector(
-        onTap: () => handleAddToCart(
-          context: context,
-          product: product,
-          pieces:  product.pieces,
-        ),
-        child: Container(
-          width:     double.infinity,
-          height:    36,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color:        Colors.white,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: AppColors.buttonPrimary, width: 1.2),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('ADD',
-                  style: TextStyle(
-                      color:         AppColors.buttonPrimary,
-                      fontSize:      11,
-                      fontWeight:    FontWeight.bold,
-                      letterSpacing: 0.5)),
-              if (product.pieces.isNotEmpty)
-                Text(product.pieces.length == 1
-                    ? '1 option'
-                    : '${product.pieces.length} options',
-                    style: const TextStyle(
-                        color:   AppColors.buttonPrimary,
-                        fontSize: 8)),
-            ],
-          ),
-        ),
-      );
-    }
-
     return Consumer<CartModel>(
-      builder: (_, cart, __) {
+      builder: (ctx, cart, __) {
+
+        // ── Pieces: sum qty across ALL piece cartIds ──────────────────────
+        if (product.pieces.isNotEmpty) {
+          int    totalQty = 0;
+          double totalAmt = 0;
+          for (final piece in product.pieces) {
+            final pieceProduct = Product(
+              id:                 piece.cartId(product.id),
+              name:               '${product.name} – ${piece.label}',
+              price:              piece.effectivePrice,
+              originalPrice:      piece.hasDiscount ? piece.price : piece.effectivePrice,
+              image:              product.image,
+              imageUrl:           product.imageUrl,
+              category:           product.category,
+              weight:             piece.label,
+              sku:                product.sku,
+              discountPercentage: piece.discountPct.toDouble(),
+              quantity:           product.quantity,
+              posQuantity:        product.posQuantity,
+            );
+            final q = cart.getQuantity(pieceProduct);
+            totalQty += q;
+            totalAmt += q * piece.effectivePrice;
+          }
+
+          final hasItems  = totalQty > 0;
+          final Color accent = hasItems
+              ? AppColors.priceGreen
+              : AppColors.buttonPrimary;
+
+          return GestureDetector(
+            onTap: () => handleAddToCart(
+              context: ctx,
+              product: product,
+              pieces:  product.pieces,
+            ),
+            child: Container(
+              width:     double.infinity,
+              height:    36,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color:        Colors.white,
+                borderRadius: BorderRadius.circular(6),
+                border:       Border.all(color: accent, width: 1.2),
+              ),
+              child: hasItems
+                  ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                      'ADD (${product.pieces.length} opp)',
+                      style: TextStyle(
+                          color:         accent,
+                          fontSize:      11,
+                          fontWeight:    FontWeight.bold,
+                          letterSpacing: 0.5)),
+                  Text('₹${totalAmt.toInt()}',
+                      style: TextStyle(
+                          color:      accent,
+                          fontSize:   9,
+                          fontWeight: FontWeight.w700)),
+                ],
+              )
+                  : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('ADD',
+                      style: TextStyle(
+                          color:         accent,
+                          fontSize:      11,
+                          fontWeight:    FontWeight.bold,
+                          letterSpacing: 0.5)),
+                  Text(
+                      product.pieces.length == 1
+                          ? '1 option'
+                          : '${product.pieces.length} options',
+                      style: TextStyle(color: accent, fontSize: 8)),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // ── No pieces, qty == 0 → plain ADD ──────────────────────────────
         final qty = cart.getQuantity(product);
         if (qty == 0) {
           return GestureDetector(
@@ -979,7 +1020,7 @@ class _CartButton extends StatelessWidget {
               decoration: BoxDecoration(
                 color:        Colors.white,
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(
+                border:       Border.all(
                     color: AppColors.buttonPrimary, width: 1.2),
               ),
               child: const Text('ADD',
@@ -991,6 +1032,8 @@ class _CartButton extends StatelessWidget {
             ),
           );
         }
+
+        // ── No pieces, qty > 0 → stepper ─────────────────────────────────
         return Container(
           height: 30,
           decoration: BoxDecoration(

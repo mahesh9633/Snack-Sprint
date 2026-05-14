@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -9,7 +8,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mtl_groceriesapp/screens/profile_screen.dart';
 import 'package:mtl_groceriesapp/screens/quick_tab_enum.dart';
 import 'package:mtl_groceriesapp/screens/select_location_screen.dart';
-
 import '../model/cart_model.dart';
 import '../services/api_config_service.dart';
 import '../services/get_profile_service.dart';

@@ -150,9 +150,21 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       final response =
       await http.get(uri).timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final decoded = jsonDecode(response.body);
+        if (decoded is! Map<String, dynamic>) return;
+        final data = decoded;
         if (data['status'] == 'success' && data['product'] != null) {
-          final rawImage = data['product']['image']?.toString() ?? '';
+          final rawProduct = data['product'];
+          final Map<String, dynamic>? apiProduct;
+          if (rawProduct is List) {
+            apiProduct = rawProduct.isNotEmpty ? Map<String, dynamic>.from(rawProduct.first as Map) : null;
+          } else if (rawProduct is Map) {
+            apiProduct = Map<String, dynamic>.from(rawProduct);
+          } else {
+            apiProduct = null;
+          }
+          if (apiProduct == null) return;
+          final rawImage = apiProduct['image']?.toString() ?? '';
           if (rawImage.isNotEmpty && mounted) {
             final fullUrl = rawImage.startsWith('http')
                 ? rawImage
@@ -174,9 +186,21 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
         );
         final response = await http.get(uri).timeout(const Duration(seconds: 10));
         if (response.statusCode == 200) {
-          final data = jsonDecode(response.body) as Map<String, dynamic>;
+          final decoded = jsonDecode(response.body);
+          if (decoded is! Map<String, dynamic>) continue;
+          final data = decoded;
           if (data['status'] == 'success' && data['product'] != null) {
-            final rawImage = data['product']['image']?.toString() ?? '';
+            final rawProduct = data['product'];
+            final Map<String, dynamic>? apiProduct;
+            if (rawProduct is List) {
+              apiProduct = rawProduct.isNotEmpty ? Map<String, dynamic>.from(rawProduct.first as Map) : null;
+            } else if (rawProduct is Map) {
+              apiProduct = Map<String, dynamic>.from(rawProduct);
+            } else {
+              apiProduct = null;
+            }
+            if (apiProduct == null) continue;
+            final rawImage = apiProduct['image']?.toString() ?? '';
             if (rawImage.isNotEmpty && mounted) {
               final fullUrl = rawImage.startsWith('http')
                   ? rawImage
@@ -454,46 +478,10 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     );
   }
 
-  // ── Open ProductDetailScreen for a tapped order product ────────────────
-  // void _openProductDetailForItem(Map<String, dynamic> p) {
-  //   final productId = p['product_id']?.toString() ?? '';
-  //   final name      = p['name']?.toString()        ?? widget.productName;
-  //   final rawImage  = p['image']?.toString()       ?? '';
-  //   final imgUrl    = rawImage.startsWith('http')
-  //       ? rawImage
-  //       : rawImage.isNotEmpty
-  //       ? '${ApiConfig.imageBase}$rawImage'
-  //       : '';
-  //   final price     = double.tryParse(
-  //       p['special_price']?.toString() != '0'
-  //           ? (p['special_price']?.toString() ?? p['price']?.toString() ?? '0')
-  //           : (p['price']?.toString() ?? '0')) ?? 0.0;
-  //   final origPrice = double.tryParse(p['price']?.toString() ?? '0') ?? 0.0;
-  //
-  //   final product = Product(
-  //     id:            productId,
-  //     name:          name,
-  //     price:         price,
-  //     originalPrice: origPrice,
-  //     image:         rawImage,
-  //     imageUrl:      imgUrl,
-  //     category:      '',
-  //     quantity:      1,
-  //     posQuantity:   1,
-  //     deliveryTime:  widget.estimatedDelivery,
-  //   );
-  //
-  //   Navigator.push(
-  //     context,
-  //     MaterialPageRoute(
-  //       builder: (_) => ProductDetailScreen(product: product),
-  //     ),
-  //   );
-  // }
   void _openProductDetailForItem(Map<String, dynamic> p) {
     final productId = p['product_id']?.toString() ?? '';
     final name      = p['name']?.toString() ?? widget.productName;
-    final rawImage  = p['image']?.toString() ?? '';
+    final rawImage  = (p['product_image'] ?? p['image'])?.toString()?.trim() ?? '';
     final imgUrl    = rawImage.startsWith('http')
         ? rawImage
         : rawImage.isNotEmpty && rawImage != 'no_image.png'
@@ -502,22 +490,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     final specPrice = double.tryParse(p['special_price']?.toString() ?? '0') ?? 0.0;
     final rawPrice  = double.tryParse(p['price']?.toString() ?? '0') ?? 0.0;
     final price     = (specPrice > 0 && specPrice < rawPrice) ? specPrice : rawPrice;
-    // final stockQty  = int.tryParse(
-    //     p['pos_quentity']?.toString() ??
-    //         p['quantity']?.toString() ?? '0') ?? 0;
-    //
-    // final product = Product(
-    //   id:            productId,
-    //   name:          name,
-    //   price:         price,
-    //   originalPrice: rawPrice,
-    //   image:         rawImage,
-    //   imageUrl:      imgUrl,
-    //   category:      '',
-    //   quantity:      stockQty > 0 ? stockQty : 1,
-    //   posQuantity:   stockQty > 0 ? stockQty : 1,
-    //   deliveryTime:  widget.estimatedDelivery,
-    // );
     final product = Product(
       id:            productId,
       name:          name,
@@ -526,8 +498,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       image:         rawImage,
       imageUrl:      imgUrl,
       category:      '',
-      quantity:      int.tryParse(p['pos_quentity']?.toString() ?? '0') ?? 0,
-      posQuantity:   int.tryParse(p['pos_quentity']?.toString() ?? '0') ?? 0,
+      quantity:      (int.tryParse(p['quantity']?.toString() ?? '') ?? 0) > 0 ? int.tryParse(p['quantity'].toString())! : 1,
+      posQuantity:   (int.tryParse(p['quantity']?.toString() ?? '') ?? 0) > 0 ? int.tryParse(p['quantity'].toString())! : 1,
       deliveryTime:  widget.estimatedDelivery,
     );
 
@@ -1009,13 +981,13 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     final name       = p['name']?.toString()          ?? widget.productName;
     final productId  = p['product_id']?.toString()    ?? p['id']?.toString() ?? '';
 
-    final rawImage   = p['image']?.toString()         ?? '';
+    final rawImage   = (p['product_image'] ?? p['image'])?.toString()?.trim() ?? '';
     final cachedImg  = _productImageCache[productId] ?? '';
     final imgUrl     = cachedImg.isNotEmpty
         ? cachedImg
         : rawImage.startsWith('http')
         ? rawImage
-        : rawImage.isNotEmpty
+        : rawImage.isNotEmpty && rawImage != 'no_image.png'
         ? '${ApiConfig.imageBase}$rawImage'
         : '';
     final rawPrice   = double.tryParse(p['price']?.toString()         ?? '0') ?? 0.0;
@@ -1149,59 +1121,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
             color: Color(0xFFFF0080), size: 36)),
   );
 
-  // Widget _buildOrderTotalsRow(Map<String, dynamic> details) {
-  //   final subTotal   = double.tryParse(details['sub_total']?.toString()   ?? '0') ?? 0;
-  //   final discount   = double.tryParse(details['discount']?.toString()    ?? '0') ?? 0;
-  //   final tax        = double.tryParse(details['total_tax']?.toString()   ?? '0') ?? 0;
-  //   final grandTotal = double.tryParse(details['grand_total']?.toString() ?? '0') ?? 0;
-  //   final coupon     = details['coupon']?.toString() ?? '';
-  //
-  //   Widget row(String label, String value, {Color? color}) => Padding(
-  //     padding: const EdgeInsets.only(bottom: 5),
-  //     child: Row(
-  //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //       children: [
-  //         Text(label,
-  //             style: TextStyle(fontSize: 12, color: color ?? Colors.grey[600])),
-  //         Text(value,
-  //             style: TextStyle(
-  //                 fontSize: 12,
-  //                 fontWeight: FontWeight.w600,
-  //                 color: color ?? Colors.black87)),
-  //       ],
-  //     ),
-  //   );
-  //
-  //   return Column(
-  //     crossAxisAlignment: CrossAxisAlignment.start,
-  //     children: [
-  //       if (subTotal > 0) row('Subtotal', '₹${subTotal.toStringAsFixed(0)}'),
-  //       if (tax > 0) row('Tax', '₹${tax.toStringAsFixed(0)}'),
-  //       if (discount > 0)
-  //         row(
-  //           coupon.isNotEmpty ? 'Coupon ($coupon)' : 'Discount',
-  //           '-₹${discount.toStringAsFixed(0)}',
-  //           color: Colors.green[700],
-  //         ),
-  //       if (grandTotal > 0) ...[
-  //         const Divider(height: 10),
-  //         Row(
-  //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //           children: [
-  //             const Text('Total Paid',
-  //                 style: TextStyle(
-  //                     fontSize: 13, fontWeight: FontWeight.bold)),
-  //             Text('₹${grandTotal.toStringAsFixed(0)}',
-  //                 style: const TextStyle(
-  //                     fontSize: 14,
-  //                     fontWeight: FontWeight.bold,
-  //                     color: Color(0xFF388E3C))),
-  //           ],
-  //         ),
-  //       ],
-  //     ],
-  //   );
-  // }
   Widget _buildOrderTotalsRow(Map<String, dynamic> details) {
     final subTotal   = double.tryParse(details['sub_total']?.toString()   ?? '0') ?? 0;
     final discount   = double.tryParse(details['discount']?.toString()    ?? '0') ?? 0;

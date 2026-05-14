@@ -620,78 +620,105 @@ class _CartScreenState extends State<CartScreen> {
                                               ],
                                             ),
                                           ),
-                                          // Quantity control
-                                          GestureDetector(
-                                            behavior:
-                                            HitTestBehavior.opaque,
-                                            onTap: () {},
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                  color: AppColors
-                                                      .buttonPrimary,
-                                                  borderRadius:
-                                                  BorderRadius
-                                                      .circular(8)),
-                                              child: Row(
-                                                mainAxisSize:
-                                                MainAxisSize.min,
-                                                children: [
-                                                  InkWell(
-                                                    onTap: () => cart
-                                                        .decrementQuantity(
-                                                        item.product
-                                                            .id),
-                                                    child: Padding(
-                                                      padding: EdgeInsets
-                                                          .symmetric(
-                                                          horizontal:
-                                                          screenW *
-                                                              0.02,
-                                                          vertical:
-                                                          screenH *
-                                                              0.008),
-                                                      child: const Icon(
-                                                          Icons.remove,
-                                                          color: AppColors
-                                                              .buttonPrimaryText,
-                                                          size: 18),
+                                    Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        // Delete button on top
+                                        GestureDetector(
+                                          onTap: () {
+                                            showDialog(
+                                              context: context,
+                                              builder: (_) => AlertDialog(
+                                                shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(16)),
+                                                content: const Text(
+                                                  'Are you sure you want to remove this item?',
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                                actionsAlignment: MainAxisAlignment.spaceEvenly,
+                                                actions: [
+                                                  OutlinedButton(
+                                                    style: OutlinedButton.styleFrom(
+                                                      side: BorderSide(color: Colors.grey.shade400),
+                                                      shape: RoundedRectangleBorder(
+                                                          borderRadius: BorderRadius.circular(8)),
                                                     ),
+                                                    onPressed: () => Navigator.pop(context),
+                                                    child: const Text('Cancel',
+                                                        style: TextStyle(color: Colors.black87)),
                                                   ),
-                                                  Text('${item.quantity}',
-                                                      style: TextStyle(
-                                                          color: AppColors
-                                                              .buttonPrimaryText,
-                                                          fontWeight:
-                                                          FontWeight
-                                                              .bold,
-                                                          fontSize:
-                                                          screenW *
-                                                              0.04)),
-                                                  InkWell(
-                                                    onTap: () => cart
-                                                        .incrementQuantity(
-                                                        item.product
-                                                            .id),
-                                                    child: Padding(
-                                                      padding: EdgeInsets
-                                                          .symmetric(
-                                                          horizontal:
-                                                          screenW *
-                                                              0.02,
-                                                          vertical:
-                                                          screenH *
-                                                              0.008),
-                                                      child: const Icon(
-                                                          Icons.add,
-                                                          color: AppColors
-                                                              .buttonPrimaryText,
-                                                          size: 18),
+                                                  ElevatedButton(
+                                                    style: ElevatedButton.styleFrom(
+                                                      backgroundColor: Colors.red,
+                                                      shape: RoundedRectangleBorder(
+                                                          borderRadius: BorderRadius.circular(8)),
                                                     ),
+                                                    onPressed: () {
+                                                      cart.removeItem(item.product);
+                                                      Navigator.pop(context);
+                                                    },
+                                                    child: const Text('OK',
+                                                        style: TextStyle(color: Colors.white)),
                                                   ),
                                                 ],
                                               ),
+                                            );
+                                          },
+                                          child: Container(
+                                            padding: EdgeInsets.all(screenW * 0.018),
+                                            decoration: BoxDecoration(
+                                              color: Colors.red.shade50,
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(color: Colors.red.shade200),
+                                            ),
+                                            child: Icon(Icons.delete_outline,
+                                                color: Colors.red.shade600, size: 18),
+                                          ),
+                                        ),
+                                        SizedBox(height: screenH * 0.008),
+                                        // Quantity control below
+                                        GestureDetector(
+                                          behavior: HitTestBehavior.opaque,
+                                          onTap: () {},
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                                color: AppColors.buttonPrimary,
+                                                borderRadius: BorderRadius.circular(8)),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                InkWell(
+                                                  onTap: () => cart.decrementQuantity(item.product.id),
+                                                  child: Padding(
+                                                    padding: EdgeInsets.symmetric(
+                                                        horizontal: screenW * 0.02,
+                                                        vertical: screenH * 0.008),
+                                                    child: const Icon(Icons.remove,
+                                                        color: AppColors.buttonPrimaryText, size: 18),
+                                                  ),
+                                                ),
+                                                Text('${item.quantity}',
+                                                    style: TextStyle(
+                                                        color: AppColors.buttonPrimaryText,
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: screenW * 0.04)),
+                                                InkWell(
+                                                  onTap: () => cart.incrementQuantity(item.product.id),
+                                                  child: Padding(
+                                                    padding: EdgeInsets.symmetric(
+                                                        horizontal: screenW * 0.02,
+                                                        vertical: screenH * 0.008),
+                                                    child: const Icon(Icons.add,
+                                                        color: AppColors.buttonPrimaryText, size: 18),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
+                                        ),
+                                      ],
+                                    ),
                                   ],
                                   ),
                                   ),

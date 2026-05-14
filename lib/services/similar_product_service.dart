@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../services/session_manager.dart';
 
+import '../widgets/piece_selector_sheet.dart';
 import 'api_config_service.dart';
 final String kImgBase = ApiConfig.imageBase;
 
@@ -38,6 +39,8 @@ class SimilarProduct {
   final String posQuantity;
   final String posStatus;
 
+  final List<ProductPiece> pieces;
+
   const SimilarProduct({
     required this.productId,
     required this.name,
@@ -45,6 +48,7 @@ class SimilarProduct {
     required this.rawImage,
     required this.posQuantity,
     required this.posStatus,
+    this.pieces = const [],
   });
 
   bool get isInStock =>
@@ -57,14 +61,38 @@ class SimilarProduct {
 
   double get priceDouble => double.tryParse(price) ?? 0.0;
 
-  factory SimilarProduct.fromJson(Map<String, dynamic> json) => SimilarProduct(
-    productId:   json['product_id']?.toString() ?? '',
-    name:        json['name']?.toString()        ?? '',
-    price:       json['price']?.toString()       ?? '0.00',
-    rawImage:    json['image']?.toString()       ?? '',
-    posQuantity: json['pos_quentity']?.toString() ?? '0',
-    posStatus:   json['pos_status']?.toString()  ?? '0',
-  );
+  // factory SimilarProduct.fromJson(Map<String, dynamic> json) => SimilarProduct(
+  //   productId:   json['product_id']?.toString() ?? '',
+  //   name:        json['name']?.toString()        ?? '',
+  //   price:       json['price']?.toString()       ?? '0.00',
+  //   rawImage:    json['image']?.toString()       ?? '',
+  //   posQuantity: json['pos_quentity']?.toString() ?? '0',
+  //   posStatus:   json['pos_status']?.toString()  ?? '0',
+  // );
+  factory SimilarProduct.fromJson(Map<String, dynamic> json) {
+    final List<ProductPiece> parsedPieces = [];
+    final rawPieces = json['pieces'];
+    if (rawPieces is List) {
+      for (final p in rawPieces) {
+        if (p is Map<String, dynamic>) {
+          final piece = ProductPiece.fromJson(p);
+          if (piece.price > 0 || piece.specialPrice > 0) {
+            parsedPieces.add(piece);
+          }
+        }
+      }
+    }
+
+    return SimilarProduct(
+      productId:   json['product_id']?.toString()  ?? '',
+      name:        json['name']?.toString()         ?? '',
+      price:       json['price']?.toString()        ?? '0.00',
+      rawImage:    json['image']?.toString()        ?? '',
+      posQuantity: json['pos_quentity']?.toString() ?? '0',
+      posStatus:   json['pos_status']?.toString()   ?? '0',
+      pieces:      parsedPieces,
+    );
+  }
 }
 
 // ─── Service ──────────────────────────────────────────────────────────────────

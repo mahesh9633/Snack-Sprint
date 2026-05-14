@@ -137,42 +137,86 @@ class Product {
   factory Product.fromCategoryJson(
       Map<String, dynamic> json, {
         String categoryName = '',
-        required String Function(String?) buildUrl, // pass buildImageUrl
+        required String Function(String?) buildUrl,
       }) {
-    final rawImage    = json['image']?.toString() ?? '';
-    final basePrice   = double.tryParse(json['price']?.toString()         ?? '0') ?? 0.0;
-    final specialRaw  = json['special_price']?.toString() ?? '';
-    final specialPrice = double.tryParse(specialRaw) ?? 0.0;
+    final rawImage     = json['image']?.toString() ?? '';
+    final basePrice    = double.tryParse(json['price']?.toString()         ?? '0') ?? 0.0;
+    final specialPrice = double.tryParse(json['special_price']?.toString() ?? '0') ?? 0.0;
 
-    // If special_price is set and > 0, it is the selling price; base is MRP
-    final double price         = specialPrice > 0 ? specialPrice : basePrice;
-    final double originalPrice = specialPrice > 0 ? basePrice    : basePrice;
+    // ── Parse pieces ────────────────────────────────────────────────
+    final rawPieces = json['pieces'];
+    final List<ProductPiece> parsedPieces = [];
+    ProductPiece? defaultPiece;
 
-    final qty = int.tryParse(
-        json['pos_quentity']?.toString() ?? '0') ?? 0;
+    if (rawPieces is List) {
+      for (final p in rawPieces) {
+        if (p is Map<String, dynamic>) {
+          final piecePrice = double.tryParse(p['price']?.toString() ?? '0') ?? 0.0;
+          final pieceSp    = double.tryParse(p['special_price']?.toString() ?? '0') ?? 0.0;
+          // only include pieces that actually have a price
+          if (piecePrice > 0 || pieceSp > 0) {
+            final pc = ProductPiece(
+              pieceId:      p['piece_id']?.toString() ?? '',
+              label:        p['piece']?.toString() ?? '',
+              price:        piecePrice,
+              specialPrice: pieceSp,
+            );
+            parsedPieces.add(pc);
+            if (p['piece_default']?.toString() == '1') defaultPiece = pc;
+          }
+        }
+      }
+    }
+
+    // ── Effective display price ──────────────────────────────────────
+    // Priority: product's own special_price > pieces default > first piece
+    final double displayPrice;
+    final double originalPrice;
+
+    if (basePrice > 0) {
+      // Product has its own base price
+      final bool hasOffer = specialPrice > 0 && specialPrice < basePrice;
+      displayPrice  = hasOffer ? specialPrice : basePrice;
+      originalPrice = basePrice;
+    } else if (defaultPiece != null) {
+      // price = 0, derive from default piece
+      displayPrice  = defaultPiece.effectivePrice;
+      originalPrice = defaultPiece.price;
+    } else if (parsedPieces.isNotEmpty) {
+      displayPrice  = parsedPieces.first.effectivePrice;
+      originalPrice = parsedPieces.first.price;
+    } else {
+      displayPrice  = 0;
+      originalPrice = 0;
+    }
+
+    // ── Weight label: prefer default piece label ─────────────────────
+    final weightLabel = (defaultPiece?.label.isNotEmpty == true)
+        ? defaultPiece!.label
+        : (parsedPieces.isNotEmpty && parsedPieces.first.label.isNotEmpty)
+        ? parsedPieces.first.label
+        : '';
+
+    final qty = int.tryParse(json['pos_quentity']?.toString() ?? '0') ?? 0;
 
     return Product(
-      id:                 json['product_id']?.toString() ?? '',
-      name:               json['name']?.toString()        ?? '',
-      price:              price,
-      originalPrice:      originalPrice,
-      image:              rawImage,
-      imageUrl:           buildUrl(rawImage),   // safe — never bare filename
-      category:           categoryName.isNotEmpty
+      id:            json['product_id']?.toString() ?? '',
+      name:          json['name']?.toString()        ?? '',
+      price:         displayPrice,
+      originalPrice: originalPrice,
+      image:         rawImage,
+      imageUrl:      buildUrl(rawImage),
+      category:      categoryName.isNotEmpty
           ? categoryName
           : (json['category_id']?.toString() ?? ''),
-      weight: (() {
-        for (final key in ['piece', 'unit', 'weight', 'net_qty', 'barcode_type']) {
-          final val = json[key]?.toString() ?? '';
-          if (val.isNotEmpty && val != '0' && val != '0.000' && val != 'null') return val;
-        }
-        return '';
-      })(),
-      sku:                '',
-      deliveryTime:       '25 mins',
+      weight:        weightLabel,
+      sku:           '',
+      deliveryTime:  '25 mins',
       discountPercentage: 0,
-      isVeg:              true,
-      quantity:           qty < 0 ? 0 : qty,
+      isVeg:         true,
+      quantity:      qty < 0 ? 0 : qty,
+      posQuantity:   qty < 0 ? 0 : qty,
+      pieces:        parsedPieces,
     );
   }
 
@@ -186,39 +230,82 @@ class Product {
     final rawImage     = json['image']?.toString() ?? '';
     final basePrice    = double.tryParse(json['price']?.toString()         ?? '0') ?? 0.0;
     final specialPrice = double.tryParse(json['special_price']?.toString() ?? '0') ?? 0.0;
-    final bool   hasOffer = specialPrice > 0 && specialPrice < basePrice;
-    final double price    = hasOffer ? specialPrice : basePrice;
     final posQty = int.tryParse(json['pos_quentity']?.toString() ?? '0') ?? 0;
     final qty    = int.tryParse(json['quantity']?.toString() ?? '0') ?? 0;
-    final tag       = (json['r_tag']?.toString() ?? '').isNotEmpty
+    final tag    = (json['r_tag']?.toString() ?? '').isNotEmpty
         ? json['r_tag'].toString()
         : (json['w_tag']?.toString() ?? '');
+
+    // ── Parse pieces ────────────────────────────────────────────────
+    final rawPieces = json['pieces'];
+    final List<ProductPiece> parsedPieces = [];
+    ProductPiece? defaultPiece;
+
+    if (rawPieces is List) {
+      for (final p in rawPieces) {
+        if (p is Map<String, dynamic>) {
+          final piecePrice = double.tryParse(p['price']?.toString() ?? '0') ?? 0.0;
+          final pieceSp    = double.tryParse(p['special_price']?.toString() ?? '0') ?? 0.0;
+          if (piecePrice > 0 || pieceSp > 0) {
+            final pc = ProductPiece(
+              pieceId:      p['piece_id']?.toString() ?? '',
+              label:        p['piece']?.toString() ?? '',
+              price:        piecePrice,
+              specialPrice: pieceSp,
+            );
+            parsedPieces.add(pc);
+            if (p['piece_default']?.toString() == '1') defaultPiece = pc;
+          }
+        }
+      }
+    }
+
+    // ── Effective price ──────────────────────────────────────────────
+    final double displayPrice;
+    final double originalPrice;
+
+    if (basePrice > 0) {
+      final bool hasOffer = specialPrice > 0 && specialPrice < basePrice;
+      displayPrice  = hasOffer ? specialPrice : basePrice;
+      originalPrice = basePrice;
+    } else if (defaultPiece != null) {
+      displayPrice  = defaultPiece.effectivePrice;
+      originalPrice = defaultPiece.price;
+    } else if (parsedPieces.isNotEmpty) {
+      displayPrice  = parsedPieces.first.effectivePrice;
+      originalPrice = parsedPieces.first.price;
+    } else {
+      displayPrice  = 0;
+      originalPrice = 0;
+    }
+
+    // ── Weight: prefer default piece label over raw weight field ─────
+    final weightLabel = (defaultPiece?.label.isNotEmpty == true)
+        ? defaultPiece!.label
+        : (parsedPieces.isNotEmpty && parsedPieces.first.label.isNotEmpty)
+        ? parsedPieces.first.label
+        : '';
 
     return Product(
       id:            json['product_id']?.toString()    ?? '',
       name:          json['name']?.toString()          ?? '',
-      price:         price,
-      originalPrice: hasOffer ? basePrice : price,
+      price:         displayPrice,
+      originalPrice: originalPrice,
       image:         rawImage,
       imageUrl:      buildUrl(rawImage),
       category:      json['category']?.toString()      ?? '',
       subCategory:   json['sub_category']?.toString()  ?? '',
-      weight: (() {
-        for (final key in ['piece', 'unit', 'weight', 'net_qty', 'barcode_type']) {
-          final val = json[key]?.toString() ?? '';
-          if (val.isNotEmpty && val != '0' && val != '0.000' && val != 'null') return val;
-        }
-        return '';
-      })(),
-      sku:           json['sku']?.toString()           ?? '',
-      deliveryTime:  json['delivery_time']?.toString() ?? '15 mins',
-      isVeg:         (json['is_veg']?.toString()       ?? '1') == '1',
+      weight:        weightLabel,
+      sku:           json['sku']?.toString()            ?? '',
+      deliveryTime:  json['delivery_time']?.toString()  ?? '15 mins',
+      isVeg:         (json['is_veg']?.toString()        ?? '1') == '1',
       tag:           tag,
-      description:   json['description']?.toString()  ?? '',
+      description:   json['description']?.toString()   ?? '',
       highlights:    (json['highlights'] as List<dynamic>?)
           ?.map((e) => e.toString()).toList() ?? [],
-      quantity: qty < 0 ? 0 : qty,
+      quantity:    qty    < 0 ? 0 : qty,
       posQuantity: posQty < 0 ? 0 : posQty,
+      pieces:      parsedPieces,
     );
   }
 

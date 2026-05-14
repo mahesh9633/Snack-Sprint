@@ -364,10 +364,7 @@ class _WishlistCard extends StatelessWidget {
 
                   Consumer<CartModel>(
                     builder: (context, cart, _) {
-                      final bool outOfStock = !product.isInStock;
-                      final int qty = cart.getQuantity(product);
-
-                      if (outOfStock) {
+                      if (!product.isInStock) {
                         return Container(
                           width: 90,
                           height: 38,
@@ -385,11 +382,99 @@ class _WishlistCard extends StatelessWidget {
                         );
                       }
 
+                      // ── Pieces product ──────────────────────────────────
+                      if (product.pieces.isNotEmpty) {
+                        int totalQty = 0;
+                        double totalAmt = 0;
+
+                        for (final piece in product.pieces) {
+                          final pieceProduct = Product(
+                            id:                 piece.cartId(product.id),
+                            name:               '${product.name} – ${piece.label}',
+                            price:              piece.effectivePrice,
+                            originalPrice:      piece.hasDiscount ? piece.price : piece.effectivePrice,
+                            image:              product.image,
+                            imageUrl:           product.imageUrl,
+                            category:           product.category,
+                            weight:             piece.label,
+                            sku:                product.sku,
+                            discountPercentage: piece.discountPct.toDouble(),
+                            quantity:           product.quantity,
+                            posQuantity:        product.posQuantity,
+                          );
+                          final q = cart.getQuantity(pieceProduct);
+                          totalQty += q;
+                          totalAmt += q * piece.effectivePrice;
+                        }
+
+                        final hasItems = totalQty > 0;
+                        final Color accent =
+                        hasItems ? AppColors.priceGreen : AppColors.buttonPrimary;
+
+                        return GestureDetector(
+                          onTap: () => handleAddToCart(
+                            context: context,
+                            product: product,
+                            pieces:  product.pieces,
+                          ),
+                          child: Container(
+                            width: 90,
+                            height: 40,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(color: accent, width: 1.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: hasItems
+                                ? Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'ADD (${product.pieces.length} opp)',
+                                  style: TextStyle(
+                                      color:         accent,
+                                      fontSize:      11,
+                                      fontWeight:    FontWeight.bold,
+                                      letterSpacing: 0.5),
+                                ),
+                                Text(
+                                  '₹${totalAmt.toInt()}',
+                                  style: TextStyle(
+                                      color:      accent,
+                                      fontSize:   9,
+                                      fontWeight: FontWeight.w700),
+                                ),
+                              ],
+                            )
+                                : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text('ADD',
+                                    style: TextStyle(
+                                        color:         accent,
+                                        fontSize:      11,
+                                        fontWeight:    FontWeight.bold,
+                                        letterSpacing: 0.5)),
+                                Text(
+                                  product.pieces.length == 1
+                                      ? '1 option'
+                                      : '${product.pieces.length} options',
+                                  style: TextStyle(
+                                      color:   accent,
+                                      fontSize: 8),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      // ── No pieces, qty == 0 → plain ADD ────────────────
+                      final int qty = cart.getQuantity(product);
                       if (qty == 0) {
                         return GestureDetector(
-                          onTap: () => product.pieces.isNotEmpty
-                              ? handleAddToCart(context: context, product: product, pieces: product.pieces)
-                              : cart.addItem(product),
+                          onTap: () => cart.addItem(product),
                           child: Container(
                             width: 90,
                             height: 40,
@@ -400,28 +485,17 @@ class _WishlistCard extends StatelessWidget {
                                   color: AppColors.buttonPrimary, width: 1.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Text('ADD',
-                                    style: TextStyle(
-                                        color: AppColors.buttonPrimary,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 0.5)),
-                                if (product.pieces.isNotEmpty)
-                                  Text(product.pieces.length == 1
-                                      ? '1 option'
-                                      : '${product.pieces.length} options',
-                                      style: const TextStyle(
-                                          color: AppColors.buttonPrimary,
-                                          fontSize: 8)),
-                              ],
-                            ),
+                            child: const Text('ADD',
+                                style: TextStyle(
+                                    color:         AppColors.buttonPrimary,
+                                    fontSize:      12,
+                                    fontWeight:    FontWeight.bold,
+                                    letterSpacing: 0.5)),
                           ),
                         );
                       }
 
+                      // ── No pieces, qty > 0 → stepper ───────────────────
                       return Container(
                         width: 90,
                         height: 38,
