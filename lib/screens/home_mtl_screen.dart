@@ -626,6 +626,7 @@ class _MtlTabBodyState extends State<MtlTabBody> {
             _buildDayBanner(),
             const SizedBox(height: 8),
             if (_selectedCatId.isNotEmpty) _buildCategoryDetailSection(),
+            if (_selectedCatId.isNotEmpty) const SizedBox(height: 4),
             _buildFeaturedProducts(),
             const SizedBox(height: 4),
             _buildRunningBanners(),
@@ -963,9 +964,17 @@ class _MtlTabBodyState extends State<MtlTabBody> {
       ]),
     );
   }
-
   Widget _buildDirectProducts(String catName, List<_SubProduct> prods) {
     if (prods.isEmpty) return const SizedBox.shrink();
+    final bool showSeeMore = prods.length > _kPreviewMax;
+    final VoidCallback? onSeeMore = showSeeMore
+        ? () => _goToFullCategoryPage(
+      parentName:     catName.isNotEmpty ? catName : (_selectedCategory?.name ?? ''),
+      allSubs:        _catCache[_selectedCatId]?.childSubs ?? [],
+      initialSubId:   '__direct__',
+      directProducts: prods,
+    )
+        : null;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       if (catName.isNotEmpty)
         Padding(
@@ -986,7 +995,11 @@ class _MtlTabBodyState extends State<MtlTabBody> {
             ),
           ]),
         ),
-      _HorizontalProductRow(products: prods, cap: null, onSeeMore: null),
+      _HorizontalProductRow(
+        products: prods,
+        cap:      _kPreviewMax,
+        onSeeMore: onSeeMore,
+      ),
     ]);
   }
 
@@ -1023,7 +1036,7 @@ class _MtlTabBodyState extends State<MtlTabBody> {
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Padding(
-        padding: EdgeInsets.fromLTRB(16, 0, 16, 10),
+        padding: EdgeInsets.fromLTRB(16, 16, 16, 10),
         child: Row(children: [
           Icon(Icons.auto_awesome, color: AppColors.buttonPrimary, size: 18),
           SizedBox(width: 6),
@@ -1171,36 +1184,30 @@ class _MtlTabBodyState extends State<MtlTabBody> {
                               ),
                               if (isLast)
                                 Positioned(
-                                  bottom: -18,
-                                  left: 0,
+                                  bottom: -33,
+                                  left: 60,
                                   right: 0,
-                                  child: Center(
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) => OfferProductsScreen(
-                                              offerName: offer.name,
-                                              products:  offer.products.map((p) => _toProduct(p)).toList(),
-                                            ),
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => OfferProductsScreen(
+                                            offerName: offer.name,
+                                            products:  offer.products.map((p) => _toProduct(p)).toList(),
                                           ),
-                                        );
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.warningLight,
-                                          borderRadius: BorderRadius.circular(16),
-                                          border: Border.all(color: AppColors.buttonPrimary, width: 1),
                                         ),
-                                        child: const Text(
-                                          'View All →',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            color: AppColors.buttonPrimary,
-                                            fontWeight: FontWeight.w600,
-                                          ),
+                                      );
+                                    },
+                                    behavior: HitTestBehavior.opaque,
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(16),
+                                      child: Text(
+                                        'See more →',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: AppColors.buttonPrimary,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                     ),
@@ -1217,7 +1224,7 @@ class _MtlTabBodyState extends State<MtlTabBody> {
             ),
           ),
 
-          const SizedBox(height: 4),
+          const SizedBox(height: 0),
         ],
       ],
     ]);
@@ -1365,52 +1372,52 @@ class _HorizontalProductRow extends StatelessWidget {
     final cardH    = imgH + 134.0;
 
     final shown      = cap != null ? products.take(cap!).toList() : products;
-    final lastIndex  = shown.length - 1;
     final hasSeeMore = onSeeMore != null;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          height: cardH + 12,
+          height: cardH + 30,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(14, 6, 14, 6),
+            padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
             itemCount: shown.length,
             itemBuilder: (_, i) {
+              final bool isLastAndHasMore = hasSeeMore && i == shown.length - 1;
               return SizedBox(
                 width: cardW,
                 child: Padding(
                   padding: const EdgeInsets.only(right: 10),
-                  child: _MtlProductCard(p: shown[i], imgH: imgH),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        height: cardH,
+                        child: _MtlProductCard(p: shown[i], imgH: imgH),
+                      ),
+                      if (isLastAndHasMore)
+                        GestureDetector(
+                          onTap: onSeeMore,
+                          child: const Padding(
+                            padding: EdgeInsets.only(top: 6),
+                            child: Text(
+                              'See more →',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: AppColors.buttonPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               );
             },
           ),
         ),
-        if (hasSeeMore)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: GestureDetector(
-              onTap: onSeeMore,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                decoration: BoxDecoration(
-                  color: AppColors.warningLight,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.buttonPrimary, width: 1),
-                ),
-                child: const Text(
-                  'View All',
-                  style: TextStyle(
-                    fontSize:   10,
-                    color:      AppColors.buttonPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ),
       ],
     );
   }
@@ -2049,7 +2056,7 @@ class _CategoryFullPageState extends State<_CategoryFullPage> {
     final int  cols     = isTablet ? 3 : 2;
     final cardW    = (screenW - sidebarW - 16 - spacing) / cols;
     final imgH     = cardW * 0.75;
-    final cardH    = imgH + 126.0;
+    final cardH    = imgH + 146.0;
     final ratio    = cardW / cardH;
 
     final prods   = _currentProducts;
