@@ -364,6 +364,23 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       if (upiAmt  > 0) cRow('UPI',  'Rs.${_fmt(upiAmt)}',  lc: grey700, vc: black87),
                       if (upiRef.isNotEmpty && upiRef != 'null')
                         cRow('UPI Ref', upiRef, lc: grey700, vc: black87),
+                      if (delivery > 0)
+                        cRow('Delivery Charges', 'Rs.${_fmt(delivery)}', lc: grey600, vc: grey600),
+                      pw.Divider(color: grey400, thickness: 0.8),
+                      pw.Container(
+                        padding: const pw.EdgeInsets.symmetric(vertical: 5, horizontal: 8),
+                        decoration: const pw.BoxDecoration(
+                          color: purpleLight,
+                          borderRadius: pw.BorderRadius.all(pw.Radius.circular(4)),
+                        ),
+                        child: pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text('Total Amount', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: purple)),
+                            pw.Text('Rs.${_fmt(grandTotal)}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: purple)),
+                          ],
+                        ),
+                      ),
                     ])),
                     pw.SizedBox(height: 8),
 

@@ -598,16 +598,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               : 'Standard delivery',
                         ),
 
-                        _DetailRow(
-                          label: 'Availability',
-                          value: _product.posQuantity > 0
-                              ? 'In Stock (${_product.posQuantity})'
-                              : 'Out of Stock',
-                          valueColor: _product.posQuantity > 0
-                              ? const Color(0xFF0C831F)
-                              : Colors.red,
-                        ),
-
                         if (_product.tag.isNotEmpty)
                           _DetailRow(label: 'Tag', value: _product.tag),
 
@@ -641,6 +631,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ? FloatingCartBar(
                 token: '',
                 customerId: '',
+                onGoToHome: () => Navigator.of(context).pop(),
               )
                   : const SizedBox.shrink(),
             ),
@@ -906,10 +897,7 @@ class _SimilarProductCard extends StatelessWidget {
       builder: (context, cart, _) {
         final qty = cart.getQuantity(p);
         final inCart = qty > 0;
-
-        return GestureDetector(
-          onTap: onTap,
-          child: Container(
+        return Container(
             width: 140,
             decoration: BoxDecoration(
               color: Colors.white,
@@ -926,10 +914,12 @@ class _SimilarProductCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.max,
               children: [
-                ClipRRect(
-                  borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(14)),
-                  child: SizedBox(
+              GestureDetector(
+              onTap: onTap,
+              child: ClipRRect(
+                borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(14)),
+                child: SizedBox(
                     height: 110,
                     width: double.infinity,
                     child: hasImage
@@ -949,8 +939,9 @@ class _SimilarProductCard extends StatelessWidget {
                       errorBuilder: (_, __, ___) => _noImagePlaceholder(),
                     )
                         : _noImagePlaceholder(),
-                  ),
                 ),
+              ),
+              ),
 
                 Padding(
                   padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
@@ -991,20 +982,22 @@ class _SimilarProductCard extends StatelessWidget {
                 ),
 
                 const Spacer(),
-
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                  child: p.pieces.isNotEmpty
-                      ? _PiecesAddButton(product: p)
-                      : product.isInStock
-                      ? (inCart
-                      ? _SimilarStepper(product: p, qty: qty, cart: cart)
-                      : _SimilarAddButton(product: p, cart: cart))
-                      : _OutOfStockButton(),
+                GestureDetector(
+                  onTap: () {}, // absorbs tap, prevents bubbling to card onTap
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                    child: p.pieces.isNotEmpty
+                        ? _PiecesAddButton(product: p)
+                        : product.isInStock
+                        ? (inCart
+                        ? _SimilarStepper(product: p, qty: qty, cart: cart)
+                        : _SimilarAddButton(product: p, cart: cart))
+                        : _OutOfStockButton(),
+                  ),
                 ),
               ],
             ),
-          ),
         );
       },
     );

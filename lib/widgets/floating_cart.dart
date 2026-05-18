@@ -6,11 +6,13 @@ import '../screens/cart_screen.dart';
 class FloatingCartBar extends StatelessWidget {
   final String token;
   final String customerId;
+  final VoidCallback? onGoToHome;
 
   const FloatingCartBar({
     super.key,
     this.token      = '',
     this.customerId = '',
+    this.onGoToHome,
   });
 
   @override
@@ -37,7 +39,7 @@ class FloatingCartBar extends StatelessWidget {
                     builder: (_) => CartScreen(
                       token:      token,
                       customerId: customerId,
-                      onGoToHome: () => Navigator.pop(context),
+                      onGoToHome: onGoToHome ?? () => Navigator.of(context).popUntil((r) => r.isFirst),
                     ),
                   ),
                 );
