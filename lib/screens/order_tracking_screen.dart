@@ -381,16 +381,33 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       );
       Navigator.pop(context, true);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.message.isNotEmpty
-              ? result.message
-              : 'Failed to cancel order. Try again.'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      final msg = result.message.toLowerCase();
+      final alreadyCancelled = msg.contains('already cancel') ||
+          msg.contains('already been cancel') ||
+          msg.contains('invalid server response');
+
+      if (alreadyCancelled) {
+        setState(() => _orderStatus = 'cancelled');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('This order is already cancelled.'),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.message.isNotEmpty
+                ? result.message
+                : 'Failed to cancel order. Try again.'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
@@ -1129,10 +1146,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     final coupon     = details['coupon']?.toString() ?? '';
 
     // delivery = grandTotal - (subTotal + tax - discount)
-    final calculatedTotal = subTotal + tax - discount;
-    final delivery = grandTotal > 0
-        ? (grandTotal - calculatedTotal).clamp(0.0, double.infinity)
-        : 0.0;
+    final delivery = double.tryParse(details['takeaway_amount']?.toString() ?? '0') ?? 0.0;
 
     Widget row(String label, String value, {Color? color, IconData? icon}) => Padding(
       padding: const EdgeInsets.only(bottom: 5),
@@ -1182,7 +1196,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
               const Text('Total Paid',
                   style: TextStyle(
                       fontSize: 13, fontWeight: FontWeight.bold)),
-              Text('₹${grandTotal.toStringAsFixed(0)}',
+              Text('₹${grandTotal.toStringAsFixed(2)}',
                   style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,

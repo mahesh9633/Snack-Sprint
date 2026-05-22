@@ -62,6 +62,7 @@ class OrderInvoice {
   final String totalReceived;
   final String dateAdded;
   final String coupon;
+  final String takeawayAmount;
 
   const OrderInvoice({
     required this.id,
@@ -79,6 +80,7 @@ class OrderInvoice {
     required this.totalReceived,
     required this.dateAdded,
     required this.coupon,
+    required this.takeawayAmount,
   });
 
   factory OrderInvoice.fromJson(Map<String, dynamic> json) => OrderInvoice(
@@ -97,6 +99,7 @@ class OrderInvoice {
     totalReceived:     json['total_received']?.toString() ?? '0.00',
     dateAdded:         json['date_added']?.toString() ?? '',
     coupon:            json['coupon']?.toString() ?? '',
+    takeawayAmount:    json['takeaway_amount']?.toString() ?? '0.00',  // ✅ ADD THIS
   );
 }
 
