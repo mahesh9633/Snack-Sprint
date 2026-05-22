@@ -14,15 +14,6 @@
     <!-- Microphone -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
-    <!-- Storage — legacy (Android 12 and below) -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
-
-    <!-- Storage — modern (Android 13+) -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-
     <!-- Hardware features (all optional so app works on devices without them) -->
     <uses-feature android:name="android.hardware.camera"
         android:required="false" />
