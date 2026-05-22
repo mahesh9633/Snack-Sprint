@@ -1823,22 +1823,6 @@ class _OrderSuccessScreen extends StatelessWidget {
                           decoration: BoxDecoration(
                               color: const Color(0xFFF5F5F5),
                               borderRadius: BorderRadius.circular(8)),
-                          // child: Row(
-                          //     mainAxisAlignment:
-                          //     MainAxisAlignment.spaceBetween,
-                          //     children: [
-                          //       Text(
-                          //         '${purchasedItems.fold(0, (s, i) => s + i.quantity)} item(s)  •  Free Delivery',
-                          //         style: TextStyle(
-                          //             fontSize: 12,
-                          //             color: Colors.grey[600]),
-                          //       ),
-                          //       Text('₹${total.toStringAsFixed(0)}',
-                          //           style: const TextStyle(
-                          //               fontSize: 14,
-                          //               fontWeight: FontWeight.bold,
-                          //               color: Color(0xFF1B5E20))),
-                          //     ]),
                           child: Column(children: [
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1851,6 +1835,27 @@ class _OrderSuccessScreen extends StatelessWidget {
                                     style: TextStyle(fontSize: 12, color: Colors.grey[600])),
                               ],
                             ),
+                            if (subTotal + deliveryFee > total) ...[
+                              const SizedBox(height: 4),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(children: [
+                                    Icon(Icons.local_offer_outlined, size: 13, color: Colors.green),
+                                    const SizedBox(width: 4),
+                                    Text('Coupon Discount',
+                                        style: TextStyle(fontSize: 12, color: Colors.green)),
+                                  ]),
+                                  Text(
+                                    '- ₹${(subTotal + deliveryFee - total).toStringAsFixed(0)}',
+                                    style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.green),
+                                  ),
+                                ],
+                              ),
+                            ],
                             const SizedBox(height: 4),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,

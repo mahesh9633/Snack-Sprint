@@ -34,29 +34,28 @@ class OrderApiService {
         'product_id': int.tryParse(item.product.id) ?? item.product.id,
         'name':       item.product.name,
         'quantity':   item.quantity,
-        'price':      item.product.price.toInt(),
-        'total':      total.toInt(),
+        'price':      item.product.price.round(),
+        'total':      total.round(),
       };
     }).toList();
 
     final subtotal      = cart.totalPrice;
-    final productsTotal = subtotal - couponDiscount;
-    final grandTotal    = productsTotal + deliveryCharge;
+    final grandTotal = subtotal - couponDiscount + deliveryCharge;
     final numberOfItems = cart.items.values.fold<int>(0, (s, i) => s + i.quantity);
 
     final invoiceInfo = {
-      'SUBTotal':            subtotal.toInt(),
-      'TotalBeforeRoundoff': productsTotal.toInt(),
+      'SUBTotal':            subtotal.round(),
+      'TotalBeforeRoundoff': (subtotal - couponDiscount).round(),
       'NumberOfItems':       cart.items.length,
       'QuantityTotal':       numberOfItems,
       'TotalTax':            0,
       'RoundOffAmount':      0,
-      'DiscountIncluded':    couponDiscount.toInt(),
-      'GrandTotal':          grandTotal.toInt(),
+      'DiscountIncluded':    couponDiscount.round(),
+      'GrandTotal':          grandTotal.round(),
       'InvoiceNumber':       '',
       'Coupon':              couponCode,
-      'CouponAmount':        couponDiscount.toInt(),
-      'TakeawayAmount':      deliveryCharge.toInt(),
+      'CouponAmount':        couponDiscount.round(),
+      'TakeawayAmount':      deliveryCharge.round(),
     };
 
     final orderDetails = <String, dynamic>{
@@ -71,16 +70,15 @@ class OrderApiService {
       'Payment_country':   'India',
       'Payment_zone':      address.state,
       'PaymentThrough': paymentMethod,
-      'CashAmount':     paymentMethod == 'COD' ? productsTotal.toInt() : 0,
-      'UPIAmount':      paymentMethod == 'UPI' ? productsTotal.toInt() : 0,
-      'TakeawayAmount': deliveryCharge.toInt(),
+      'CashAmount':          paymentMethod == 'COD' ? (subtotal - couponDiscount).round() : 0,
+      'UPIAmount':           paymentMethod == 'UPI' ? (subtotal - couponDiscount).round() : 0,
+      'TakeawayAmount':      deliveryCharge.round(),
       if (utrNumber.isNotEmpty) 'UTRNumber': utrNumber,
       if (screenshotBase64 != null && screenshotBase64.isNotEmpty)
         'PaymentScreenshot': screenshotBase64,
       'coupon':         couponCode,
-      'CouponDiscount': couponDiscount.toInt(),
-      'TotalReceivedAmount':     grandTotal.toInt(),
-      'TakeawayAmount':          deliveryCharge.toInt(),
+      'CouponDiscount':      couponDiscount.round(),
+      'TotalReceivedAmount': grandTotal.round(),
       'PendingAmount':           0,
       'ReturnableBalance':       0,
       'SaveReturnableAsAdvance': false,

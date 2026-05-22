@@ -228,6 +228,7 @@ class _OrderCard extends StatelessWidget {
       'coupon':        order.invoice?.coupon   ?? '',
       'total_tax':     order.invoice?.totalTax ?? '0',
       'grand_total':   order.invoice?.totalReceived ?? '0',
+      'takeaway_amount': order.invoice?.takeawayAmount ?? '0',
     }
         : null;
 
@@ -411,12 +412,8 @@ class _OrderCard extends StatelessWidget {
                   final subTotal        = double.tryParse(invoice?.subTotal ?? '0') ?? 0.0;
                   final totalTax        = double.tryParse(invoice?.totalTax ?? '0') ?? 0.0;
                   final discount        = double.tryParse(invoice?.discount ?? '0') ?? 0.0;
-// same formula as order_details_screen
-                  final calculatedTotal = subTotal + totalTax - discount;
-                  final deliveryRaw     = invoice != null && subTotal > 0
-                      ? (grandTotal - calculatedTotal)
-                      : 0.0;
-                  final delivery        = deliveryRaw > 0.5 ? deliveryRaw : 0.0;
+                  final delivery        = double.tryParse(invoice?.takeawayAmount ?? '0') ?? 0;
+                  final coupon          = invoice?.coupon ?? '';
                   final paymentLabel    = invoice?.amountThrough ?? info.paymentMethod;
 
                   return Column(
@@ -442,6 +439,27 @@ class _OrderCard extends StatelessWidget {
                                   fontWeight: FontWeight.w500)),
                         ],
                       ),
+                      if (discount > 0) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(children: [
+                              const Icon(Icons.local_offer_outlined,
+                                  size: 13, color: Colors.green),
+                              const SizedBox(width: 4),
+                              Text(
+                                coupon.isNotEmpty ? 'Coupon ($coupon)' : 'Discount',
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.green),
+                              ),
+                            ]),
+                            Text('- ₹${discount.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.green)),
+                          ],
+                        ),
+                      ],
                       if (delivery > 0) ...[
                         const SizedBox(height: 4),
                         Row(

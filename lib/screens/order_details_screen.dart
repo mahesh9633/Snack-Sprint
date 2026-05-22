@@ -120,7 +120,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
     double subTotal = 0, totalTax = 0, discount = 0,
         roundoff = 0, grandTotal = 0,
-        cashAmt = 0, upiAmt = 0;
+        cashAmt = 0, upiAmt = 0, takeawayAmt = 0;
     String couponCode = '', upiRef = '';
 
     double delivery = 0;
@@ -130,12 +130,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       discount   = double.tryParse(invoice['discount'].toString())        ?? 0;
       roundoff   = double.tryParse(invoice['roundoff_amount'].toString()) ?? 0;
       grandTotal = double.tryParse(invoice['total_received'].toString())  ?? 0;
-      cashAmt    = double.tryParse(invoice['cash_amount'].toString())     ?? 0;
-      upiAmt     = double.tryParse(invoice['upi_amount'].toString())      ?? 0;
-      upiRef     = invoice['upi_ref']?.toString() ?? '';
-      couponCode = invoice['coupon']?.toString() ?? '';
-      final calculatedTotal = subTotal + totalTax - discount + roundoff;
-      delivery   = (grandTotal - calculatedTotal).clamp(0.0, double.infinity);
+      cashAmt      = double.tryParse(invoice['cash_amount'].toString())      ?? 0;
+      upiAmt       = double.tryParse(invoice['upi_amount'].toString())       ?? 0;
+      takeawayAmt  = double.tryParse(invoice['takeaway_amount'].toString())  ?? 0;
+      upiRef       = invoice['upi_ref']?.toString() ?? '';
+      couponCode   = invoice['coupon']?.toString() ?? '';
+      delivery     = takeawayAmt;
     }
 
     const purple      = PdfColor(0.722, 0.361, 0.000);   // #B85C00
@@ -364,6 +364,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       if (upiAmt  > 0) cRow('UPI',  'Rs.${_fmt(upiAmt)}',  lc: grey700, vc: black87),
                       if (upiRef.isNotEmpty && upiRef != 'null')
                         cRow('UPI Ref', upiRef, lc: grey700, vc: black87),
+                      if (discount > 0)
+                        cRow(
+                          couponCode.isNotEmpty ? 'Coupon ($couponCode)' : 'Discount',
+                          '-Rs.${_fmt(discount)}',
+                          lc: green,
+                          vc: green,
+                        ),
                       if (delivery > 0)
                         cRow('Delivery Charges', 'Rs.${_fmt(delivery)}', lc: grey600, vc: grey600),
                       pw.Divider(color: grey400, thickness: 0.8),
@@ -528,7 +535,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   void _showSnack(String msg) => ScaffoldMessenger.of(context)
       .showSnackBar(SnackBar(content: Text(msg)));
 
-  // ── Build ─────────────────────────────────────────────────────────────────────
+  // ── Build ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -754,8 +761,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       image:        rawImg,
                       imageUrl:     fixedUrl,
                       category:     '',
-                      // quantity:     int.tryParse(p['pos_quentity']?.toString() ?? '0') ?? 0,
-                      // posQuantity:  int.tryParse(p['pos_quentity']?.toString() ?? '0') ?? 0,
                       quantity:     (int.tryParse(p['quantity']?.toString() ?? '') ?? 0) > 0 ? int.tryParse(p['quantity'].toString())! : 1,
                       posQuantity:  (int.tryParse(p['quantity']?.toString() ?? '') ?? 0) > 0 ? int.tryParse(p['quantity'].toString())! : 1,
                       deliveryTime: '',
@@ -818,8 +823,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final couponCode = inv['coupon']?.toString() ?? '';
 
     // delivery = grandTotal - (subTotal + tax - discount + roundoff)
-    final calculatedTotal = subTotal + totalTax - discount + roundoff;
-    final delivery = (grandTotal - calculatedTotal).clamp(0.0, double.infinity);
+    final delivery = double.tryParse(inv['takeaway_amount']?.toString() ?? '0') ?? 0;
 
     return _card(
       title: 'Bill Summary',
@@ -902,8 +906,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final totalTax    = double.tryParse(inv?['total_tax']?.toString() ?? '0') ?? 0;
     final discount    = double.tryParse(inv?['discount']?.toString() ?? '0') ?? 0;
     final roundoff    = double.tryParse(inv?['roundoff_amount']?.toString() ?? '0') ?? 0;
-    final calculatedTotal = subTotal + totalTax - discount + roundoff;
-    final delivery    = (grandTotal - calculatedTotal).clamp(0.0, double.infinity);
+    final delivery    = double.tryParse(inv?['takeaway_amount']?.toString() ?? '0') ?? 0;
+    final couponCode  = inv?['coupon']?.toString() ?? '';
 
     return _card(
       title: 'Payment Details',
@@ -921,6 +925,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         if (upiRef.isNotEmpty && upiRef != 'null') ...[
           const SizedBox(height: 8),
           _infoRow(Icons.tag, 'UPI Ref', upiRef),
+        ],
+        if (discount > 0) ...[
+          const SizedBox(height: 8),
+          _infoRow(Icons.local_offer_outlined,
+              couponCode.isNotEmpty ? 'Coupon ($couponCode)' : 'Discount',
+              '-₹${_fmt(discount)}',
+              valueColor: Colors.green[700]),
         ],
         if (delivery > 0) ...[
           const SizedBox(height: 8),

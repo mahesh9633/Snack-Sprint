@@ -898,28 +898,28 @@ class _SimilarProductCard extends StatelessWidget {
         final qty = cart.getQuantity(p);
         final inCart = qty > 0;
         return Container(
-            width: 140,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.grey.shade200),
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2)),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.max,
-              children: [
+          width: 140,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.grey.shade200),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2)),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.max,
+            children: [
               GestureDetector(
-              onTap: onTap,
-              child: ClipRRect(
-                borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(14)),
-                child: SizedBox(
+                onTap: onTap,
+                child: ClipRRect(
+                  borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(14)),
+                  child: SizedBox(
                     height: 110,
                     width: double.infinity,
                     child: hasImage
@@ -939,65 +939,65 @@ class _SimilarProductCard extends StatelessWidget {
                       errorBuilder: (_, __, ___) => _noImagePlaceholder(),
                     )
                         : _noImagePlaceholder(),
+                  ),
                 ),
               ),
-              ),
 
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 5, vertical: 2),
-                            decoration: BoxDecoration(
-                                color: const Color(0xFF388E3C),
-                                borderRadius: BorderRadius.circular(4)),
-                            child: Text(
-                              '₹${p.price.toStringAsFixed(0)}',
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold),
-                            ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                              color: const Color(0xFF388E3C),
+                              borderRadius: BorderRadius.circular(4)),
+                          child: Text(
+                            '₹${p.price.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        p.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black87,
-                            height: 1.3),
-                      ),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      p.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                          height: 1.3),
+                    ),
+                  ],
                 ),
+              ),
 
-                const Spacer(),
-                GestureDetector(
-                  onTap: () {}, // absorbs tap, prevents bubbling to card onTap
-                  behavior: HitTestBehavior.opaque,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                    child: p.pieces.isNotEmpty
-                        ? _PiecesAddButton(product: p)
-                        : product.isInStock
-                        ? (inCart
-                        ? _SimilarStepper(product: p, qty: qty, cart: cart)
-                        : _SimilarAddButton(product: p, cart: cart))
-                        : _OutOfStockButton(),
-                  ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () {}, // absorbs tap, prevents bubbling to card onTap
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                  child: p.pieces.isNotEmpty
+                      ? _PiecesAddButton(product: p)
+                      : product.isInStock
+                      ? (inCart
+                      ? _SimilarStepper(product: p, qty: qty, cart: cart)
+                      : _SimilarAddButton(product: p, cart: cart))
+                      : _OutOfStockButton(),
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
         );
       },
     );

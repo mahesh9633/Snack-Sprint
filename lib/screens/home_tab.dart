@@ -1,9 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mtl_groceriesapp/screens/profile_screen.dart';
 import 'package:mtl_groceriesapp/screens/quick_tab_enum.dart';
@@ -46,11 +43,7 @@ class HomeTabState extends State<HomeTab> {
   final TextEditingController _searchCtrl  = TextEditingController();
   final FocusNode             _searchFocus = FocusNode();
 
-  late stt.SpeechToText _speech;
-  bool _isListening = false;
-
-  final ImagePicker _picker          = ImagePicker();
-  final LayerLink   _searchLayerLink = LayerLink();
+  final LayerLink _searchLayerLink = LayerLink();
   final GlobalKey<State<MtlTabBody>> _mtlKey = GlobalKey<State<MtlTabBody>>();
 
   bool get isTablet => MediaQuery.of(context).size.shortestSide >= 600;
@@ -58,7 +51,6 @@ class HomeTabState extends State<HomeTab> {
   @override
   void initState() {
     super.initState();
-    _speech = stt.SpeechToText();
     _searchCtrl.addListener(() => setState(() {}));
     _loadProfileImage();
     _loadSavedAddress();
@@ -68,7 +60,6 @@ class HomeTabState extends State<HomeTab> {
   void dispose() {
     _searchCtrl.dispose();
     _searchFocus.dispose();
-    _speech.stop();
     super.dispose();
   }
 
@@ -160,170 +151,6 @@ class HomeTabState extends State<HomeTab> {
       _searchFocus.unfocus();
       FocusScope.of(context).unfocus();
     });
-  }
-
-  // ── Voice ──────────────────────────────────────────────────────────────────
-  Future<void> _startVoice() async {
-    final ok = await Permission.microphone.request();
-    if (!ok.isGranted) { _permDialog('Microphone'); return; }
-
-    final available = await _speech.initialize(
-      onStatus: (s) {
-        if ((s == 'done' || s == 'notListening') && mounted) {
-          setState(() => _isListening = false);
-        }
-      },
-      onError: (e) {
-        if (mounted) {
-          setState(() => _isListening = false);
-          _errorSnack('Voice error: ${e.errorMsg}');
-        }
-      },
-    );
-    if (!available) { _errorSnack('Voice not available on this device.'); return; }
-
-    setState(() => _isListening = true);
-    _speech.listen(
-      onResult: (r) {
-        if (mounted) {
-          _searchCtrl.text = r.recognizedWords;
-          _searchCtrl.selection = TextSelection.fromPosition(
-              TextPosition(offset: _searchCtrl.text.length));
-        }
-      },
-      listenFor: const Duration(seconds: 10),
-      pauseFor:  const Duration(seconds: 3),
-    );
-  }
-
-  void _stopVoice() { _speech.stop(); setState(() => _isListening = false); }
-
-  // ── Camera ─────────────────────────────────────────────────────────────────
-  void _showImageSheet() {
-    _searchFocus.unfocus();
-    FocusScope.of(context).unfocus();
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(
-              width: 40, height: 4,
-              decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2))),
-          const SizedBox(height: 20),
-          const Text('Search by Image',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.black87)),
-          const SizedBox(height: 16),
-          ListTile(
-            leading: _iconBox(Icons.camera_alt),
-            title: const Text('Take Photo'),
-            onTap: () { Navigator.pop(context); _openCamera(); },
-          ),
-          ListTile(
-            leading: _iconBox(Icons.photo_library),
-            title: const Text('Choose from Gallery'),
-            onTap: () { Navigator.pop(context); _openGallery(); },
-          ),
-        ]),
-      ),
-    );
-  }
-
-  Future<void> _openCamera() async {
-    if (!(await Permission.camera.request()).isGranted) {
-      _permDialog('Camera'); return;
-    }
-    try {
-      final f = await _picker.pickImage(source: ImageSource.camera, imageQuality: 85);
-      if (f != null) _handleImage(File(f.path));
-    } catch (e) { _errorSnack('Camera error: $e'); }
-  }
-
-  Future<void> _openGallery() async {
-    final s = await Permission.photos.request();
-    if (!s.isGranted && !s.isLimited) { _permDialog('Gallery'); return; }
-    try {
-      final f = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
-      if (f != null) _handleImage(File(f.path));
-    } catch (e) { _errorSnack('Gallery error: $e'); }
-  }
-
-  void _handleImage(File img) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Analyzing Image'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.file(img,
-                height: 180, width: double.infinity, fit: BoxFit.cover),
-          ),
-          const SizedBox(height: 16),
-          const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            SizedBox(width: 18, height: 18,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2, color: Color(0xFFB85C00))),
-            SizedBox(width: 10),
-            Text('Finding matching products…'),
-          ]),
-        ]),
-      ),
-    );
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Image search coming soon!'),
-          backgroundColor: Color(0xFFFF0080),
-        ));
-      }
-    });
-  }
-
-  // ── Helpers ────────────────────────────────────────────────────────────────
-  Widget _iconBox(IconData icon) => Container(
-    padding: const EdgeInsets.all(8),
-    decoration: BoxDecoration(
-        color: const Color(0xFFFF0080).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8)),
-    child: Icon(icon, color: const Color(0xFFFF0080), size: 22),
-  );
-
-  void _permDialog(String feature) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text('$feature Permission Required'),
-        content: Text('Please grant $feature permission in Settings.'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFB85C00)),
-            onPressed: () { Navigator.pop(context); openAppSettings(); },
-            child: const Text('Open Settings',
-                style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _errorSnack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg), backgroundColor: Colors.red[400]));
   }
 
   // ── BUILD ──────────────────────────────────────────────────────────────────
@@ -690,104 +517,50 @@ class HomeTabState extends State<HomeTab> {
       link: _searchLayerLink,
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: isTablet ? 24 : 16),
-        child: Row(children: [
-          Expanded(
-            child: Container(
-              height: isTablet ? 56 : 48,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.06),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2))
-                ],
-              ),
-              child: Row(children: [
-                const SizedBox(width: 14),
-                const Icon(Icons.search, color: Colors.black87, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _searchCtrl,
-                    focusNode:  _searchFocus,
-                    style: const TextStyle(fontSize: 15),
-                    decoration: InputDecoration(
-                      hintText: _isListening
-                          ? 'Listening…'
-                          : 'Search products, categories, offers…',
-                      hintStyle: TextStyle(
-                          color: _isListening
-                              ? const Color(0xFFFF0080)
-                              : Colors.black87,
-                          fontSize: 14),
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
+        child: Container(
+          height: isTablet ? 56 : 48,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2))
+            ],
+          ),
+          child: Row(children: [
+            const SizedBox(width: 14),
+            const Icon(Icons.search, color: Colors.black87, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextField(
+                controller: _searchCtrl,
+                focusNode:  _searchFocus,
+                style: const TextStyle(fontSize: 15),
+                decoration: const InputDecoration(
+                  hintText: 'Search products, categories, offers…',
+                  hintStyle: TextStyle(color: Colors.black87, fontSize: 14),
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
                 ),
-                if (_searchCtrl.text.isNotEmpty)
-                  GestureDetector(
-                    onTap: () {
-                      _searchCtrl.clear();
-                      _searchFocus.unfocus();
-                      setState(() {});
-                    },
-                    child: const Padding(
-                      padding: EdgeInsets.only(right: 10),
-                      child: Icon(Icons.close, size: 18, color: Colors.black87),
-                    ),
-                  ),
-              ]),
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          _iconBtn(
-            icon:     Icons.camera_alt_outlined,
-            onTap:    _showImageSheet,
-            isTablet: isTablet,
-            iconColor: Colors.pink,
-          ),
-          const SizedBox(width: 8),
-          _iconBtn(
-            icon:      _isListening ? Icons.mic : Icons.mic_none,
-            iconColor: _isListening ? Colors.red : const Color(0xFFFF0080),
-            onTap:     _isListening ? _stopVoice : _startVoice,
-            glowing:   _isListening,
-            isTablet:  isTablet,
-          ),
-        ]),
-      ),
-    );
-  }
-
-  Widget _iconBtn({
-    required IconData     icon,
-    required VoidCallback onTap,
-    Color iconColor = const Color(0xFFFF0080),
-    bool  glowing   = false,
-    bool  isTablet  = false,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: isTablet ? 56 : 48, height: isTablet ? 56 : 48,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-                color: glowing
-                    ? Colors.red.withValues(alpha: 0.35)
-                    : Colors.black.withValues(alpha: 0.07),
-                blurRadius: glowing ? 14 : 8,
-                offset: const Offset(0, 2))
-          ],
+            if (_searchCtrl.text.isNotEmpty)
+              GestureDetector(
+                onTap: () {
+                  _searchCtrl.clear();
+                  _searchFocus.unfocus();
+                  setState(() {});
+                },
+                child: const Padding(
+                  padding: EdgeInsets.only(right: 10),
+                  child: Icon(Icons.close, size: 18, color: Colors.black87),
+                ),
+              ),
+          ]),
         ),
-        child: Icon(icon, color: iconColor, size: 22),
       ),
     );
   }
