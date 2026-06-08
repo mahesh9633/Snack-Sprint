@@ -144,7 +144,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
     setState(() {
       _couponApplied  = true;
       _couponCode     = code;
-      _couponDiscount = discount;
+      _couponDiscount = double.parse(discount.toStringAsFixed(0));
       _couponLoading  = false;
       _couponError    = '';
     });
@@ -338,25 +338,6 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       final orderId   = result['order_id']?.toString() ?? '';
 
       if (isSuccess) {
-        // final purchasedItems = cart.items.values.toList();
-        // final baseTotal = cart.totalPrice + _deliveryFee;
-        // final total     = baseTotal - _couponDiscount;
-        // cart.clearCart();
-        //
-        // Navigator.pushAndRemoveUntil(
-        //   context,
-        //   MaterialPageRoute(
-        //     builder: (nc) => _OrderSuccessScreen(
-        //       orderId:        orderId,
-        //       total:          total,
-        //       paymentLabel:   _paymentLabel,
-        //       address:        _defaultAddress!,
-        //       purchasedItems: purchasedItems,
-        //       onContinue: () async {
-        // final purchasedItems = cart.items.values.toList();
-        // final baseTotal = cart.totalPrice + _deliveryFee;
-        // final total     = baseTotal - _couponDiscount;
-        // cart.clearCart();
         final purchasedItems = cart.items.values.toList();
         final cartSubTotal   = cart.totalPrice;
         final baseTotal      = cartSubTotal + _deliveryFee;
@@ -589,7 +570,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                         _summaryRow(
                             'Delivery',
                             _deliveryFee == 0 ? 'FREE' : '₹${_deliveryFee.toStringAsFixed(0)}',
-                            valueColor: Colors.green),
+                            valueColor: _deliveryFee == 0 ? Colors.green : Colors.black),
                         if (_couponApplied) ...[
                           const SizedBox(height: 6),
                           _summaryRow(
@@ -2065,7 +2046,7 @@ class _ItemRow extends StatelessWidget {
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: Colors.black87),
-                    maxLines: 2,
+                    maxLines: 3,
                     overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 5),
                 Row(children: [
@@ -2087,9 +2068,14 @@ class _ItemRow extends StatelessWidget {
                   ),
                   if (p.weight.isNotEmpty) ...[
                     const SizedBox(width: 6),
-                    Text(p.weight,
-                        style: TextStyle(
-                            fontSize: 11, color: Colors.grey[500])),
+                    Flexible(
+                      child: Text(
+                        p.weight,
+                        style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
                   ],
                 ]),
               ]),

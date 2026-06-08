@@ -410,6 +410,8 @@ class _WishlistCard extends StatelessWidget {
                         final hasItems = totalQty > 0;
                         final Color accent =
                         hasItems ? AppColors.priceGreen : AppColors.buttonPrimary;
+                        final Color accentBorder =
+                        hasItems ? AppColors.priceGreen : Colors.grey[300]!;
 
                         return GestureDetector(
                           onTap: () => handleAddToCart(
@@ -423,7 +425,7 @@ class _WishlistCard extends StatelessWidget {
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              border: Border.all(color: accent, width: 1.2),
+                              border: Border.all(color: accentBorder, width: 1.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: hasItems
@@ -482,7 +484,7 @@ class _WishlistCard extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: Colors.white,
                               border: Border.all(
-                                  color: AppColors.buttonPrimary, width: 1.2),
+                                  color: Colors.grey[300]!, width: 1.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Text('ADD',
@@ -496,37 +498,8 @@ class _WishlistCard extends StatelessWidget {
                       }
 
                       // ── No pieces, qty > 0 → stepper ───────────────────
-                      return Container(
-                        width: 90,
-                        height: 38,
-                        decoration: BoxDecoration(
-                            color: AppColors.buttonPrimary,
-                            borderRadius: BorderRadius.circular(8)),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            GestureDetector(
-                              onTap: () => cart.decrementQuantity(product.id),
-                              child: const SizedBox(
-                                  width: 22, height: 32,
-                                  child: Icon(Icons.remove,
-                                      color: Colors.white, size: 14)),
-                            ),
-                            Text('$qty',
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold)),
-                            GestureDetector(
-                              onTap: () => cart.addItem(product),
-                              child: const SizedBox(
-                                  width: 22, height: 32,
-                                  child: Icon(Icons.add,
-                                      color: Colors.white, size: 14)),
-                            ),
-                          ],
-                        ),
-                      );
+                      // ── No pieces, qty > 0 → handled by _WishlistCartBtn ──
+                      return _WishlistCartBtn(product: product);
                     },
                   ),
                 ],
@@ -545,3 +518,255 @@ class _WishlistCard extends StatelessWidget {
     ),
   );
 }
+  class _WishlistCartBtn extends StatefulWidget {
+  final Product product;
+  const _WishlistCartBtn({required this.product});
+
+  @override
+  State<_WishlistCartBtn> createState() => _WishlistCartBtnState();
+  }
+
+  class _WishlistCartBtnState extends State<_WishlistCartBtn> {
+  bool _editing = false;
+  late final TextEditingController _ctrl;
+  late final FocusNode _focus;
+
+  @override
+  void initState() {
+  super.initState();
+  _ctrl  = TextEditingController();
+  _focus = FocusNode();
+  }
+
+  @override
+  void dispose() {
+  _ctrl.dispose();
+  _focus.dispose();
+  super.dispose();
+  }
+
+  void _startEditing(int currentQty) {
+  _ctrl.text = '$currentQty';
+  _focus.requestFocus();
+  setState(() => _editing = true);
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+  _ctrl.selection = TextSelection(
+  baseOffset:   0,
+  extentOffset: _ctrl.text.length,
+  );
+  });
+  }
+
+  void _commitEdit(CartModel cart) {
+  final val   = int.tryParse(_ctrl.text.trim()) ?? 0;
+  final stock = widget.product.quantity > 0
+  ? widget.product.quantity
+      : widget.product.posQuantity;
+  if (val <= 0) {
+  cart.removeItem(widget.product);
+  } else if (stock > 0 && val > stock) {
+  cart.setQuantity(widget.product, stock);
+  showDialog(
+  context: context,
+  barrierColor: Colors.black26,
+  builder: (_) => Center(
+  child: Container(
+  margin: const EdgeInsets.symmetric(horizontal: 40),
+  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+  decoration: BoxDecoration(
+  color: Colors.white,
+  borderRadius: BorderRadius.circular(16),
+  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 20)],
+  ),
+  child: Column(
+  mainAxisSize: MainAxisSize.min,
+  children: [
+  const Icon(Icons.info_outline, color: AppColors.buttonPrimary, size: 36),
+  const SizedBox(height: 12),
+  Text(
+  'Only $stock item${stock == 1 ? '' : 's'} available',
+  textAlign: TextAlign.center,
+  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
+  ),
+  const SizedBox(height: 16),
+  GestureDetector(
+  onTap: () => Navigator.pop(context),
+  child: Container(
+  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
+  decoration: BoxDecoration(color: AppColors.buttonPrimary, borderRadius: BorderRadius.circular(8)),
+  child: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+  ),
+  ),
+  ],
+  ),
+  ),
+  ),
+  );
+  } else {
+  cart.setQuantity(widget.product, val);
+  }
+  setState(() => _editing = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+  final product = widget.product;
+
+  if (!product.isInStock) {
+  return Container(
+  width: 90, height: 38,
+  alignment: Alignment.center,
+  decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(8)),
+  child: Text('Out of\nStock',
+  textAlign: TextAlign.center,
+  style: TextStyle(color: Colors.grey[500], fontSize: 9, fontWeight: FontWeight.w600)),
+  );
+  }
+
+  if (product.pieces.isNotEmpty) {
+  return Consumer<CartModel>(
+  builder: (context, cart, _) {
+  int totalQty = 0;
+  double totalAmt = 0;
+  for (final piece in product.pieces) {
+  final pieceProduct = Product(
+  id: piece.cartId(product.id), name: '${product.name} – ${piece.label}',
+  price: piece.effectivePrice, originalPrice: piece.hasDiscount ? piece.price : piece.effectivePrice,
+  image: product.image, imageUrl: product.imageUrl, category: product.category,
+  weight: piece.label, sku: product.sku, discountPercentage: piece.discountPct.toDouble(),
+  quantity: product.quantity, posQuantity: product.posQuantity,
+  );
+  final q = cart.getQuantity(pieceProduct);
+  totalQty += q;
+  totalAmt += q * piece.effectivePrice;
+  }
+  final hasItems = totalQty > 0;
+  final Color accent = hasItems ? AppColors.priceGreen : AppColors.buttonPrimary;
+  return GestureDetector(
+  onTap: () => handleAddToCart(context: context, product: product, pieces: product.pieces),
+  child: Container(
+  width: 90, height: 40,
+  alignment: Alignment.center,
+  decoration: BoxDecoration(color: Colors.white, border: Border.all(color: accent, width: 1.2), borderRadius: BorderRadius.circular(8)),
+  child: hasItems
+  ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+  Text('ADD (${product.pieces.length} opp)',
+  style: TextStyle(color: accent, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+  Text('₹${totalAmt.toInt()}', style: TextStyle(color: accent, fontSize: 9, fontWeight: FontWeight.w700)),
+  ])
+      : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+  Text('ADD', style: TextStyle(color: accent, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+  Text(product.pieces.length == 1 ? '1 option' : '${product.pieces.length} options',
+  style: TextStyle(color: accent, fontSize: 8)),
+  ]),
+  ),
+  );
+  },
+  );
+  }
+
+  return Consumer<CartModel>(
+  builder: (context, cart, _) {
+  final qty = cart.getQuantity(product);
+  if (qty == 0) {
+  return GestureDetector(
+  onTap: () => cart.addItem(product),
+  child: Container(
+  width: 90, height: 40,
+  alignment: Alignment.center,
+  decoration: BoxDecoration(
+  color: Colors.white,
+    border: Border.all(color: Colors.grey[300]!, width: 1.2),
+  borderRadius: BorderRadius.circular(8),
+  ),
+  child: const Text('ADD',
+  style: TextStyle(color: AppColors.buttonPrimary, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+  ),
+  );
+  }
+  final liveQty   = _editing ? (int.tryParse(_ctrl.text) ?? qty) : qty;
+  final liveTotal = (liveQty * product.price).toInt();
+  return Column(
+  mainAxisSize: MainAxisSize.min,
+  children: [
+  Container(
+  width: 90, height: 38,
+  decoration: BoxDecoration(color: AppColors.buttonPrimary, borderRadius: BorderRadius.circular(8)),
+  child: Row(
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+  GestureDetector(
+  onTap: () => cart.decrementQuantity(product.id),
+  child: const SizedBox(width: 22, height: 32, child: Icon(Icons.remove, color: Colors.white, size: 14)),
+  ),
+  if (_editing)
+  SizedBox(
+  width: 36,
+  child: TextField(
+  controller:   _ctrl,
+  focusNode:    _focus,
+  keyboardType: TextInputType.number,
+  textAlign:    TextAlign.center,
+  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+  decoration: const InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
+  onChanged:    (_) => setState(() {}),
+  onSubmitted:  (_) => _commitEdit(cart),
+  onTapOutside: (_) => _commitEdit(cart),
+  ),
+  )
+  else
+  GestureDetector(
+  onTapDown: (_) => _startEditing(qty),
+  child: Text('$qty', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+  ),
+  GestureDetector(
+  onTap: () {
+  final stock = product.quantity > 0 ? product.quantity : product.posQuantity;
+  if (stock > 0 && qty >= stock) {
+  showDialog(
+  context: context,
+  barrierColor: Colors.black26,
+  builder: (_) => Center(
+  child: Container(
+  margin: const EdgeInsets.symmetric(horizontal: 40),
+  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+  decoration: BoxDecoration(
+  color: Colors.white, borderRadius: BorderRadius.circular(16),
+  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 20)],
+  ),
+  child: Column(mainAxisSize: MainAxisSize.min, children: [
+  const Icon(Icons.info_outline, color: AppColors.buttonPrimary, size: 36),
+  const SizedBox(height: 12),
+  Text('Only $stock item${stock == 1 ? '' : 's'} available',
+  textAlign: TextAlign.center,
+  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87)),
+  const SizedBox(height: 16),
+  GestureDetector(
+  onTap: () => Navigator.pop(context),
+  child: Container(
+  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
+  decoration: BoxDecoration(color: AppColors.buttonPrimary, borderRadius: BorderRadius.circular(8)),
+  child: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+  ),
+  ),
+  ]),
+  ),
+  ),
+  );
+  return;
+  }
+  cart.addItem(product);
+  },
+  child: const SizedBox(width: 22, height: 32, child: Icon(Icons.add, color: Colors.white, size: 14)),
+  ),
+  ],
+  ),
+  ),
+  const SizedBox(height: 3),
+  Text('₹$liveTotal', style: const TextStyle(color: AppColors.buttonPrimary, fontSize: 10, fontWeight: FontWeight.bold)),
+  ],
+  );
+  },
+  );
+  }
+  }

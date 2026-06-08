@@ -28,14 +28,44 @@ class OrderApiService {
     if (kDebugMode) {
     }
 
-    final cartProducts = cart.items.values.map((item) {
-      final total = item.product.price * item.quantity;
+    final cartProducts = cart.items.entries.map((entry) {
+      final cartKey = entry.key;   // e.g. "4952_piece_31" or plain "4952"
+      final item    = entry.value;
+
+      // Extract base product_id and piece row id from cart key
+      int baseProductId;
+      int pieceRowId;
+
+      if (cartKey.contains('_piece_')) {
+        final parts   = cartKey.split('_piece_');
+        baseProductId = int.tryParse(parts[0]) ?? 0;
+        pieceRowId    = int.tryParse(parts[1]) ?? 0;
+      } else {
+        baseProductId = int.tryParse(cartKey) ?? 0;
+        pieceRowId    = 0;
+      }
+
+      // Since _addPiece stores pieces:[piece], first() is always the right piece
+      final matchedPiece = item.product.pieces.isNotEmpty
+          ? item.product.pieces.first
+          : null;
+
+      final minQty      = matchedPiece?.minQuantity ?? 0;
+      final isCombo     = item.product.isCombo;
+      // quantity = min_quantity × user quantity (e.g. min=2, user=3 → quantity=6)
+      final comboQty    = minQty > 0 ? minQty * item.quantity : item.quantity;
+      final total       = item.product.price * item.quantity;
+
       return {
-        'product_id': int.tryParse(item.product.id) ?? item.product.id,
-        'name':       item.product.name,
-        'quantity':   item.quantity,
-        'price':      item.product.price.round(),
-        'total':      total.round(),
+        'product_id':        baseProductId,
+        'name':              item.product.name,
+        'quantity':          comboQty,           // min_qty × user_qty
+        'price':             item.product.price.round(),
+        'total':             total.round(),
+        'is_combo':          isCombo ? 'Yes' : 'No',
+        'piece_id':          pieceRowId,
+        'min_quantity':      minQty,             // e.g. 2 or 4
+        'selected_quantity': item.quantity,      // user tapped qty e.g. 3
       };
     }).toList();
 

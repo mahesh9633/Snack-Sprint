@@ -64,6 +64,16 @@ class SessionManager {
     return 'saved_addresses_$id';
   }
 
+  // static Future<void> clearSession() async {
+  //   final prefs   = await SharedPreferences.getInstance();
+  //   final addrKey = await addressKey();
+  //
+  //   await prefs.remove(_keyIsLoggedIn);
+  //   await prefs.remove(_keyTelephone);
+  //   await prefs.remove(_keyCustomerId);
+  //   await prefs.remove(_keyToken);
+  //   await prefs.remove(addrKey);
+  // }
   static Future<void> clearSession() async {
     final prefs   = await SharedPreferences.getInstance();
     final addrKey = await addressKey();
@@ -73,5 +83,25 @@ class SessionManager {
     await prefs.remove(_keyCustomerId);
     await prefs.remove(_keyToken);
     await prefs.remove(addrKey);
+
+    // Clear saved delivery location so next login always asks for location
+    await prefs.remove('saved_address_label');
+    await prefs.remove('saved_address_subtitle');
+    await prefs.remove('saved_address_pincode');
+    await prefs.remove('saved_address_lat');
+    await prefs.remove('saved_address_lng');
+    await prefs.setBool('address_confirmed', false);
+
+
+    // Clear recent addresses (both storage formats used across the app)
+    await prefs.remove('recent_addresses_v2');
+
+    // Clear all token-based recent address keys
+    final allKeys = prefs.getKeys();
+    for (final key in allKeys) {
+      if (key.startsWith('recent_addresses_')) {
+        await prefs.remove(key);
+      }
+    }
   }
 }

@@ -251,6 +251,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     context.read<CartModel>().clearCartMemoryOnly();
 
     await LogoutService.logout();
+    await SessionManager.clearSession();
 
     if (!mounted) return;
     Navigator.pop(context);
@@ -258,7 +259,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context,
       MaterialPageRoute(builder: (_) => const LoginScreen()),
           (route) => false,
-     );
+    );
   }
 
   @override

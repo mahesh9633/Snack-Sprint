@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:mtl_groceriesapp/config/app_color.dart';
 import 'package:mtl_groceriesapp/screens/select_location_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/pincode_zone_check_service.dart';
+import '../services/session_manager.dart';
 import 'home_screen.dart';
 
-class LocationGateway extends StatelessWidget {
+class LocationGateway extends StatefulWidget {
   final String  telephone;
   final bool    isNewCustomer;
   final String? authToken;
@@ -18,31 +20,100 @@ class LocationGateway extends StatelessWidget {
     this.authToken,
   });
 
-  Future<void> _saveAndGoHome(BuildContext context, SelectedAddress addr) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('address_confirmed', true);
-    await prefs.setString('saved_address_label',    addr.label);
-    await prefs.setString('saved_address_subtitle', addr.subtitle);
-    if (addr.lat != null) await prefs.setDouble('saved_address_lat', addr.lat!);
-    if (addr.lng != null) await prefs.setDouble('saved_address_lng', addr.lng!);
+  @override
+  State<LocationGateway> createState() => _LocationGatewayState();
+}
 
-    if (!context.mounted) return;
+class _LocationGatewayState extends State<LocationGateway> {
+  bool _checking = true; // show loader while checking saved location
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSavedLocation();
+  }
+
+  Future<void> _checkSavedLocation() async {
+    final prefs    = await SharedPreferences.getInstance();
+    final label    = prefs.getString('saved_address_label')    ?? '';
+    final subtitle = prefs.getString('saved_address_subtitle') ?? '';
+    final pincode  = prefs.getString('saved_address_pincode')  ?? '';
+
+    // If no saved location, show the sheet normally
+    if (label.isEmpty || subtitle.isEmpty) {
+      if (mounted) setState(() => _checking = false);
+      return;
+    }
+
+    // Saved location exists — silently validate zone in background
+    if (pincode.length == 6) {
+      try {
+        final token  = await SessionManager.getToken() ?? '';
+        final result = await ZoneCheckService.check(
+          postcode: pincode,
+          token:    token,
+        );
+        if (!mounted) return;
+
+        if (!result.hasError && !result.available) {
+          // Zone no longer available — clear and show sheet
+          await prefs.remove('saved_address_label');
+          await prefs.remove('saved_address_subtitle');
+          await prefs.remove('saved_address_pincode');
+          await prefs.setBool('address_confirmed', false);
+          if (mounted) setState(() => _checking = false);
+          return;
+        }
+      } catch (_) {
+        // Zone check failed — still allow using saved address
+      }
+    }
+
+    // Zone valid — go directly to home
+    if (!mounted) return;
+    _goHome();
+  }
+
+  void _goHome() {
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
         builder: (_) => HomeScreen(
-          telephone:     telephone,
-          isNewCustomer: isNewCustomer,
-          authToken:     authToken,
-          customerId:    customerId,
+          telephone:     widget.telephone,
+          isNewCustomer: widget.isNewCustomer,
+          authToken:     widget.authToken,
+          customerId:    widget.customerId,
         ),
       ),
           (route) => false,
     );
   }
 
+  Future<void> _saveAndGoHome(SelectedAddress addr) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('address_confirmed', true);
+    await prefs.setString('saved_address_label',    addr.label);
+    await prefs.setString('saved_address_subtitle', addr.subtitle);
+    await prefs.setString('saved_address_pincode',  addr.pincode ?? '');
+    if (addr.lat != null) await prefs.setDouble('saved_address_lat', addr.lat!);
+    if (addr.lng != null) await prefs.setDouble('saved_address_lng', addr.lng!);
+
+    if (!mounted) return;
+    _goHome();
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Show spinner while checking saved location
+    if (_checking) {
+      return const Scaffold(
+        backgroundColor: AppColors.white,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.buttonPrimary),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.white,
       body: SafeArea(
@@ -80,8 +151,9 @@ class LocationGateway extends StatelessWidget {
           // ── SelectLocationSheet embedded ─────────────────────────────
           Expanded(
             child: SelectLocationSheet(
-              onUseCurrentLocation: (addr) => _saveAndGoHome(context, addr),
-              onAddressSelected:    (addr) => _saveAndGoHome(context, addr),
+              showBackButton: false,
+              onUseCurrentLocation: (addr) => _saveAndGoHome(addr),
+              onAddressSelected:    (addr) => _saveAndGoHome(addr),
             ),
           ),
 

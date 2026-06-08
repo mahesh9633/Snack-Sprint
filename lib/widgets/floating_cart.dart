@@ -19,8 +19,27 @@ class FloatingCartBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<CartModel>(
       builder: (context, cart, _) {
-        final totalQty   = cart.totalQuantity;
-        final totalPrice = cart.totalPrice;
+        // final totalQty   = cart.totalQuantity;
+        // final totalPrice = cart.totalPrice;
+        //
+        // return AnimatedSlide(
+        final totalQty     = cart.totalQuantity;
+        final totalPrice   = cart.totalPrice;
+
+        // Build combo summary e.g. "1KG × 2  ·  1KG × 4 ×2"
+        final comboItems = cart.items.values.where((item) =>
+            item.product.id.contains('_piece_')).toList();
+        final comboSummary = comboItems.isEmpty ? '' :
+        comboItems.map((item) {
+          final label = item.product.weight.isNotEmpty
+              ? item.product.weight : item.product.name;
+          final matchedPiece = item.product.pieces.isNotEmpty
+              ? item.product.pieces.first : null;
+          final minQty = matchedPiece?.minQuantity ?? 0;
+          final totalUnits = minQty > 0 ? minQty * item.quantity : item.quantity;
+          return '$label × $totalUnits units';
+        }).join('  ·  ');
+        final hasCombo = comboSummary.isNotEmpty;
 
         return AnimatedSlide(
           duration: const Duration(milliseconds: 300),
@@ -45,7 +64,8 @@ class FloatingCartBar extends StatelessWidget {
                 );
               },
               child: Container(
-                height: 62,
+                // height: 62,
+                height: hasCombo ? 72 : 62,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [Color(0xFFFF0080), Color(0xFFFF0080)],
@@ -61,8 +81,43 @@ class FloatingCartBar extends StatelessWidget {
                     ),
                   ],
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 18),
+                // padding: const EdgeInsets.symmetric(horizontal: 18),
+                // child: Row(
+                //   children: [
+                //     // ── Item count badge ───────────────────────────────────
+                //     Container(
+                //       padding: const EdgeInsets.symmetric(
+                //           horizontal: 10, vertical: 5),
+                //       decoration: BoxDecoration(
+                //         color:        Colors.white.withOpacity(0.22),
+                //         borderRadius: BorderRadius.circular(10),
+                //       ),
+                //       child: Text(
+                //         '$totalQty ${totalQty == 1 ? 'item' : 'items'}',
+                //         style: const TextStyle(
+                //           color:      Colors.white,
+                //           fontSize:   13,
+                //           fontWeight: FontWeight.bold,
+                //         ),
+                //       ),
+                //     ),
+                //
+                //     // ── Centre label ───────────────────────────────────────
+                //     const Expanded(
+                //       child: Text(
+                //         'View Cart',
+                //         textAlign: TextAlign.center,
+                //         style: TextStyle(
+                //           color:         Colors.white,
+                //           fontSize:      16,
+                //           fontWeight:    FontWeight.bold,
+                //           letterSpacing: 0.5,
+                //         ),
+                //       ),
+                //     ),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // ── Item count badge ───────────────────────────────────
                     Container(
@@ -82,17 +137,38 @@ class FloatingCartBar extends StatelessWidget {
                       ),
                     ),
 
-                    // ── Centre label ───────────────────────────────────────
-                    const Expanded(
-                      child: Text(
-                        'View Cart',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color:         Colors.white,
-                          fontSize:      16,
-                          fontWeight:    FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
+                    const SizedBox(width: 10),
+
+                    // ── Centre: "View Cart" + optional combo line ──────────
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'View Cart',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color:         Colors.white,
+                              fontSize:      16,
+                              fontWeight:    FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          if (hasCombo) ...[
+                            const SizedBox(height: 3),
+                            Text(
+                              comboSummary,
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color:      Colors.white.withOpacity(0.85),
+                                fontSize:   11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
 

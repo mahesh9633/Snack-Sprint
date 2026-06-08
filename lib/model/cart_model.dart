@@ -163,6 +163,28 @@ class CartModel extends ChangeNotifier {
     _saveCart();
   }
 
+  // void clearCart() {
+  void setQuantity(Product product, int qty) {
+    if (qty <= 0) {
+      _items.remove(product.id);
+      notifyListeners();
+      _saveCart();
+      return;
+    }
+    // Always use the freshly-passed product's stock (not the stale stored one)
+    final stock = product.quantity > 0 ? product.quantity : product.posQuantity;
+    if (stock > 0 && qty > stock) {
+      onStockLimitReached?.call(
+        'Only $stock item${stock == 1 ? '' : 's'} available in stock',
+      );
+      qty = stock; // clamp to max stock
+    }
+    // Replace the entire CartItem so stored product stock is always fresh
+    _items[product.id] = CartItem(product: product, quantity: qty);
+    notifyListeners();
+    _saveCart();
+  }
+
   void clearCart() {
     _items.clear();
     notifyListeners();

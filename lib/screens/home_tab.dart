@@ -52,6 +52,7 @@ class HomeTabState extends State<HomeTab> {
   void initState() {
     super.initState();
     _searchCtrl.addListener(() => setState(() {}));
+    _searchFocus.addListener(() => setState(() {}));
     _loadProfileImage();
     _loadSavedAddress();
   }
@@ -122,6 +123,7 @@ class HomeTabState extends State<HomeTab> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => SelectLocationSheet(
+        showBackButton: true,
         onUseCurrentLocation: (SelectedAddress address) {
           setState(() {
             _addressLabel    = address.label;
@@ -158,59 +160,57 @@ class HomeTabState extends State<HomeTab> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFFFFFF),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            RefreshIndicator(
-              color:       const Color(0xFFFF0080),
-              strokeWidth: 2.5,
-              displacement: 80,
-              onRefresh:   _onRefresh,
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                keyboardDismissBehavior:
-                ScrollViewKeyboardDismissBehavior.onDrag,
-                slivers: [
-                  SliverToBoxAdapter(child: _buildAddressBar()),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _buildQuickTabBar(),
+      body: Stack(
+        children: [
+          RefreshIndicator(
+            color:       const Color(0xFFFF0080),
+            strokeWidth: 2.5,
+            displacement: 80,
+            onRefresh:   _onRefresh,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              keyboardDismissBehavior:
+              ScrollViewKeyboardDismissBehavior.onDrag,
+              slivers: [
+                SliverToBoxAdapter(child: _buildAddressBar()),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _buildQuickTabBar(),
+                  ),
+                ),
+                if (_activeTab == QuickTab.mtl)
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _SearchBarDelegate(
+                      child: _buildSearchBar(),
+                      isTablet: isTablet,
                     ),
                   ),
-                  if (_activeTab == QuickTab.mtl)
-                    SliverPersistentHeader(
-                      pinned: true,
-                      delegate: _SearchBarDelegate(
-                        child: _buildSearchBar(),
-                        isTablet: isTablet,
-                      ),
-                    ),
-                  if (_activeTab == QuickTab.mtl)
-                    MtlTabBody(
-                      key: _mtlKey,
-                      externalSearchController: _searchCtrl,
-                      searchFocusNode: _searchFocus,
-                      searchLayerLink: _searchLayerLink,
-                    ),
-                  if (_activeTab == QuickTab.offZone)
-                    const OffZoneTabBody(),
-                  if (_activeTab == QuickTab.superMall)
-                    const SuperMallTabBody(),
-                  if (_activeTab == QuickTab.cafe)
-                    const CafeTabBody(),
-                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
-                ],
-              ),
+                if (_activeTab == QuickTab.mtl)
+                  MtlTabBody(
+                    key: _mtlKey,
+                    externalSearchController: _searchCtrl,
+                    searchFocusNode: _searchFocus,
+                    searchLayerLink: _searchLayerLink,
+                  ),
+                if (_activeTab == QuickTab.offZone)
+                  const OffZoneTabBody(),
+                if (_activeTab == QuickTab.superMall)
+                  const SuperMallTabBody(),
+                if (_activeTab == QuickTab.cafe)
+                  const CafeTabBody(),
+                const SliverToBoxAdapter(child: SizedBox(height: 100)),
+              ],
             ),
-            Positioned(
-              bottom: 12,
-              left:   16,
-              right:  16,
-              child:  _buildFloatingCartBar(),
-            ),
-          ],
-        ),
+          ),
+          Positioned(
+            bottom: 12 + MediaQuery.of(context).padding.bottom,
+            left:   16,
+            right:  16,
+            child:  _buildFloatingCartBar(),
+          ),
+        ],
       ),
     );
   }
@@ -218,7 +218,8 @@ class HomeTabState extends State<HomeTab> {
   // ── Address bar ────────────────────────────────────────────────────────────
   Widget _buildAddressBar() {
     return Container(
-      margin: EdgeInsets.fromLTRB(isTablet ? 24 : 16, isTablet ? 20 : 16, isTablet ? 24 : 16, 8),
+      // margin: EdgeInsets.fromLTRB(isTablet ? 24 : 16, isTablet ? 20 : 16, isTablet ? 24 : 16, 8),
+      margin: EdgeInsets.fromLTRB(isTablet ? 24 : 16, MediaQuery.of(context).padding.top + (isTablet ? 8 : 8), isTablet ? 24 : 16, 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -522,6 +523,12 @@ class HomeTabState extends State<HomeTab> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _searchFocus.hasFocus
+                  ? const Color(0xFFFF0080)
+                  : Colors.grey.shade300,
+              width: 1.5,
+            ),
             boxShadow: [
               BoxShadow(
                   color: Colors.black.withValues(alpha: 0.06),
@@ -567,6 +574,7 @@ class HomeTabState extends State<HomeTab> {
 
   // ── Floating cart bar ──────────────────────────────────────────────────────
   Widget _buildFloatingCartBar() {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
     return Consumer<CartModel>(
       builder: (context, cart, _) {
         final totalQty   = cart.totalQuantity;
@@ -684,8 +692,19 @@ class _SearchBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(color: Color(0xFFFFFFFF)),
+    final isScrolled = shrinkOffset > 0;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      decoration: BoxDecoration(
+        color: isScrolled ? const Color(0xFFFFCDD2) : Colors.white,
+        boxShadow: isScrolled
+            ? [BoxShadow(
+          color: Colors.red.withOpacity(0.15),
+          blurRadius: 6,
+          offset: const Offset(0, 2),
+        )]
+            : [],
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: child,

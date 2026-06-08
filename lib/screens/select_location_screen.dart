@@ -42,10 +42,13 @@ class SelectLocationSheet extends StatefulWidget {
   final void Function(SelectedAddress address) onUseCurrentLocation;
   final void Function(SelectedAddress address) onAddressSelected;
 
+  final bool showBackButton;
+
   const SelectLocationSheet({
     super.key,
     required this.onUseCurrentLocation,
     required this.onAddressSelected,
+    this.showBackButton = true,
   });
 
   @override
@@ -410,29 +413,35 @@ class _SelectLocationSheetState extends State<SelectLocationSheet> {
                 ),
               ),
               const SizedBox(height: 4),
-              Row(children: [
-                GestureDetector(
-                  onTap: () {
-                    if (Navigator.canPop(context)) Navigator.pop(context);
-                  },
-                  child: Container(
-                    width:  32,
-                    height: 22,
-                    margin: const EdgeInsets.only(right: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      shape: BoxShape.circle,
+              Row(
+                children: [
+                  if (widget.showBackButton)
+                    GestureDetector(
+                      onTap: () {
+                        if (Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        }
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.only(right: 10),
+                        child: Icon(
+                          Icons.arrow_back,
+                          color: AppColors.appBarIcon,
+                          size: 22,
+                        ),
+                      ),
                     ),
-                    child: const Icon(Icons.arrow_back,
-                        color:  AppColors.appBarIcon,  size: 18),
-                  ),
-                ),
-                const Text('Where should we deliver?',
+
+                  const Text(
+                    'Where should we deliver?',
                     style: TextStyle(
-                        fontSize:   18,
-                        fontWeight: FontWeight.bold,
-                        color:      AppColors.appBarText)),
-              ]),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.appBarText,
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 16),
             ],
           ),

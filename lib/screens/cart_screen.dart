@@ -556,6 +556,23 @@ class _CartScreenState extends State<CartScreen> {
                                                           color: AppColors
                                                               .appBarText)),
                                                 ],
+                                                if (item.product.id.contains('_piece_') &&
+                                                    item.product.pieces.isNotEmpty) ...[
+                                                  SizedBox(height: screenH * 0.003),
+                                                  Builder(builder: (_) {
+                                                    final minQty = item.product.pieces.first.minQuantity ?? 0;
+                                                    final totalUnits = minQty > 0
+                                                        ? minQty * item.quantity
+                                                        : item.quantity;
+                                                    return Text(
+                                                      'Qty: $totalUnits units (${item.quantity} × $minQty)',
+                                                      style: TextStyle(
+                                                          fontSize: screenW * 0.028,
+                                                          color: Colors.orange.shade700,
+                                                          fontWeight: FontWeight.w500),
+                                                    );
+                                                  }),
+                                                ],
                                                 SizedBox(
                                                     height:
                                                     screenH * 0.006),

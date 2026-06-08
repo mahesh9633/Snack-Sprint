@@ -20,6 +20,7 @@ class Product {
   final int    quantity;
   final int posQuantity;
   final List<ProductPiece> pieces;   // <-- new field
+  final bool   isCombo;
 
   const Product({
     required this.id,
@@ -41,6 +42,7 @@ class Product {
     this.quantity           = 0,
     this.posQuantity = 0,
     this.pieces = const [],
+    this.isCombo            = false,
   });
   // ── copyWith ──────────────────────────────────────────────────────────────
 
@@ -64,6 +66,7 @@ class Product {
     int?          quantity,
     int? posQuantity,
     List<ProductPiece>? pieces,
+    bool?               isCombo,
   }) {
     return Product(
       id:                 id                 ?? this.id,
@@ -85,6 +88,7 @@ class Product {
       quantity:           quantity           ?? this.quantity,
       posQuantity: posQuantity               ?? this.posQuantity,
       pieces:             pieces             ?? this.pieces,
+      isCombo:            isCombo            ?? this.isCombo,
     );
   }
 
@@ -109,6 +113,17 @@ class Product {
     'highlights':         highlights,
     'quantity':           quantity,
     'posQuantity':        posQuantity,
+    'isCombo':            isCombo,
+    'pieces':             pieces.map((p) => {
+      'id':            p.pieceId,
+      'piece':         p.label,
+      'price':         p.price.toString(),
+      'special_price': p.specialPrice.toString(),
+      'image':         p.image,
+      'min_quantity':  p.minQuantity.toString(),
+      'is_combo':      p.isCombo ? 'Yes' : 'No',
+      'pos_quantity':  p.stock.toString(),
+    }).toList(),
   };
 
   factory Product.fromJson(Map<String, dynamic> json) => Product(
@@ -130,8 +145,11 @@ class Product {
     highlights:          (json['highlights'] as List<dynamic>?)
         ?.map((e) => e.toString()).toList()            ?? [],
     quantity:            (json['quantity'] as num?)?.toInt()               ?? 0,
-
-    posQuantity:         (json['posQuantity'] as num?)?.toInt() ?? 0,
+    posQuantity:         (json['posQuantity'] as num?)?.toInt()            ?? 0,
+    isCombo:             json['isCombo'] as bool?                          ?? false,
+    pieces:              (json['pieces'] as List<dynamic>?)
+        ?.map((p) => ProductPiece.fromJson(p as Map<String, dynamic>))
+        .toList()                                                          ?? [],
   );
 
   factory Product.fromCategoryJson(
@@ -155,11 +173,19 @@ class Product {
           final pieceSp    = double.tryParse(p['special_price']?.toString() ?? '0') ?? 0.0;
           // only include pieces that actually have a price
           if (piecePrice > 0 || pieceSp > 0) {
+            final minQtyInt      = int.tryParse(p['min_quantity']?.toString() ?? '0') ?? 0;
+            final productIsCombo = (json['is_combo']?.toString() ?? 'No').toLowerCase() == 'yes';
             final pc = ProductPiece(
-              pieceId:      p['piece_id']?.toString() ?? '',
+              pieceId:      p['id']?.toString() ?? p['piece_id']?.toString() ?? '',
               label:        p['piece']?.toString() ?? '',
               price:        piecePrice,
               specialPrice: pieceSp,
+              image:        p['image']?.toString() ?? '',
+              minQuantity:  minQtyInt,
+              isCombo:      productIsCombo || (p['is_combo']?.toString() ?? 'No').toLowerCase() == 'yes',
+              stock:        int.tryParse(
+                  (p['pos_quantity'] ?? p['pos_quentity'] ?? p['quantity'] ?? '0').toString()
+              ) ?? 0,
             );
             parsedPieces.add(pc);
             if (p['piece_default']?.toString() == '1') defaultPiece = pc;
@@ -198,14 +224,23 @@ class Product {
         : '';
 
     final qty = int.tryParse(json['pos_quentity']?.toString() ?? '0') ?? 0;
+    // Use default piece image if available, else fall back to product image
+    final defaultPieceImage = (defaultPiece?.image.isNotEmpty == true &&
+        defaultPiece!.image != 'no_image.png')
+        ? defaultPiece.image
+        : (parsedPieces.isNotEmpty &&
+        parsedPieces.first.image.isNotEmpty &&
+        parsedPieces.first.image != 'no_image.png')
+        ? parsedPieces.first.image
+        : rawImage;
 
     return Product(
       id:            json['product_id']?.toString() ?? '',
       name:          json['name']?.toString()        ?? '',
       price:         displayPrice,
       originalPrice: originalPrice,
-      image:         rawImage,
-      imageUrl:      buildUrl(rawImage),
+      image:         defaultPieceImage,                // ← CHANGED
+      imageUrl:      buildUrl(defaultPieceImage),      // ← CHANGED
       category:      categoryName.isNotEmpty
           ? categoryName
           : (json['category_id']?.toString() ?? ''),
@@ -217,6 +252,7 @@ class Product {
       quantity:      qty < 0 ? 0 : qty,
       posQuantity:   qty < 0 ? 0 : qty,
       pieces:        parsedPieces,
+      isCombo:       (json['is_combo']?.toString() ?? 'No').toLowerCase() == 'yes',
     );
   }
 
@@ -247,11 +283,19 @@ class Product {
           final piecePrice = double.tryParse(p['price']?.toString() ?? '0') ?? 0.0;
           final pieceSp    = double.tryParse(p['special_price']?.toString() ?? '0') ?? 0.0;
           if (piecePrice > 0 || pieceSp > 0) {
+            final minQtyInt      = int.tryParse(p['min_quantity']?.toString() ?? '0') ?? 0;
+            final productIsCombo = (json['is_combo']?.toString() ?? 'No').toLowerCase() == 'yes';
             final pc = ProductPiece(
-              pieceId:      p['piece_id']?.toString() ?? '',
+              pieceId:      p['id']?.toString() ?? p['piece_id']?.toString() ?? '',
               label:        p['piece']?.toString() ?? '',
               price:        piecePrice,
               specialPrice: pieceSp,
+              image:        p['image']?.toString() ?? '',
+              minQuantity:  minQtyInt,
+              isCombo:      productIsCombo || (p['is_combo']?.toString() ?? 'No').toLowerCase() == 'yes',
+              stock:        int.tryParse(
+                  (p['pos_quantity'] ?? p['pos_quentity'] ?? p['quantity'] ?? '0').toString()
+              ) ?? 0,
             );
             parsedPieces.add(pc);
             if (p['piece_default']?.toString() == '1') defaultPiece = pc;
@@ -286,13 +330,23 @@ class Product {
         ? parsedPieces.first.label
         : '';
 
+    // Use default piece image if available, else fall back to product image
+    final defaultPieceImage = (defaultPiece?.image.isNotEmpty == true &&
+        defaultPiece!.image != 'no_image.png')
+        ? defaultPiece.image
+        : (parsedPieces.isNotEmpty &&
+        parsedPieces.first.image.isNotEmpty &&
+        parsedPieces.first.image != 'no_image.png')
+        ? parsedPieces.first.image
+        : rawImage;
+
     return Product(
       id:            json['product_id']?.toString()    ?? '',
       name:          json['name']?.toString()          ?? '',
       price:         displayPrice,
       originalPrice: originalPrice,
-      image:         rawImage,
-      imageUrl:      buildUrl(rawImage),
+      image:         defaultPieceImage,                // ← CHANGED
+      imageUrl:      buildUrl(defaultPieceImage),      // ← CHANGED
       category:      json['category']?.toString()      ?? '',
       subCategory:   json['sub_category']?.toString()  ?? '',
       weight:        weightLabel,
@@ -306,6 +360,7 @@ class Product {
       quantity:    qty    < 0 ? 0 : qty,
       posQuantity: posQty < 0 ? 0 : posQty,
       pieces:      parsedPieces,
+      isCombo:     (json['is_combo']?.toString() ?? 'No').toLowerCase() == 'yes',
     );
   }
 
