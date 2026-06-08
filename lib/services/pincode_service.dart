@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
 
 class PostOffice {
@@ -129,7 +130,7 @@ class PincodeResult {
 class PincodeService {
   PincodeService._(); // prevent instantiation — use static methods only
 
-  static const String _baseUrl = 'https://api.postalpincode.in/pincode';
+  static const String   _baseUrl = 'https://api.postalpincode.in/pincode';
   static const Duration _timeout = Duration(seconds: 10);
 
   static Future<PincodeResult> lookup(String pincode) async {
@@ -145,56 +146,79 @@ class PincodeService {
       return PincodeResult.failure('Pincode must contain only digits');
     }
 
-    // ── Call API ─────────────────────────────────────────────────────────
+    // ── Try primary API first ────────────────────────────────────────────
     try {
       final uri      = Uri.parse('$_baseUrl/$cleaned');
       final response = await http.get(uri).timeout(_timeout);
 
-      if (response.statusCode != 200) {
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+
+        if (decoded is List && decoded.isNotEmpty) {
+          final block  = decoded[0] as Map<String, dynamic>;
+          final status = block['Status']?.toString() ?? '';
+
+          if (status == 'Success') {
+            final rawOffices = block['PostOffice'] as List?;
+
+            if (rawOffices != null && rawOffices.isNotEmpty) {
+              final offices = rawOffices
+                  .map((o) => PostOffice.fromJson(o as Map<String, dynamic>))
+                  .toList();
+              final primary = offices.first;
+
+              return PincodeResult.success(
+                area:       primary.name,
+                city:       primary.district,
+                state:      primary.state,
+                country:    primary.country,
+                pincode:    cleaned,
+                allOffices: offices,
+              );
+            }
+          }
+        }
+      }
+    } catch (_) {
+      // Primary API failed — fall through to geocoding fallback
+    }
+
+    // ── Fallback: geocoding ──────────────────────────────────────────────
+    try {
+      final locations = await locationFromAddress('$cleaned, India')
+          .timeout(const Duration(seconds: 10));
+
+      if (locations.isEmpty) {
         return PincodeResult.failure(
-            'Server error (${response.statusCode}). Please try again.');
+            'Could not find this pincode. Please check and try again.');
       }
 
-      final decoded = jsonDecode(response.body);
+      final placemarks = await placemarkFromCoordinates(
+        locations.first.latitude,
+        locations.first.longitude,
+      ).timeout(const Duration(seconds: 10));
 
-      // API returns a List with one element
-      if (decoded is! List || decoded.isEmpty) {
-        return PincodeResult.failure('Unexpected response from server');
+      if (placemarks.isEmpty) {
+        return PincodeResult.failure('Could not resolve pincode details.');
       }
 
-      final block  = decoded[0] as Map<String, dynamic>;
-      final status = block['Status']?.toString() ?? '';
+      final p = placemarks.first;
 
-      if (status != 'Success') {
-        // API returns "Error" status for invalid pincodes
-        return PincodeResult.failure('Invalid pincode. No results found.');
-      }
-
-      final rawOffices = block['PostOffice'] as List?;
-      if (rawOffices == null || rawOffices.isEmpty) {
-        return PincodeResult.failure('No post offices found for this pincode');
-      }
-
-      // Parse all offices
-      final offices = rawOffices
-          .map((o) => PostOffice.fromJson(o as Map<String, dynamic>))
-          .toList();
-
-      // Use the first office as the primary result
-      final primary = offices.first;
+      final area = [p.subLocality, p.locality]
+          .where((s) => s != null && s!.isNotEmpty)
+          .join(', ');
 
       return PincodeResult.success(
-        area:       primary.name,
-        city:       primary.district,
-        state:      primary.state,
-        country:    primary.country,
+        area:       area.isNotEmpty ? area : (p.name ?? cleaned),
+        city:       p.subAdministrativeArea ?? p.locality ?? '',
+        state:      p.administrativeArea    ?? '',
+        country:    p.country               ?? 'India',
         pincode:    cleaned,
-        allOffices: offices,
+        allOffices: [],
       );
-    } on http.ClientException catch (e) {
-      return PincodeResult.failure('Network error: ${e.message}');
     } catch (e) {
-      return PincodeResult.failure('Something went wrong. Please try again.');
+      return PincodeResult.failure(
+          'Could not find pincode. Please check your internet and try again.');
     }
   }
 

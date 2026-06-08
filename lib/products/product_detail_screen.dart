@@ -141,21 +141,36 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 final sp    = p['special_price']?.toString() ?? '0';
                 if ((double.tryParse(price) ?? 0) > 0 ||
                     (double.tryParse(sp) ?? 0) > 0) {
+                  final pieceName = p['piece']?.toString() ?? '';
+                  final minQtyInt = int.tryParse(p['min_quantity']?.toString() ?? '0') ?? 0;
+                  final pieceLabel = (minQtyInt > 1 && pieceName.isNotEmpty)
+                      ? '$pieceName × $minQtyInt'
+                      : pieceName;
+                  final pieceRawStock = int.tryParse(p['pos_quantity']?.toString() ?? '0') ?? 0;
+                  final productIsCombo = (apiProduct['is_combo']?.toString() ?? 'No').toLowerCase() == 'yes';
+                  final productLevelQty = int.tryParse(
+                      (apiProduct['pos_quentity'] ?? apiProduct['quantity'] ?? '0').toString()
+                  ) ?? 0;
+                  final pieceStock = (productIsCombo && pieceRawStock == 0) ? productLevelQty : pieceRawStock;
                   parsedPieces.add(_PieceOption(
-                    pieceId:      p['piece_id']?.toString() ?? '',
-                    piece:        p['piece']?.toString() ?? '',
+                    pieceId:      p['id']?.toString() ?? '',
+                    piece:        pieceLabel,
                     price:        price,
                     specialPrice: sp,
+                    image:        p['image']?.toString() ?? '',
+                    stock:        pieceStock,
+                    minQuantity:  minQtyInt,
                   ));
                 }
               }
             }
           }
-
-
           if (mounted) {
             setState(() {
-              _fullProduct   = full.copyWith(imageUrl: resolvedUrl);
+              _fullProduct   = full.copyWith(
+                imageUrl: resolvedUrl,
+                isCombo:  widget.product.isCombo,
+              );
               _pieces        = parsedPieces;
               _selectedPiece = parsedPieces.isNotEmpty ? parsedPieces.first : null;
               for (final pc in parsedPieces) {
@@ -173,7 +188,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     if (mounted) {
       setState(() {
-        _fullProduct   = widget.product.copyWith(imageUrl: fallbackImageUrl);
+        _fullProduct   = widget.product.copyWith(
+          imageUrl: fallbackImageUrl,
+          isCombo:  widget.product.isCombo,
+        );
         _pieces        = [];
         _selectedPiece = null;
         _loadingDetail = false;
@@ -207,28 +225,29 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     if (_loadingDetail) {
       return Scaffold(
         backgroundColor: Colors.white,
-        body: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Align(
-                  alignment: Alignment.topLeft,
-                  child: IconButton(
-                    icon: _circleIcon(Icons.arrow_back, Colors.black),
-                    onPressed: () => Navigator.pop(context),
-                  ),
+        body: Column(
+          children: [
+            Padding(
+              padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top + 8,
+                left: 8, right: 8, bottom: 8,
+              ),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: IconButton(
+                  icon: _circleIcon(Icons.arrow_back, Colors.black),
+                  onPressed: () => Navigator.pop(context),
                 ),
               ),
-              const Expanded(
-                child: Center(
-                  child: CircularProgressIndicator(
-                    color: Color(0xFFE91E63),
-                  ),
+            ),
+            const Expanded(
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFFE91E63),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }
@@ -240,7 +259,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           final int qty;
           if (_selectedPiece != null) {
             final pieceProduct = Product(
-              id: _selectedPiece!.pieceId,
+              id: '${_product.id}_piece_${_selectedPiece!.pieceId}',
               name: '${_product.name} – ${_selectedPiece!.piece}',
               price: _selectedPiece!.displayPrice,
               originalPrice: double.tryParse(_selectedPiece!.price) ?? _selectedPiece!.displayPrice,
@@ -249,6 +268,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               category: _product.category,
               quantity: _product.quantity,
               posQuantity: _product.posQuantity,
+              isCombo: _product.isCombo,
+              pieces: _selectedPiece != null ? [_toPiece(_selectedPiece!)] : _product.pieces,
             );
             qty = cart.getQuantity(pieceProduct);
           } else {
@@ -320,8 +341,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           bottom: false,
                           child: Stack(children: [
                             _buildHeroImage(),
-                            if (_product.computedDiscount > 0)
-                              Positioned(
+                            Builder(builder: (_) {
+                              final double origPrice = _selectedPiece != null
+                                  ? (double.tryParse(_selectedPiece!.price) ?? 0)
+                                  : _product.originalPrice;
+                              final double discountPct = origPrice > 0 && origPrice > _displayPrice
+                                  ? ((origPrice - _displayPrice) / origPrice * 100).roundToDouble()
+                                  : (_product.computedDiscount > 0 ? _product.computedDiscount.toDouble() : 0);
+                              if (discountPct <= 0) return const SizedBox.shrink();
+                              return Positioned(
                                 top: 60,
                                 left: 16,
                                 child: Container(
@@ -331,13 +359,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                       color: const Color(0xFF0C831F),
                                       borderRadius: BorderRadius.circular(6)),
                                   child: Text(
-                                      '${_product.computedDiscount}% OFF',
+                                      '${discountPct.toInt()}% OFF',
                                       style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 12,
                                           fontWeight: FontWeight.bold)),
                                 ),
-                              ),
+                              );
+                            }),
                             Positioned(
                               bottom: 16,
                               right: 16,
@@ -384,6 +413,30 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              if (_product.isCombo) ...[
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                      color: const Color(0xFFFFF3E0),
+                                      borderRadius: BorderRadius.circular(6)),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: const [
+                                      Icon(Icons.card_giftcard,
+                                          size: 13,
+                                          color: Color(0xFFFF6B00)),
+                                      SizedBox(width: 4),
+                                      Text('Combo Deal',
+                                          style: TextStyle(
+                                              color: Color(0xFFFF6B00),
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                              ],
                               if (_product.tag.isNotEmpty) ...[
                                 Container(
                                   padding: const EdgeInsets.symmetric(
@@ -454,17 +507,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                         color: const Color(0xFF0C831F),
                                         borderRadius: BorderRadius.circular(6)),
                                     child: Text(
-                                        '₹${_product.price.toStringAsFixed(0)}',
+                                        '₹${_displayPrice.toStringAsFixed(0)}',
                                         style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 20,
                                             fontWeight: FontWeight.bold)),
                                   ),
                                   const SizedBox(width: 10),
-                                  if (_product.originalPrice >
-                                      _product.price) ...[
-                                    Text(
-                                        '₹${_product.originalPrice.toStringAsFixed(0)}',
+                                  if ((_selectedPiece != null
+                                      ? (double.tryParse(_selectedPiece!.price) ?? 0)
+                                      : _product.originalPrice) > _displayPrice) ...[
+                                    Text('₹${(_selectedPiece != null
+                                        ? (double.tryParse(_selectedPiece!.price) ?? 0)
+                                        : _product.originalPrice).toStringAsFixed(0)}',
                                         style: const TextStyle(
                                             color: Colors.grey,
                                             fontSize: 16,
@@ -472,7 +527,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                             TextDecoration.lineThrough)),
                                     const SizedBox(width: 8),
                                     Text(
-                                        '₹${_product.savings.toStringAsFixed(0)} OFF',
+                                        '₹${((_selectedPiece != null ? (double.tryParse(_selectedPiece!.price) ?? 0) : _product.originalPrice) - _displayPrice).toStringAsFixed(0)} OFF',
                                         style: const TextStyle(
                                             color: Color(0xFF0C831F),
                                             fontSize: 14,
@@ -500,9 +555,30 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   pieces:         _pieces,
                                   selected:       _selectedPiece,
                                   expanded:       _piecesExpanded,
+                                  effectiveStockMap: _product.isCombo
+                                      ? () {
+                                    final totalStock = _product.posQuantity > 0
+                                        ? _product.posQuantity
+                                        : _product.quantity;
+                                    int usedByOthers = 0;
+                                    for (final pc in _pieces) {
+                                      if (_selectedPiece != null && pc.pieceId == _selectedPiece!.pieceId) continue;
+                                      final pid = '${_product.id}_piece_${pc.pieceId}';
+                                      final tmp = Product(id: pid, name: '', price: 0, originalPrice: 0, category: '', quantity: 0, posQuantity: 0);
+                                      usedByOthers += cart.getQuantity(tmp);
+                                    }
+                                    final Map<String, int> map = {};
+                                    for (final pc in _pieces) {
+                                      final pid = '${_product.id}_piece_${pc.pieceId}';
+                                      final thisQty = cart.getQuantity(Product(id: pid, name: '', price: 0, originalPrice: 0, category: '', quantity: 0, posQuantity: 0));
+                                      final otherQty = usedByOthers - (pc.pieceId == (_selectedPiece?.pieceId ?? '') ? 0 : thisQty) + thisQty;
+                                      map[pc.pieceId] = (totalStock - (usedByOthers - thisQty)).clamp(0, totalStock);
+                                    }
+                                    return map;
+                                  }()
+                                      : const {},
                                   onToggle: () =>
                                       setState(() => _piecesExpanded = !_piecesExpanded),
-
                                   onSelect: (p) => setState(() {
                                     if (_selectedPiece != null) {
                                       _pendingQtyMap[_selectedPiece!.pieceId] = _pendingQty;
@@ -624,7 +700,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
 
             Positioned(
-              bottom: MediaQuery.of(context).padding.bottom + 72,
+              bottom: MediaQuery.of(context).padding.bottom +
+                  (effectiveQty > 1 ? 96 : 80),
               left: 16,
               right: 16,
               child: cart.totalQuantity > 0
@@ -677,7 +754,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     _DetailStepperButton(
                         product: _selectedPiece != null
                             ? Product(
-                          id: _selectedPiece!.pieceId,
+                          id: '${_product.id}_piece_${_selectedPiece!.pieceId}',
                           name: '${_product.name} – ${_selectedPiece!.piece}',
                           price: _selectedPiece!.displayPrice,
                           originalPrice: double.tryParse(_selectedPiece!.price) ?? _selectedPiece!.displayPrice,
@@ -686,6 +763,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           category: _product.category,
                           quantity: _product.quantity,
                           posQuantity: _product.posQuantity,
+                          isCombo: _product.isCombo,
+                          pieces: _selectedPiece != null ? [_toPiece(_selectedPiece!)] : _product.pieces,
                         )
                             : _product,
                         qty: qty,
@@ -694,7 +773,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     _DetailAddButton(
                         product: _selectedPiece != null
                             ? Product(
-                          id: _selectedPiece!.pieceId,
+                          id: '${_product.id}_piece_${_selectedPiece!.pieceId}',
                           name: '${_product.name} – ${_selectedPiece!.piece}',
                           price: _selectedPiece!.displayPrice,
                           originalPrice: double.tryParse(_selectedPiece!.price) ?? _selectedPiece!.displayPrice,
@@ -703,6 +782,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           category: _product.category,
                           quantity: _product.quantity,
                           posQuantity: _product.posQuantity,
+                          isCombo: _product.isCombo,
+                          pieces: _selectedPiece != null ? [_toPiece(_selectedPiece!)] : _product.pieces,
                         )
                             : _product,
                         cart: cart,
@@ -716,7 +797,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           final cur = _pendingQtyMap[key] ?? 1;
                           _pendingQtyMap[key] = cur > 1 ? cur - 1 : 1;
                         }),
-                        outOfStock: !_product.isInStock),
+                        outOfStock: _selectedPiece != null
+                            ? _selectedPiece!.stock == 0
+                            : !_product.isInStock),
                 ]),
               ),
             ),
@@ -740,8 +823,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   );
 
   Widget _buildHeroImage() {
+    // If a piece is selected and has its own image, prefer it
     String url = '';
-    if (_product.imageUrl.startsWith('http')) {
+    if (_selectedPiece != null && _selectedPiece!.image.isNotEmpty && _selectedPiece!.image != 'no_image.png') {
+      url = _selectedPiece!.image.startsWith('http')
+          ? _selectedPiece!.image
+          : '${ApiConfig.imageBase}${_selectedPiece!.image}';
+    } else if (_product.imageUrl.startsWith('http')) {
       url = _product.imageUrl;
     } else if (_product.image.startsWith('http')) {
       url = _product.image;
@@ -1045,7 +1133,7 @@ class _SimilarAddButton extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: const Color(0xFFFF0080), width: 1.2),
+        border: Border.all(color: Colors.grey[300]!, width: 1.2),
       ),
       child: const Text('ADD',
           style: TextStyle(
@@ -1146,7 +1234,7 @@ class _PiecesAddButton extends StatelessWidget {
 
         final hasItems = totalQty > 0;
         final borderClr =
-        hasItems ? const Color(0xFF388E3C) : const Color(0xFFFF0080);
+        hasItems ? const Color(0xFF388E3C) : Colors.grey[300]!;
         final textClr =
         hasItems ? const Color(0xFF388E3C) : const Color(0xFFFF0080);
 
@@ -1393,11 +1481,18 @@ class _PieceOption {
   final String piece;
   final String price;
   final String specialPrice;
+  final String image;
+  final int    stock;
+  final int    minQuantity;
+
   const _PieceOption({
     required this.pieceId,
     required this.piece,
     required this.price,
     required this.specialPrice,
+    this.image = '',
+    this.stock = 0,
+    this.minQuantity = 0,
   });
 
   double get displayPrice {
@@ -1416,11 +1511,12 @@ class _PieceOption {
 // ── Pieces Selector Widget ────────────────────────────────────────────────────
 
 class _PiecesSelector extends StatelessWidget {
-  final List<_PieceOption> pieces;
-  final _PieceOption?      selected;
-  final bool               expanded;
-  final VoidCallback       onToggle;
+  final List<_PieceOption>  pieces;
+  final _PieceOption?       selected;
+  final bool                expanded;
+  final VoidCallback        onToggle;
   final ValueChanged<_PieceOption> onSelect;
+  final Map<String, int>    effectiveStockMap; // pieceId → available stock
 
   const _PiecesSelector({
     required this.pieces,
@@ -1428,6 +1524,7 @@ class _PiecesSelector extends StatelessWidget {
     required this.expanded,
     required this.onToggle,
     required this.onSelect,
+    this.effectiveStockMap = const {},
   });
 
   @override
@@ -1503,7 +1600,7 @@ class _PiecesSelector extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: (effectiveStockMap[p.pieceId] ?? p.stock) == 0 ? Colors.grey[50] : Colors.white,
                         border: Border.all(
                           color: isSelected
                               ? const Color(0xFFFF0080)
@@ -1518,20 +1615,20 @@ class _PiecesSelector extends StatelessWidget {
                           Text(
                             p.piece,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                              color: (effectiveStockMap[p.pieceId] ?? p.stock) == 0 ? Colors.grey : Colors.black87,
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             '₹${p.displayPrice.toStringAsFixed(0)}',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF0C831F),
+                              color: (effectiveStockMap[p.pieceId] ?? p.stock) == 0 ? Colors.grey : const Color(0xFF0C831F),
                             ),
                           ),
                           if (p.hasDiscount) ...[
@@ -1560,46 +1657,165 @@ class _PiecesSelector extends StatelessWidget {
   }
 }
 
-class _DetailStepperButton extends StatelessWidget {
+class _DetailStepperButton extends StatefulWidget {
   final Product product;
   final int qty;
   final CartModel cart;
   const _DetailStepperButton(
       {required this.product, required this.qty, required this.cart});
+
   @override
-  Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(
-        color: const Color(0xFFFF0080),
-        borderRadius: BorderRadius.circular(12)),
-    child: Row(children: [
-      InkWell(
-        onTap: () => cart.decrementQuantity(product.id),
-        borderRadius:
-        const BorderRadius.horizontal(left: Radius.circular(12)),
-        child: const Padding(
-          padding:
-          EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Icon(Icons.remove, color: Colors.white),
-        ),
-      ),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Text('$qty',
-            style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold)),
-      ),
-      InkWell(
-        onTap: () => cart.incrementQuantity(product.id),
-        borderRadius:
-        const BorderRadius.horizontal(right: Radius.circular(12)),
-        child: const Padding(
-          padding:
-          EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Icon(Icons.add, color: Colors.white),
-        ),
-      ),
-    ]),
-  );
+  State<_DetailStepperButton> createState() => _DetailStepperButtonState();
 }
+
+class _DetailStepperButtonState extends State<_DetailStepperButton> {
+  bool _editing = false;
+  late final TextEditingController _ctrl;
+  late final FocusNode _focus;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl  = TextEditingController();
+    _focus = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  void _startEditing(int currentQty) {
+    _ctrl.text = '$currentQty';
+    _focus.requestFocus();
+    setState(() => _editing = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _ctrl.selection = TextSelection(
+        baseOffset:   0,
+        extentOffset: _ctrl.text.length,
+      );
+    });
+  }
+
+  void _commitEdit(CartModel cart) {
+    final val = int.tryParse(_ctrl.text.trim()) ?? 0;
+    final stock = widget.product.quantity > 0
+        ? widget.product.quantity
+        : widget.product.posQuantity;
+
+    if (val <= 0) {
+      cart.removeItem(widget.product);
+    } else if (stock > 0 && val > stock) {
+      // Clamp to max stock and show snackbar
+      cart.setQuantity(widget.product, stock);
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(
+          content: Text('Only $stock quantity available'),
+          duration: const Duration(seconds: 2),
+          backgroundColor: const Color(0xFFFF0080),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10)),
+        ));
+    } else {
+      cart.setQuantity(widget.product, val);
+    }
+    setState(() => _editing = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final qty   = widget.qty;
+    final stock = widget.product.quantity > 0
+        ? widget.product.quantity
+        : widget.product.posQuantity;
+
+    return Container(
+      decoration: BoxDecoration(
+          color: const Color(0xFFFF0080),
+          borderRadius: BorderRadius.circular(12)),
+      child: Row(children: [
+        InkWell(
+          onTap: () => widget.cart.decrementQuantity(widget.product.id),
+          borderRadius:
+          const BorderRadius.horizontal(left: Radius.circular(12)),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Icon(Icons.remove, color: Colors.white),
+          ),
+        ),
+
+        // ── Tappable qty / inline editor ──────────────────────────────
+        if (_editing)
+          SizedBox(
+            width: 52,
+            child: TextField(
+              controller:   _ctrl,
+              focusNode:    _focus,
+              keyboardType: TextInputType.number,
+              textAlign:    TextAlign.center,
+              style: const TextStyle(
+                  color:      Colors.white,
+                  fontSize:   18,
+                  fontWeight: FontWeight.bold),
+              decoration: const InputDecoration(
+                  border:         InputBorder.none,
+                  isDense:        true,
+                  contentPadding: EdgeInsets.zero),
+              onChanged: (_) => setState(() {}), // triggers live price refresh
+              onSubmitted: (_) => _commitEdit(widget.cart),
+              onTapOutside: (_) => _commitEdit(widget.cart),
+            ),
+          )
+        else
+          GestureDetector(
+            onTapDown: (_) => _startEditing(qty),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text('$qty',
+                  style: const TextStyle(
+                      color:      Colors.white,
+                      fontSize:   18,
+                      fontWeight: FontWeight.bold)),
+            ),
+          ),
+
+        InkWell(
+          onTap: () {
+            if (stock > 0 && qty >= stock) {
+              ScaffoldMessenger.of(context)
+                ..clearSnackBars()
+                ..showSnackBar(SnackBar(
+                  content: Text('Only $stock quantity available'),
+                  duration: const Duration(seconds: 2),
+                  backgroundColor: const Color(0xFFFF0080),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ));
+              return;
+            }
+            widget.cart.incrementQuantity(widget.product.id);
+          },
+          borderRadius:
+          const BorderRadius.horizontal(right: Radius.circular(12)),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Icon(Icons.add, color: Colors.white),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+ProductPiece _toPiece(_PieceOption opt) => ProductPiece(
+  pieceId:      opt.pieceId,
+  label:        opt.piece,
+  price:        double.tryParse(opt.price) ?? 0,
+  specialPrice: double.tryParse(opt.specialPrice) ?? 0,
+  image:        opt.image,
+  minQuantity:  opt.minQuantity,
+);

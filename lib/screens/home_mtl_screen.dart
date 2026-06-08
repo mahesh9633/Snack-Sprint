@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:mtl_groceriesapp/screens/see_all.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../config/app_color.dart';
@@ -137,33 +138,6 @@ class _MtlTabBodyState extends State<MtlTabBody> {
               break;
             }
 
-            // ── Check every piece raw price ──────────────────────────
-            for (int k = 0; k < newP.pieces.length; k++) {
-              final newPiece = newP.pieces[k];
-              final oldPiece = oldP.pieces[k];
-
-              final newPrice = double.tryParse(
-                  newPiece['price']?.toString() ?? '0') ?? 0;
-              final oldPrice = double.tryParse(
-                  oldPiece['price']?.toString() ?? '0') ?? 0;
-              final newSp    = double.tryParse(
-                  newPiece['special_price']?.toString() ?? '0') ?? 0;
-              final oldSp    = double.tryParse(
-                  oldPiece['special_price']?.toString() ?? '0') ?? 0;
-              final newDef   = newPiece['piece_default']?.toString();
-              final oldDef   = oldPiece['piece_default']?.toString();
-              final newLabel = newPiece['piece']?.toString() ?? '';
-              final oldLabel = oldPiece['piece']?.toString() ?? '';
-
-              if (newPrice != oldPrice ||
-                  newSp    != oldSp    ||
-                  newDef   != oldDef   ||
-                  newLabel != oldLabel) {
-                dataChanged = true;
-                break;
-              }
-            }
-
             if (dataChanged) break;
           }
         }
@@ -238,23 +212,9 @@ class _MtlTabBodyState extends State<MtlTabBody> {
 
     if (!mounted) return;
     if (result['success'] == true) {
-      final model = InitialDataModel.fromJson(result['data'] as Map<String, dynamic>);
-      if (model.randomProducts.isNotEmpty) {
-        final p = model.randomProducts.first;
-      }
+      final rawData = result['data'] as Map<String, dynamic>;
 
-      for (final cat in model.categories) {
-        for (final sub in cat.subcategories) {
-        }
-      }
-
-      for (final p in model.randomProducts) {
-      }
-
-      for (final offer in model.offers) {
-        for (final p in offer.products) {
-        }
-      }
+      final model = InitialDataModel.fromJson(rawData);
 
       setState(() {
         _data             = model;
@@ -558,10 +518,6 @@ class _MtlTabBodyState extends State<MtlTabBody> {
   LayerLink get searchLayerLink => _searchLayerLink;
 
   Product _toProduct(ApiProduct p) {
-    final allPieces = p.pieces.map((e) => ProductPiece.fromJson(e)).toList();
-
-    // ApiProduct.fromJson already resolved retailPrice/wholesalePrice/unit
-    // correctly — just use them directly, no re-calculation needed
     return Product(
       id:                 p.productId.isNotEmpty ? p.productId : (p.sku.isNotEmpty ? p.sku : p.name),
       name:               p.name,
@@ -575,7 +531,8 @@ class _MtlTabBodyState extends State<MtlTabBody> {
       discountPercentage: p.discountPercent,
       quantity:           p.quantity,
       posQuantity:        p.quantity,
-      pieces:             allPieces,
+      pieces:             p.pieces,
+      isCombo:            p.isCombo,
     );
   }
 
@@ -587,6 +544,8 @@ class _MtlTabBodyState extends State<MtlTabBody> {
   }
 
   List<ApiProduct> get _visibleProducts => _data?.randomProducts ?? [];
+
+  List<ApiProduct> get _comboProducts => _data?.comboProducts ?? [];
 
   // ── BUILD ──────────────────────────────────────────────────────────────────
   @override
@@ -628,6 +587,8 @@ class _MtlTabBodyState extends State<MtlTabBody> {
             if (_selectedCatId.isNotEmpty) _buildCategoryDetailSection(),
             if (_selectedCatId.isNotEmpty) const SizedBox(height: 4),
             _buildFeaturedProducts(),
+            const SizedBox(height: 4),
+            _buildComboProducts(),
             const SizedBox(height: 4),
             _buildRunningBanners(),
             const SizedBox(height: 4),
@@ -1024,6 +985,47 @@ class _MtlTabBodyState extends State<MtlTabBody> {
     return _bannerWidget;
   }
 
+  // Widget _buildFeaturedProducts() {
+  //   final products = _visibleProducts;
+  //   if (products.isEmpty) return const SizedBox.shrink();
+  //
+  //   const title = 'Featured Products';
+  //   final screenW = MediaQuery.of(context).size.width;
+  //   final cardW   = screenW * 0.42;
+  //   final imgH    = cardW * 0.75;
+  //   final cardH   = imgH + 134.0;
+  //
+  //   return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  //     const Padding(
+  //       padding: EdgeInsets.fromLTRB(16, 16, 16, 10),
+  //       child: Row(children: [
+  //         Icon(Icons.auto_awesome, color: AppColors.buttonPrimary, size: 18),
+  //         SizedBox(width: 6),
+  //         Text(title,
+  //             style: TextStyle(
+  //                 fontSize: 18, fontWeight: FontWeight.bold)),
+  //       ]),
+  //     ),
+  //     SizedBox(
+  //       height: cardH,
+  //       child: ListView.builder(
+  //         scrollDirection: Axis.horizontal,
+  //         padding: const EdgeInsets.symmetric(horizontal: 16),
+  //         itemCount: products.length,
+  //         itemBuilder: (_, i) => SizedBox(
+  //           width: cardW,
+  //           child: Padding(
+  //             padding: const EdgeInsets.only(right: 12),
+  //             child: ProductCard(
+  //               product: _toProduct(products[i]),
+  //               imageHeight: imgH,
+  //             ),
+  //           ),
+  //         ),
+  //       ),
+  //     ),
+  //   ]);
+  // }
   Widget _buildFeaturedProducts() {
     final products = _visibleProducts;
     if (products.isEmpty) return const SizedBox.shrink();
@@ -1033,6 +1035,9 @@ class _MtlTabBodyState extends State<MtlTabBody> {
     final cardW   = screenW * 0.42;
     final imgH    = cardW * 0.75;
     final cardH   = imgH + 134.0;
+    const int previewCount = 4;
+    final bool hasSeeMore = products.length > previewCount;
+    final displayProducts = hasSeeMore ? products.take(previewCount).toList() : products;
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Padding(
@@ -1046,25 +1051,175 @@ class _MtlTabBodyState extends State<MtlTabBody> {
         ]),
       ),
       SizedBox(
-        height: cardH,
+        height: cardH + (hasSeeMore ? 24 : 0),
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          itemCount: products.length,
-          itemBuilder: (_, i) => SizedBox(
-            width: cardW,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: ProductCard(
-                product: _toProduct(products[i]),
-                imageHeight: imgH,
+          itemCount: displayProducts.length,
+          itemBuilder: (_, i) {
+            final bool isLast = hasSeeMore && i == displayProducts.length - 1;
+            return SizedBox(
+              width: cardW,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      height: cardH,
+                      child: ProductCard(
+                        product: _toProduct(displayProducts[i]),
+                        imageHeight: imgH,
+                      ),
+                    ),
+                    if (isLast)
+                      GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => SeeAllScreen(
+                              title: title,
+                              products: products.map((p) => _toProduct(p)).toList(),
+                            ),
+                          ),
+                        ),
+                        child: const Padding(
+                          padding: EdgeInsets.only(top: 6),
+                          child: Text(
+                            'See more →',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: AppColors.buttonPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     ]);
   }
+  // Widget _buildComboProducts() {
+  //   final combos = _comboProducts;
+  //   if (combos.isEmpty) return const SizedBox.shrink();
+  //
+  //   final screenW = MediaQuery.of(context).size.width;
+  //   final cardW   = screenW * 0.42;
+  //   final imgH    = cardW * 0.75;
+  //   final cardH   = imgH + 134.0;
+  //
+  //   return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  //     const Padding(
+  //       padding: EdgeInsets.fromLTRB(16, 16, 16, 10),
+  //       child: Row(children: [
+  //         Icon(Icons.card_giftcard, color: AppColors.buttonPrimary, size: 18),
+  //         SizedBox(width: 6),
+  //         Text('Combo Deals',
+  //             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+  //       ]),
+  //     ),
+  //     SizedBox(
+  //       height: cardH,
+  //       child: ListView.builder(
+  //         scrollDirection: Axis.horizontal,
+  //         padding: const EdgeInsets.symmetric(horizontal: 16),
+  //         itemCount: combos.length,
+  //         itemBuilder: (_, i) => SizedBox(
+  //           width: cardW,
+  //           child: Padding(
+  //             padding: const EdgeInsets.only(right: 12),
+  //             child: ProductCard(
+  //               product: _toProduct(combos[i]),
+  //               imageHeight: imgH,
+  //             ),
+  //           ),
+  //         ),
+  //       ),
+  //     ),
+  //   ]);
+  // }
+  Widget _buildComboProducts() {
+    final combos = _comboProducts;
+    if (combos.isEmpty) return const SizedBox.shrink();
+
+    final screenW = MediaQuery.of(context).size.width;
+    final cardW   = screenW * 0.42;
+    final imgH    = cardW * 0.75;
+    final cardH   = imgH + 134.0;
+    const int previewCount = 4;
+    final bool hasSeeMore = combos.length > previewCount;
+    final displayCombos = hasSeeMore ? combos.take(previewCount).toList() : combos;
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Padding(
+        padding: EdgeInsets.fromLTRB(16, 16, 16, 10),
+        child: Row(children: [
+          Icon(Icons.card_giftcard, color: AppColors.buttonPrimary, size: 18),
+          SizedBox(width: 6),
+          Text('Combo Deals',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        ]),
+      ),
+      SizedBox(
+        height: cardH + (hasSeeMore ? 24 : 0),
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: displayCombos.length,
+          itemBuilder: (_, i) {
+            final bool isLast = hasSeeMore && i == displayCombos.length - 1;
+            return SizedBox(
+              width: cardW,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      height: cardH,
+                      child: ProductCard(
+                        product: _toProduct(displayCombos[i]),
+                        imageHeight: imgH,
+                      ),
+                    ),
+                    if (isLast)
+                      GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => SeeAllScreen(
+                              title: 'Combo Deals',
+                              products: combos.map((p) => _toProduct(p)).toList(),
+                            ),
+                          ),
+                        ),
+                        child: const Padding(
+                          padding: EdgeInsets.only(top: 6),
+                          child: Text(
+                            'See more →',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: AppColors.buttonPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    ]);
+  }
+
 
   Widget _buildRunningBanners() {
     if (_runningBanners.isEmpty) return const SizedBox.shrink();
@@ -1331,10 +1486,6 @@ class _NewDataBannerState extends State<_NewDataBanner>
                               color:      Colors.white,
                               fontSize:   13,
                               fontWeight: FontWeight.bold)),
-                      Text('Tap to refresh the page',
-                          style: TextStyle(
-                              color:   Colors.white70,
-                              fontSize: 11)),
                     ],
                   ),
                 ),
@@ -1548,18 +1699,48 @@ class _SubProduct {
         finalPrice     = rawPrice;
         finalWholesale = 0;
       }
+      // Use default piece image if available, else fall back to product image
+      final String productRawImage = j['image']?.toString() ?? '';
+      final String defaultPieceRawImage = defaultPieceMap?['image']?.toString() ?? '';
+      final String resolvedImage = (defaultPieceRawImage.isNotEmpty &&
+          defaultPieceRawImage != 'no_image.png')
+          ? defaultPieceRawImage
+          : productRawImage;
+
       return _SubProduct(
         productId: j['product_id']?.toString() ?? '',
         name:      j['name']?.toString()       ?? '',
-        image:     j['image']?.toString()      ?? '',
+        image:     resolvedImage,                    // ← CHANGED
         price:     finalPrice,
         wholesale: finalWholesale,
         qty:       qty,
         sku:       j['sku']?.toString() ?? '',
         unit:      rawUnit,
-        pieces: (j['pieces'] as List? ?? [])
-            .map((e) => ProductPiece.fromJson(e as Map<String, dynamic>))
-            .toList(),
+        pieces: (j['pieces'] as List? ?? []).map((e) {
+          final pm = e as Map<String, dynamic>;
+          final pp = double.tryParse(pm['price']?.toString() ?? '0') ?? 0.0;
+          final ps = double.tryParse(pm['special_price']?.toString() ?? '0') ?? 0.0;
+          final minQty = int.tryParse(pm['min_quantity']?.toString() ?? '0') ?? 0;
+          final pName  = pm['piece']?.toString() ?? '';
+          final pieceRawStock = int.tryParse(
+              (pm['pos_quantity'] ?? pm['pos_quentity'] ?? pm['quantity'] ?? '0').toString()
+          ) ?? 0;
+          final productIsCombo = (j['is_combo']?.toString() ?? 'No').toLowerCase() == 'yes';
+          final productLevelQty = int.tryParse(
+              (j['pos_quentity'] ?? j['quantity'] ?? '0').toString()
+          ) ?? 0;
+          final stock = (productIsCombo && pieceRawStock == 0) ? productLevelQty : pieceRawStock;
+          return ProductPiece(
+            pieceId:      pm['id']?.toString() ?? pm['piece_id']?.toString() ?? '',
+            label:        (minQty > 1 && pName.isNotEmpty) ? '$pName × $minQty' : pName,
+            price:        pp,
+            specialPrice: ps,
+            image:        pm['image']?.toString() ?? '',
+            minQuantity:  minQty,
+            isCombo:      (pm['is_combo']?.toString() ?? 'No').toLowerCase() == 'yes',
+            stock:        stock,
+          );
+        }).toList(),
       );
     } catch (_) {
       return null;
@@ -1624,7 +1805,6 @@ class _MtlProductCard extends StatelessWidget {
       decoration: BoxDecoration(
         color:        Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border:       Border.all(color: Colors.grey[200]!),
         boxShadow: [
           BoxShadow(
               color: Colors.black.withOpacity(0.04), blurRadius: 4)
@@ -1639,18 +1819,24 @@ class _MtlProductCard extends StatelessWidget {
                 MaterialPageRoute(
                     builder: (_) => ProductDetailScreen(product: product))),
             child: Stack(children: [
-              ClipRRect(
-                borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(10)),
-                child: SizedBox(
-                  height: imgH,
-                  width:  double.infinity,
-                  child:  p.imageUrl.isNotEmpty
-                      ? Image.network(p.imageUrl, fit: BoxFit.cover,
-                      loadingBuilder: (_, child, prog) =>
-                      prog == null ? child : _placeholder(),
-                      errorBuilder: (_, __, ___) => _placeholder())
-                      : _placeholder(),
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey[300]!, width: 1),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                ),
+                child: ClipRRect(
+                  borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(10)),
+                  child: SizedBox(
+                    height: imgH,
+                    width:  double.infinity,
+                    child:  p.imageUrl.isNotEmpty
+                        ? Image.network(p.imageUrl, fit: BoxFit.cover,
+                        loadingBuilder: (_, child, prog) =>
+                        prog == null ? child : _placeholder(),
+                        errorBuilder: (_, __, ___) => _placeholder())
+                        : _placeholder(),
+                  ),
                 ),
               ),
               if (p.discountPercent > 0)
@@ -1799,20 +1985,105 @@ class _MtlProductCard extends StatelessWidget {
   );
 }
 
-
-class _CartBtn extends StatelessWidget {
+class _CartBtn extends StatefulWidget {
   final Product            product;
   final bool               isInStock;
-  final List<ProductPiece> pieces;                        // ← add
+  final List<ProductPiece> pieces;
   const _CartBtn({
     required this.product,
     required this.isInStock,
-    this.pieces = const [],                               // ← add
+    this.pieces = const [],
   });
 
   @override
+  State<_CartBtn> createState() => _CartBtnState();
+}
+
+class _CartBtnState extends State<_CartBtn> {
+  bool _editing = false;
+  late final TextEditingController _ctrl;
+  late final FocusNode _focus;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl  = TextEditingController();
+    _focus = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  void _startEditing(int currentQty) {
+    _ctrl.text = '$currentQty';
+    _focus.requestFocus();
+    setState(() => _editing = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _ctrl.selection = TextSelection(
+        baseOffset:   0,
+        extentOffset: _ctrl.text.length,
+      );
+    });
+  }
+
+  void _commitEdit(CartModel cart) {
+    final val   = int.tryParse(_ctrl.text.trim()) ?? 0;
+    final stock = widget.product.quantity > 0
+        ? widget.product.quantity
+        : widget.product.posQuantity;
+    if (val <= 0) {
+      cart.removeItem(widget.product);
+    } else if (stock > 0 && val > stock) {
+      cart.setQuantity(widget.product, stock);
+      showDialog(
+        context: context,
+        barrierColor: Colors.black26,
+        builder: (_) => Center(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 40),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 20)],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.info_outline, color: AppColors.buttonPrimary, size: 36),
+                const SizedBox(height: 12),
+                Text(
+                  'Only $stock item${stock == 1 ? '' : 's'} available',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
+                ),
+                const SizedBox(height: 16),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
+                    decoration: BoxDecoration(color: AppColors.buttonPrimary, borderRadius: BorderRadius.circular(8)),
+                    child: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } else {
+      cart.setQuantity(widget.product, val);
+    }
+    setState(() => _editing = false);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (!isInStock) {
+    if (!widget.isInStock) {
       return Container(
         width:     double.infinity,
         height:    36,
@@ -1822,29 +2093,21 @@ class _CartBtn extends StatelessWidget {
             borderRadius: BorderRadius.circular(6),
             border: Border.all(color: Colors.grey[300]!)),
         child: const Text('Out of Stock',
-            style: TextStyle(
-                fontSize:   10,
-                color:      Colors.red,
-                fontWeight: FontWeight.bold)),
+            style: TextStyle(fontSize: 10, color: Colors.red, fontWeight: FontWeight.bold)),
       );
     }
 
-    // ── Has piece variants ────────────────────────────────────────────
-    if (pieces.isNotEmpty) {
+    if (widget.pieces.isNotEmpty) {
       return Consumer<CartModel>(
         builder: (_, cart, __) {
-          final qty = cart.getPieceQuantity(product.id);
+          final qty = cart.getPieceQuantity(widget.product.id);
           final bool hasQty = qty > 0;
-          final Color btnColor = hasQty ? Colors.green : AppColors.buttonPrimary;
-          final String optionLabel = pieces.length == 1 ? '1 option' : '${pieces.length} options';
-          final String priceLabel  = '₹${product.price.toInt()}';
-
+          final Color btnColor    = hasQty ? Colors.green : AppColors.buttonPrimary;
+          final Color btnBorder   = hasQty ? Colors.green : Colors.grey[300]!;
+          final String optionLabel = widget.pieces.length == 1 ? '1 option' : '${widget.pieces.length} options';
+          final String priceLabel  = '₹${widget.product.price.toInt()}';
           return GestureDetector(
-            onTap: () => handleAddToCart(
-              context: context,
-              product: product,
-              pieces:  pieces,
-            ),
+            onTap: () => handleAddToCart(context: context, product: widget.product, pieces: widget.pieces),
             child: Container(
               width:     double.infinity,
               height:    36,
@@ -1852,25 +2115,14 @@ class _CartBtn extends StatelessWidget {
               decoration: BoxDecoration(
                 color:        Colors.white,
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: btnColor, width: 1.2),
+                border: Border.all(color: btnBorder, width: 1.2),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    hasQty ? 'ADD (${pieces.length} opp)' : 'ADD',
-                    style: TextStyle(
-                        color:         btnColor,
-                        fontSize:      11,
-                        fontWeight:    FontWeight.bold,
-                        letterSpacing: 0.5),
-                  ),
-                  Text(
-                    hasQty ? priceLabel : optionLabel,
-                    style: TextStyle(
-                        color:   btnColor,
-                        fontSize: 8),
-                  ),
+                  Text(hasQty ? 'ADD (${widget.pieces.length} opp)' : 'ADD',
+                      style: TextStyle(color: btnColor, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                  Text(hasQty ? priceLabel : optionLabel, style: TextStyle(color: btnColor, fontSize: 8)),
                 ],
               ),
             ),
@@ -1879,14 +2131,12 @@ class _CartBtn extends StatelessWidget {
       );
     }
 
-    // ── Normal ADD / stepper ──────────────────────────────────────────
     return Consumer<CartModel>(
       builder: (_, cart, __) {
-        // final qty = cart.getQuantity(product);
-        final qty = cart.getPieceQuantity(product.id);
+        final qty = cart.getPieceQuantity(widget.product.id);
         if (qty == 0) {
           return GestureDetector(
-            onTap: () => cart.addItem(product),
+            onTap: () => cart.addItem(widget.product),
             child: Container(
               width:     double.infinity,
               height:    36,
@@ -1894,45 +2144,92 @@ class _CartBtn extends StatelessWidget {
               decoration: BoxDecoration(
                 color:        Colors.white,
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                    color: AppColors.buttonPrimary, width: 1.2),
+                border: Border.all(color: Colors.grey[300]!, width: 1.2),
               ),
               child: const Text('ADD',
-                  style: TextStyle(
-                      color:        AppColors.buttonPrimary,
-                      fontSize:     11,
-                      fontWeight:   FontWeight.bold,
-                      letterSpacing: 0.5)),
+                  style: TextStyle(color: AppColors.buttonPrimary, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
             ),
           );
         }
-        return Container(
-          height: 36,
-          decoration: BoxDecoration(
-              color:  AppColors.buttonPrimary,
-              borderRadius: BorderRadius.circular(6)),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              GestureDetector(
-                onTap: () => cart.decrementQuantity(product.id),
-                child: const SizedBox(
-                    width: 30, height: 36,
-                    child: Icon(Icons.remove, color: Colors.white, size: 14)),
+        final liveQty   = _editing ? (int.tryParse(_ctrl.text) ?? qty) : qty;
+        final liveTotal = (liveQty * widget.product.price).toInt();
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              height: 36,
+              decoration: BoxDecoration(color: AppColors.buttonPrimary, borderRadius: BorderRadius.circular(6)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  GestureDetector(
+                    onTap: () => cart.decrementQuantity(widget.product.id),
+                    child: const SizedBox(width: 30, height: 36, child: Icon(Icons.remove, color: Colors.white, size: 14)),
+                  ),
+                  if (_editing)
+                    SizedBox(
+                      width: 42,
+                      child: TextField(
+                        controller:   _ctrl,
+                        focusNode:    _focus,
+                        keyboardType: TextInputType.number,
+                        textAlign:    TextAlign.center,
+                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                        decoration: const InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
+                        onChanged:    (_) => setState(() {}),
+                        onSubmitted:  (_) => _commitEdit(cart),
+                        onTapOutside: (_) => _commitEdit(cart),
+                      ),
+                    )
+                  else
+                    GestureDetector(
+                      onTapDown: (_) => _startEditing(qty),
+                      child: Text('$qty', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                  GestureDetector(
+                    onTap: () {
+                      final stock = widget.product.quantity > 0 ? widget.product.quantity : widget.product.posQuantity;
+                      if (stock > 0 && qty >= stock) {
+                        showDialog(
+                          context: context,
+                          barrierColor: Colors.black26,
+                          builder: (_) => Center(
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 40),
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                              decoration: BoxDecoration(
+                                color: Colors.white, borderRadius: BorderRadius.circular(16),
+                                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 20)],
+                              ),
+                              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                                const Icon(Icons.info_outline, color: AppColors.buttonPrimary, size: 36),
+                                const SizedBox(height: 12),
+                                Text('Only $stock item${stock == 1 ? '' : 's'} available',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87)),
+                                const SizedBox(height: 16),
+                                GestureDetector(
+                                  onTap: () => Navigator.pop(context),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
+                                    decoration: BoxDecoration(color: AppColors.buttonPrimary, borderRadius: BorderRadius.circular(8)),
+                                    child: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                                  ),
+                                ),
+                              ]),
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+                      cart.addItem(widget.product);
+                    },
+                    child: const SizedBox(width: 30, height: 36, child: Icon(Icons.add, color: Colors.white, size: 14)),
+                  ),
+                ],
               ),
-              Text('$qty',
-                  style: const TextStyle(
-                      color:      Colors.white,
-                      fontSize:   12,
-                      fontWeight: FontWeight.bold)),
-              GestureDetector(
-                onTap: () => cart.addItem(product),
-                child: const SizedBox(
-                    width: 30, height: 36,
-                    child: Icon(Icons.add, color: Colors.white, size: 14)),
-              ),
-            ],
-          ),
+            ),
+          ],
         );
       },
     );
@@ -2508,8 +2805,19 @@ class _CategoryStripDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(
       BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(color: AppColors.white),
+    final isScrolled = shrinkOffset > 0 || overlapsContent;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      decoration: BoxDecoration(
+        color: isScrolled ? const Color(0xFFFFCDD2) : AppColors.white,
+        boxShadow: isScrolled
+            ? [BoxShadow(
+          color: Colors.red.withOpacity(0.15),
+          blurRadius: 6,
+          offset: const Offset(0, 2),
+        )]
+            : [],
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

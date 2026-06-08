@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'login/splash_screen.dart';
@@ -11,6 +12,12 @@ final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    systemNavigationBarColor: Colors.transparent,
+    statusBarColor: Colors.transparent,
+  ));
 
   // Pre-warm SharedPreferences once so all screens reuse the cache
   final prefs = await SharedPreferences.getInstance();
@@ -81,6 +88,13 @@ class MyApp extends StatelessWidget {
           surfaceTint: Colors.transparent,
         ),
         fontFamily: 'Roboto',
+        appBarTheme: const AppBarTheme(
+          systemOverlayStyle: SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Brightness.dark,
+            systemNavigationBarColor: Colors.transparent,
+          ),
+        ),
       ),
       home: const SplashScreen(),
     );

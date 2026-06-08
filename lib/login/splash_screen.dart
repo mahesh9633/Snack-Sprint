@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mtl_groceriesapp/login/login_screen.dart';
 import 'package:mtl_groceriesapp/screens/location_gateway.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/session_manager.dart';
 import '../services/api_server.dart';
 
@@ -72,9 +71,6 @@ class _SplashScreenState extends State<SplashScreen>
         );
         return;
       }
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('address_confirmed', false);
 
       if (!mounted) return;
 
@@ -260,7 +256,7 @@ class _SplashScreenState extends State<SplashScreen>
           ),
 
           Positioned(
-            bottom: 24,
+            bottom: MediaQuery.of(context).padding.bottom + 24,
             left: 0,
             right: 0,
             child: FadeTransition(

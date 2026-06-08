@@ -3,28 +3,32 @@ class CategoryDataProduct {
   final String categoryId;
   final String name;
   final String image;
+  final String defaultImage;   // ← NEW: default piece image or product image
   final double price;
   final double wholesalePrice;
   final double additionalPrice;
   final String quantity;
   final String sku;
   final String parentId;
-  final String piece;   // ← ADD THIS
+  final String piece;
   final List<Map<String, dynamic>> pieces;
+  final bool   isCombo;
 
   CategoryDataProduct({
     required this.productId,
     required this.categoryId,
     required this.name,
     required this.image,
+    required this.defaultImage,
     required this.price,
     required this.wholesalePrice,
     required this.additionalPrice,
     required this.quantity,
     required this.sku,
     required this.parentId,
-    required this.piece,  // ← ADD THIS
-    this.pieces = const [],
+    required this.piece,
+    this.pieces  = const [],
+    this.isCombo = false,
   });
 
   // ── Convenience getters ──────────────────────────────────────────────────
@@ -113,11 +117,20 @@ class CategoryDataProduct {
     // ── Weight label from default piece ─────────────────────────────
     final String pieceLabel = defaultPieceMap?['piece']?.toString() ?? '';
 
+    // Resolve display image: prefer default piece image, fall back to product image
+    final String productRawImage = json['image']?.toString() ?? '';
+    final String pieceRawImage   = defaultPieceMap?['image']?.toString() ?? '';
+    final String resolvedImage   = (pieceRawImage.isNotEmpty &&
+        pieceRawImage != 'no_image.png')
+        ? pieceRawImage
+        : productRawImage;
+
     return CategoryDataProduct(
       productId:       json['product_id']?.toString() ?? '',
       categoryId:      json['category_id']?.toString() ?? '',
       name:            json['name']?.toString() ?? '',
-      image:           json['image']?.toString() ?? '',
+      image:           productRawImage,
+      defaultImage:    resolvedImage,
       price:           finalPrice,
       wholesalePrice:  finalWholesale,
       additionalPrice: double.tryParse(json['additional_price']?.toString() ?? '0') ?? 0,
@@ -130,6 +143,7 @@ class CategoryDataProduct {
           ? json['piece'].toString()
           : json['barcode_type']?.toString() ?? ''),
       pieces:          rawPiecesList,
+      isCombo:         (json['is_combo']?.toString() ?? 'No').toLowerCase() == 'yes',
     );
   }
 

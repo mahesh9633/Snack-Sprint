@@ -34,7 +34,6 @@ class ProductCard extends StatelessWidget {
       decoration: BoxDecoration(
         color:        Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border:       Border.all(color: Colors.pink),
         boxShadow: [
           BoxShadow(
               color:      Colors.black.withOpacity(0.05),
@@ -60,14 +59,20 @@ class ProductCard extends StatelessWidget {
                   ? imageHeight
                   : constraints.maxWidth * 0.72;
               return Stack(children: [
-                ClipRRect(
-                  borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(10)),
-                  child: SizedBox(
-                    height: imgH,
-                    width:  double.infinity,
-                    child:  _safeImage(
-                        image: product.image, imageUrl: product.imageUrl),
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[300]!, width: 1),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                  ),
+                  child: ClipRRect(
+                    borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(10)),
+                    child: SizedBox(
+                      height: imgH,
+                      width:  double.infinity,
+                      child:  _safeImage(
+                          image: product.image, imageUrl: product.imageUrl),
+                    ),
                   ),
                 ),
                 if (product.computedDiscount > 0)
@@ -413,14 +418,100 @@ class ProductCard extends StatelessWidget {
 }
 
 // ── Full ADD / stepper (bottom of full card) ──────────────────────────────────
-class _CartButton extends StatelessWidget {
+class _CartButton extends StatefulWidget {
   final Product product;
   final bool    isInStock;
   const _CartButton({required this.product, required this.isInStock});
 
   @override
+  State<_CartButton> createState() => _CartButtonState();
+}
+
+class _CartButtonState extends State<_CartButton> {
+  bool _editing = false;
+  late final TextEditingController _ctrl;
+  late final FocusNode _focus;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl  = TextEditingController();
+    _focus = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  void _startEditing(int currentQty) {
+    _ctrl.text = '$currentQty';
+    _focus.requestFocus();
+    setState(() => _editing = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _ctrl.selection = TextSelection(
+        baseOffset:   0,
+        extentOffset: _ctrl.text.length,
+      );
+    });
+  }
+
+  void _commitEdit(CartModel cart) {
+    final val   = int.tryParse(_ctrl.text.trim()) ?? 0;
+    final stock = widget.product.quantity > 0
+        ? widget.product.quantity
+        : widget.product.posQuantity;
+    if (val <= 0) {
+      cart.removeItem(widget.product);
+    } else if (stock > 0 && val > stock) {
+      cart.setQuantity(widget.product, stock);
+      showDialog(
+        context: context,
+        barrierColor: Colors.black26,
+        builder: (_) => Center(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 40),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 20)],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.info_outline, color: Color(0xFFFF0080), size: 36),
+                const SizedBox(height: 12),
+                Text(
+                  'Only $stock item${stock == 1 ? '' : 's'} available',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
+                ),
+                const SizedBox(height: 16),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
+                    decoration: BoxDecoration(color: const Color(0xFFFF0080), borderRadius: BorderRadius.circular(8)),
+                    child: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } else {
+      cart.setQuantity(widget.product, val);
+    }
+    setState(() => _editing = false);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (!isInStock) {
+    if (!widget.isInStock) {
       return Container(
         width:     double.infinity,
         height:    30,
@@ -429,51 +520,41 @@ class _CartButton extends StatelessWidget {
             color:        Colors.grey[200],
             borderRadius: BorderRadius.circular(6)),
         child: const Text('Out of Stock',
-            style: TextStyle(
-                fontSize:   10,
-                color:      Colors.red,
-                fontWeight: FontWeight.bold)),
+            style: TextStyle(fontSize: 10, color: Colors.red, fontWeight: FontWeight.bold)),
       );
     }
 
-
     // ── Has piece variants? Show "2 options" style label ──────────────
-    if (product.pieces.isNotEmpty) {
+    if (widget.product.pieces.isNotEmpty) {
       return Consumer<CartModel>(
         builder: (_, cart, __) {
           int    totalQty = 0;
           double totalAmt = 0;
-          for (final piece in product.pieces) {
-            final pieceId = piece.cartId(product.id);
+          for (final piece in widget.product.pieces) {
+            final pieceId = piece.cartId(widget.product.id);
             final tmp = Product(
               id:                 pieceId,
-              name:               '${product.name} – ${piece.label}',
+              name:               '${widget.product.name} – ${piece.label}',
               price:              piece.effectivePrice,
               originalPrice:      piece.hasDiscount ? piece.price : piece.effectivePrice,
-              image:              product.image,
-              imageUrl:           product.imageUrl,
-              category:           product.category,
+              image:              widget.product.image,
+              imageUrl:           widget.product.imageUrl,
+              category:           widget.product.category,
               weight:             piece.label,
-              sku:                product.sku,
+              sku:                widget.product.sku,
               discountPercentage: piece.discountPct.toDouble(),
-              quantity:           product.quantity,
-              posQuantity:        product.posQuantity,
+              quantity:           widget.product.quantity,
+              posQuantity:        widget.product.posQuantity,
             );
             final q = cart.getQuantity(tmp);
             totalQty += q;
             totalAmt += q * piece.effectivePrice;
           }
-
           final hasItems  = totalQty > 0;
-          final borderClr = hasItems ? const Color(0xFF388E3C) : const Color(0xFFFF0080);
+          final borderClr = hasItems ? const Color(0xFF388E3C) : Colors.grey[300]!;
           final textClr   = hasItems ? const Color(0xFF388E3C) : const Color(0xFFFF0080);
-
           return GestureDetector(
-            onTap: () => handleAddToCart(
-              context: context,
-              product: product,
-              pieces:  product.pieces,
-            ),
+            onTap: () => handleAddToCart(context: context, product: widget.product, pieces: widget.product.pieces),
             child: Container(
               width:     double.infinity,
               height:    36,
@@ -483,46 +564,17 @@ class _CartButton extends StatelessWidget {
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: borderClr, width: 1.2),
               ),
-
               child: hasItems
-                  ? Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('ADD (${product.pieces.length} opp)',
-                      style: TextStyle(
-                          color:         textClr,
-                          fontSize:      11,
-                          fontWeight:    FontWeight.bold,
-                          letterSpacing: 0.5)),
-                  Text(
-                    '₹${totalAmt.toInt()}',
-                    style: TextStyle(
-                        color:      textClr,
-                        fontSize:   9,
-                        fontWeight: FontWeight.w700),
-                  ),
-                ],
-              )
-                  : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('ADD',
-                      style: TextStyle(
-                          color:         textClr,
-                          fontSize:      11,
-                          fontWeight:    FontWeight.bold,
-                          letterSpacing: 0.5)),
-                  Text(
-                    product.pieces.length == 1
-                        ? '1 option'
-                        : '${product.pieces.length} options',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        color:   textClr,
-                        fontSize: 8),
-                  ),
-                ],
-              ),
+                  ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Text('ADD (${widget.product.pieces.length} opp)',
+                    style: TextStyle(color: textClr, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                Text('₹${totalAmt.toInt()}', style: TextStyle(color: textClr, fontSize: 9, fontWeight: FontWeight.w700)),
+              ])
+                  : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Text('ADD', style: TextStyle(color: textClr, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                Text(widget.product.pieces.length == 1 ? '1 option' : '${widget.product.pieces.length} options',
+                    textAlign: TextAlign.center, style: TextStyle(color: textClr, fontSize: 8)),
+              ]),
             ),
           );
         },
@@ -531,10 +583,10 @@ class _CartButton extends StatelessWidget {
 
     return Consumer<CartModel>(
       builder: (_, cart, __) {
-        final qty = cart.getQuantity(product);
+        final qty = cart.getQuantity(widget.product);
         if (qty == 0) {
           return GestureDetector(
-            onTap: () => cart.addItem(product),
+            onTap: () => cart.addItem(widget.product),
             child: Container(
               width:     double.infinity,
               height:    36,
@@ -542,45 +594,92 @@ class _CartButton extends StatelessWidget {
               decoration: BoxDecoration(
                 color:        Colors.white,
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                    color: const Color(0xFFFF0080), width: 1.2),
+                border: Border.all(color: Colors.grey[300]!, width: 1.2),
               ),
               child: const Text('ADD',
-                  style: TextStyle(
-                      color:         Color(0xFFFF0080),
-                      fontSize:      12,
-                      fontWeight:    FontWeight.bold,
-                      letterSpacing: 0.5)),
+                  style: TextStyle(color: Color(0xFFFF0080), fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
             ),
           );
         }
-        return Container(
-          height: 36,
-          decoration: BoxDecoration(
-              color:        const Color(0xFFFF0080),
-              borderRadius: BorderRadius.circular(6)),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              GestureDetector(
-                onTap: () => cart.decrementQuantity(product.id),
-                child: const SizedBox(
-                    width: 32, height: 36,
-                    child: Icon(Icons.remove, color: Colors.white, size: 15)),
+        final liveQty   = _editing ? (int.tryParse(_ctrl.text) ?? qty) : qty;
+        final liveTotal = (liveQty * widget.product.price).toInt();
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              height: 36,
+              decoration: BoxDecoration(color: const Color(0xFFFF0080), borderRadius: BorderRadius.circular(6)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  GestureDetector(
+                    onTap: () => cart.decrementQuantity(widget.product.id),
+                    child: const SizedBox(width: 32, height: 36, child: Icon(Icons.remove, color: Colors.white, size: 15)),
+                  ),
+                  if (_editing)
+                    SizedBox(
+                      width: 42,
+                      child: TextField(
+                        controller:   _ctrl,
+                        focusNode:    _focus,
+                        keyboardType: TextInputType.number,
+                        textAlign:    TextAlign.center,
+                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                        decoration: const InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
+                        onChanged:    (_) => setState(() {}),
+                        onSubmitted:  (_) => _commitEdit(cart),
+                        onTapOutside: (_) => _commitEdit(cart),
+                      ),
+                    )
+                  else
+                    GestureDetector(
+                      onTapDown: (_) => _startEditing(qty),
+                      child: Text('$qty', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                  GestureDetector(
+                    onTap: () {
+                      final stock = widget.product.quantity > 0 ? widget.product.quantity : widget.product.posQuantity;
+                      if (stock > 0 && qty >= stock) {
+                        showDialog(
+                          context: context,
+                          barrierColor: Colors.black26,
+                          builder: (_) => Center(
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 40),
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                              decoration: BoxDecoration(
+                                color: Colors.white, borderRadius: BorderRadius.circular(16),
+                                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 20)],
+                              ),
+                              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                                const Icon(Icons.info_outline, color: Color(0xFFFF0080), size: 36),
+                                const SizedBox(height: 12),
+                                Text('Only $stock item${stock == 1 ? '' : 's'} available',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87)),
+                                const SizedBox(height: 16),
+                                GestureDetector(
+                                  onTap: () => Navigator.pop(context),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
+                                    decoration: BoxDecoration(color: const Color(0xFFFF0080), borderRadius: BorderRadius.circular(8)),
+                                    child: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                                  ),
+                                ),
+                              ]),
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+                      cart.addItem(widget.product);
+                    },
+                    child: const SizedBox(width: 32, height: 36, child: Icon(Icons.add, color: Colors.white, size: 15)),
+                  ),
+                ],
               ),
-              Text('$qty',
-                  style: const TextStyle(
-                      color:      Colors.white,
-                      fontSize:   12,
-                      fontWeight: FontWeight.bold)),
-              GestureDetector(
-                onTap: () => cart.addItem(product),
-                child: const SizedBox(
-                    width: 32, height: 36,
-                    child: Icon(Icons.add, color: Colors.white, size: 15)),
-              ),
-            ],
-          ),
+            ),
+          ],
         );
       },
     );

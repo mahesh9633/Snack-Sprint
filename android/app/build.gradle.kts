@@ -31,7 +31,7 @@ android {
     defaultConfig {
         applicationId = "com.dbm.mtl_groceriesapp"
         minSdk = 24
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -57,6 +57,10 @@ android {
             // no signing needed → allows teammates to run app
         }
     }
+}
+
+dependencies {
+    implementation("androidx.core:core-ktx:1.13.1")
 }
 
 flutter {
