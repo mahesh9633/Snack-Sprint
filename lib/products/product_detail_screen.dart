@@ -153,7 +153,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ) ?? 0;
                   final pieceStock = (productIsCombo && pieceRawStock == 0) ? productLevelQty : pieceRawStock;
                   parsedPieces.add(_PieceOption(
-                    pieceId:      p['id']?.toString() ?? '',
+                    rowId:        p['id']?.toString() ?? '',
+                    pieceId:      p['piece_id']?.toString() ?? '',
                     piece:        pieceLabel,
                     price:        price,
                     specialPrice: sp,
@@ -259,7 +260,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           final int qty;
           if (_selectedPiece != null) {
             final pieceProduct = Product(
-              id: '${_product.id}_piece_${_selectedPiece!.pieceId}',
+              id: '${_product.id}_piece_${_selectedPiece!.rowId}',
               name: '${_product.name} – ${_selectedPiece!.piece}',
               price: _selectedPiece!.displayPrice,
               originalPrice: double.tryParse(_selectedPiece!.price) ?? _selectedPiece!.displayPrice,
@@ -754,7 +755,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     _DetailStepperButton(
                         product: _selectedPiece != null
                             ? Product(
-                          id: '${_product.id}_piece_${_selectedPiece!.pieceId}',
+                          id: '${_product.id}_piece_${_selectedPiece!.rowId}',
                           name: '${_product.name} – ${_selectedPiece!.piece}',
                           price: _selectedPiece!.displayPrice,
                           originalPrice: double.tryParse(_selectedPiece!.price) ?? _selectedPiece!.displayPrice,
@@ -773,7 +774,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     _DetailAddButton(
                         product: _selectedPiece != null
                             ? Product(
-                          id: '${_product.id}_piece_${_selectedPiece!.pieceId}',
+                          id: '${_product.id}_piece_${_selectedPiece!.rowId}',
                           name: '${_product.name} – ${_selectedPiece!.piece}',
                           price: _selectedPiece!.displayPrice,
                           originalPrice: double.tryParse(_selectedPiece!.price) ?? _selectedPiece!.displayPrice,
@@ -1477,6 +1478,7 @@ class _DetailAddButton extends StatelessWidget {
 // ── Piece Option model ────────────────────────────────────────────────────────
 
 class _PieceOption {
+  final String rowId;
   final String pieceId;
   final String piece;
   final String price;
@@ -1486,6 +1488,7 @@ class _PieceOption {
   final int    minQuantity;
 
   const _PieceOption({
+    required this.rowId,
     required this.pieceId,
     required this.piece,
     required this.price,
@@ -1812,6 +1815,7 @@ class _DetailStepperButtonState extends State<_DetailStepperButton> {
   }
 }
 ProductPiece _toPiece(_PieceOption opt) => ProductPiece(
+  rowId:        opt.rowId,
   pieceId:      opt.pieceId,
   label:        opt.piece,
   price:        double.tryParse(opt.price) ?? 0,

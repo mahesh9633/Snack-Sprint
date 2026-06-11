@@ -114,8 +114,9 @@ class Product {
     'quantity':           quantity,
     'posQuantity':        posQuantity,
     'isCombo':            isCombo,
-    'pieces':             pieces.map((p) => {
-      'id':            p.pieceId,
+    'pieces': pieces.map((p) => {
+      'id':            p.rowId,
+      'piece_id':      p.pieceId,
       'piece':         p.label,
       'price':         p.price.toString(),
       'special_price': p.specialPrice.toString(),
@@ -176,8 +177,9 @@ class Product {
             final minQtyInt      = int.tryParse(p['min_quantity']?.toString() ?? '0') ?? 0;
             final productIsCombo = (json['is_combo']?.toString() ?? 'No').toLowerCase() == 'yes';
             final pc = ProductPiece(
-              pieceId:      p['id']?.toString() ?? p['piece_id']?.toString() ?? '',
-              label:        p['piece']?.toString() ?? '',
+              rowId: p['id']?.toString() ?? '',
+              pieceId: p['piece_id']?.toString() ?? '',
+              label: p['piece']?.toString() ?? '',
               price:        piecePrice,
               specialPrice: pieceSp,
               image:        p['image']?.toString() ?? '',
@@ -286,8 +288,9 @@ class Product {
             final minQtyInt      = int.tryParse(p['min_quantity']?.toString() ?? '0') ?? 0;
             final productIsCombo = (json['is_combo']?.toString() ?? 'No').toLowerCase() == 'yes';
             final pc = ProductPiece(
-              pieceId:      p['id']?.toString() ?? p['piece_id']?.toString() ?? '',
-              label:        p['piece']?.toString() ?? '',
+              rowId: p['id']?.toString() ?? '',
+              pieceId: p['piece_id']?.toString() ?? '',
+              label: p['piece']?.toString() ?? '',
               price:        piecePrice,
               specialPrice: pieceSp,
               image:        p['image']?.toString() ?? '',

@@ -86,18 +86,18 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 48),
+              const SizedBox(height: 40),
 
               Center(
                 child: Image.asset(
-                  'assets/images/dbm_logo.jpg',
-                  width: 200,
-                  height: 160,
+                  'assets/images/smile_logo.png',
+                  width: 250,
+                  height: 210,
                   fit: BoxFit.contain,
                 ),
               ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 10),
 
               const Text(
                 'Welcome!',
@@ -259,7 +259,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextSpan(
                         text: 'Terms of Service',
                         style: const TextStyle(
-                          color: AppColors.textLink,
+                          color: AppColors.buttonPrimary,
                           fontWeight: FontWeight.w600,
                           fontSize: 12,
                           decoration: TextDecoration.underline,
@@ -274,7 +274,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextSpan(
                         text: 'Privacy Policy',
                         style: const TextStyle(
-                          color: AppColors.textLink,
+                          color: AppColors.buttonPrimary,
                           fontWeight: FontWeight.w600,
                           fontSize: 12,
                           decoration: TextDecoration.underline,

@@ -37,6 +37,7 @@ Product _toProduct(CategoryDataProduct p) {
     final pieceStock = base.stock;
     final resolvedStock = (isCombo && pieceStock == 0) ? productQty : pieceStock;
     return ProductPiece(
+      rowId:        base.rowId,
       pieceId:      base.pieceId,
       label:        base.label,
       price:        base.price,

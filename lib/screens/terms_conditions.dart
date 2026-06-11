@@ -69,7 +69,7 @@ class TermsConditionsScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  // ── Outlined "Durga Bhavani Mart" ──
+                  // ── Outlined "Smile Basket" ──
                   Stack(
                     children: [
                       Text(
@@ -83,7 +83,7 @@ class TermsConditionsScreen extends StatelessWidget {
                         ),
                       ),
                       const Text(
-                        'Durga Bhavani Mart',
+                        'Smile Basket',
                         style: TextStyle(color: Colors.black, fontSize: 14),
                       ),
                     ],
@@ -153,7 +153,7 @@ class TermsConditionsScreen extends StatelessWidget {
 
             _sectionTitle('1. Acceptance of Terms'),
             _bodyText(
-              'By accessing or using the Durga Bhavani Mart application at '
+              'By accessing or using the Smile Basket application at '
                   'https:dbmarts.com/termsandconditions, you agree to be bound by these Terms '
                   'and Conditions. If you do not agree, please immediately stop '
                   'using the Application.',
@@ -165,7 +165,7 @@ class TermsConditionsScreen extends StatelessWidget {
                   'can order groceries and have them delivered to a specified '
                   'location. Over time, the Application learns user grocery habits '
                   'and proposes weekly grocery baskets. All available programs may '
-                  'change at any time at Durga Bhavani Mart\'s discretion.',
+                  'change at any time at Smile Basket\'s discretion.',
             ),
 
             _sectionTitle('3. Eligibility & Use Conditions'),
@@ -211,7 +211,7 @@ class TermsConditionsScreen extends StatelessWidget {
             _subTitle('4.3 Account Termination'),
             _bodyText(
               'Your Account is non-transferable. Any violation of these Terms '
-                  'may result in cancellation of your Account at Durga Bhavani '
+                  'may result in cancellation of your Account at Smile Basket '
                   'Mart\'s sole discretion. Upon termination, all pending '
                   'promotional vouchers and unredeemed values will be forfeited. '
                   'Your personal data will be deleted within 30 days of account '
@@ -220,7 +220,7 @@ class TermsConditionsScreen extends StatelessWidget {
 
             _sectionTitle('5. Payment Methods'),
             _bodyText(
-              'Durga Bhavani Mart currently supports the following payment methods:',
+              'Smile Basket currently supports the following payment methods:',
             ),
             _bulletPoint(
               'Cash on Delivery (COD) — Pay in cash when your order is delivered to your doorstep.',
@@ -232,7 +232,7 @@ class TermsConditionsScreen extends StatelessWidget {
               'For UPI payments, you must provide a valid UTR (Unique Transaction Reference) number and attach a screenshot of the completed payment as proof. Orders will be processed only after payment verification.',
             ),
             _bodyText(
-              'Durga Bhavani Mart reserves the right to cancel any order where payment proof is found to be invalid, fraudulent, or unverifiable. In such cases, you will be notified and a refund (if applicable) will be processed within 5–7 business days.',
+              'Smile Basket reserves the right to cancel any order where payment proof is found to be invalid, fraudulent, or unverifiable. In such cases, you will be notified and a refund (if applicable) will be processed within 5–7 business days.',
             ),
             _noteText(
               'We do not store any UPI credentials or banking information on our servers. All payment transactions are the responsibility of the respective payment platforms.',
@@ -261,7 +261,7 @@ class TermsConditionsScreen extends StatelessWidget {
             _bulletPoint('Scanning or testing the Application\'s security.'),
             _bulletPoint('Reselling or repurposing access to the Application.'),
             _bulletPoint(
-              'Acting illegally or against the reputation of Durga Bhavani Mart.',
+              'Acting illegally or against the reputation of Smile Basket.',
             ),
 
             _sectionTitle('8. Intellectual Property'),
@@ -271,13 +271,13 @@ class TermsConditionsScreen extends StatelessWidget {
                   'Indian copyright, trademark and intellectual property laws. '
                   'You may not modify, distribute, publish, transmit, display, '
                   'perform, sell, or exploit any content without express permission '
-                  'from Durga Bhavani Mart.',
+                  'from Smile Basket.',
             ),
 
             _sectionTitle('9. Disclaimer of Warranty'),
             _bodyText(
               'THE APPLICATION IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" '
-                  'BASIS. DURGA BHAVANI MART MAKES NO WARRANTIES, EXPRESS OR '
+                  'BASIS. Smile Basket MAKES NO WARRANTIES, EXPRESS OR '
                   'IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF '
                   'MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR '
                   'NON-INFRINGEMENT. USE OF THE APPLICATION IS AT YOUR SOLE RISK.',
@@ -286,7 +286,7 @@ class TermsConditionsScreen extends StatelessWidget {
             _sectionTitle('10. Limitation of Liability'),
             _bodyText(
               'TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT '
-                  'SHALL DURGA BHAVANI MART BE LIABLE FOR ANY INDIRECT, INCIDENTAL, '
+                  'SHALL Smile Basket BE LIABLE FOR ANY INDIRECT, INCIDENTAL, '
                   'SPECIAL, CONSEQUENTIAL OR PUNITIVE DAMAGES ARISING OUT OF OR '
                   'RELATED TO YOUR USE OF THE APPLICATION.',
             ),
@@ -304,7 +304,7 @@ class TermsConditionsScreen extends StatelessWidget {
 
             _sectionTitle('11. Indemnification'),
             _bodyText(
-              'You agree to defend, indemnify and hold harmless Durga Bhavani '
+              'You agree to defend, indemnify and hold harmless Smile Basket '
                   'Mart, its subsidiaries, affiliates, directors, officers, '
                   'employees and agents from and against all claims, expenses and '
                   'attorneys\' fees arising from your use of the Application or '
@@ -443,7 +443,7 @@ class TermsConditionsScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: const [
         Text(
-          'Durga Bhavani Mart',
+          'Smile Basket',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 15,

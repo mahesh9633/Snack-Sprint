@@ -29,7 +29,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   String  _telephone        = '';
-  String  _displayName      = 'DBM USER';
+  String  _displayName      = 'Smile Basket user';
   int     _addressCount     = 0;
   String? _profileImagePath;
   String? _serverImageUrl;
@@ -77,10 +77,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (mounted) {
       setState(() {
         _telephone        = phone;
-        if (_displayName.isEmpty || _displayName == 'DBM user') {
+        if (_displayName.isEmpty || _displayName == 'Smile Basket user') {
           _displayName = (savedName != null && savedName.isNotEmpty)
               ? savedName
-              : 'DBM user';
+              : 'Smile Basket user';
         }
         _profileImagePath = (savedImage != null && savedImage.isNotEmpty)
             ? savedImage
@@ -106,7 +106,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (mounted) {
           setState(() {
             _telephone      = telephone;
-            _displayName    = fullName.isNotEmpty ? fullName : 'DBM user';
+            _displayName    = fullName.isNotEmpty ? fullName : 'Smile Basket user';
             _serverImageUrl = imgUrl.isNotEmpty ? imgUrl : null;
             _contact        = contact;
           });
@@ -484,7 +484,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Text('App version 1.0.0',
                           style: TextStyle(color: Colors.grey[500], fontSize: 12)),
                       const SizedBox(height: 2),
-                      Text('Durga Bhavani mart Groceries',
+                      Text('Smile Basket Groceries',
                           style: TextStyle(color: Colors.grey[400], fontSize: 11)),
                     ]),
                   ),

@@ -68,7 +68,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  // ── Outlined "Durga Bhavani Mart" ──
+                  // ── Outlined "Smile Basket" ──
                   Stack(
                     children: [
                       Text(
@@ -82,7 +82,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                         ),
                       ),
                       const Text(
-                        'Durga Bhavani Mart',
+                        'Smile Basket',
                         style: TextStyle(color: Colors.black, fontSize: 14),
                       ),
                     ],
@@ -183,7 +183,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
 
             _sectionTitle('1. Overview & Data Fiduciary'),
             _bodyText(
-              'Durga Bhavani Mart ("we", "us", or "our"), operating at '
+              'Smile Basket ("we", "us", or "our"), operating at '
                   'http://dbmarts/privacy, is the Data Fiduciary under the '
                   'Digital Personal Data Protection (DPDP) Act, 2023. Our sole '
                   'purpose for collecting personal data is to identify the '
@@ -654,12 +654,12 @@ class PrivacyPolicyScreen extends StatelessWidget {
         const Divider(height: 16, color: AppColors.divider),
         const _ContactRow(
           icon: Icons.person_outline,
-          text: 'Name: [Durga Bhavani ]',
+          text: 'Name: [Smile Basket]',
         ),
         const SizedBox(height: 6),
         const _ContactRow(
           icon: Icons.business_outlined,
-          text: 'Durga Bhavani Mart',
+          text: 'Smile Basket',
         ),
         const SizedBox(height: 6),
         const _ContactRow(
@@ -782,7 +782,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: const [
         Text(
-          'Durga Bhavani Mart',
+          'Smile Basket',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 15,

@@ -78,14 +78,15 @@ class ApiProduct {
       ) ?? 0;
       final stock = (productIsCombo && pieceRawStock == 0) ? productQty : pieceRawStock;
       return ProductPiece(
-        pieceId:      p['id']?.toString() ?? p['piece_id']?.toString() ?? '',
-        label:        label,
-        price:        piecePrice,
+        rowId: p['id']?.toString() ?? '',
+        pieceId: p['piece_id']?.toString() ?? '',
+        label: label,
+        price: piecePrice,
         specialPrice: pieceSp,
-        image:        p['image']?.toString() ?? '',
-        minQuantity:  minQtyInt,
-        isCombo:      isCombo,
-        stock:        stock,
+        image: p['image']?.toString() ?? '',
+        minQuantity: minQtyInt,
+        isCombo: isCombo,
+        stock: stock,
       );
     }).toList();
 

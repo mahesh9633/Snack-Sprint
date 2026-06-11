@@ -108,7 +108,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFBA5523),
+      backgroundColor: const Color(0xFFFFB6C1),
       body: Stack(
         children: [
           Positioned.fill(
@@ -161,25 +161,25 @@ class _SplashScreenState extends State<SplashScreen>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Image.asset(
-                      'assets/images/dbm_logo.jpg',
-                      width: 200,
-                      height: 160,
+                      'assets/images/smile_logo.png',
+                      width: 250,
+                      height: 210,
                       fit: BoxFit.contain,
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
 
-                    const Text(
-                      'Durga Bhavani',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-
-                    const SizedBox(height: 6),
+                    // const Text(
+                    //   'Smile Basket',
+                    //   style: TextStyle(
+                    //     color: Colors.white,
+                    //     fontSize: 32,
+                    //     fontWeight: FontWeight.w900,
+                    //     letterSpacing: 0.5,
+                    //   ),
+                    // ),
+                    //
+                    // const SizedBox(height: 6),
 
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,

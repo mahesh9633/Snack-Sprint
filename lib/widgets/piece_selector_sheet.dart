@@ -11,6 +11,7 @@ final String _imgBase = ApiConfig.imageBase;
 
 // ─── Data model for one piece/variant ────────────────────────────────────────
 class ProductPiece {
+  final String rowId;
   final String pieceId;
   final String label;
   final double price;
@@ -21,6 +22,7 @@ class ProductPiece {
   final int    stock;         // piece-level stock
 
   const ProductPiece({
+    this.rowId = '',
     required this.pieceId,
     required this.label,
     required this.price,
@@ -32,6 +34,9 @@ class ProductPiece {
   });
 
   factory ProductPiece.fromJson(Map<String, dynamic> j) {
+
+    print('PRODUCT PIECE JSON = $j');
+
     final price      = double.tryParse(j['price']?.toString()         ?? '0') ?? 0;
     final special    = double.tryParse(j['special_price']?.toString() ?? '0') ?? 0;
     final pieceName  = j['piece']?.toString() ?? '';
@@ -41,9 +46,15 @@ class ProductPiece {
     final label      = (minQtyInt > 1 && pieceName.isNotEmpty)
         ? '$pieceName × $minQtyInt'
         : pieceName;
+
+    print('FROM JSON');
+    print('id       = ${j['id']}');
+    print('piece_id = ${j['piece_id']}');
+
     return ProductPiece(
-      pieceId:      j['id']?.toString() ?? '',
-      label:        label,
+      rowId: j['id']?.toString() ?? '',
+      pieceId: j['piece_id']?.toString() ?? '',
+      label: label,
       price:        price,
       specialPrice: special,
       image:        j['image']?.toString() ?? '',
@@ -57,7 +68,9 @@ class ProductPiece {
   bool   get hasDiscount    => specialPrice > 0 && specialPrice < price;
   int    get discountPct    => hasDiscount ? ((price - specialPrice) / price * 100).round() : 0;
 
-  String cartId(String baseProductId) => '${baseProductId}_piece_$pieceId';
+  // String cartId(String baseProductId) => '${baseProductId}_piece_$pieceId';
+  String cartId(String baseProductId)
+  => '${baseProductId}_piece_${rowId.isNotEmpty ? rowId : pieceId}';
 }
 
 // ─── Public entry-point ───────────────────────────────────────────────────────
@@ -79,6 +92,12 @@ void handleAddToCart({
 }
 
 void _addPiece(BuildContext context, Product base, ProductPiece piece) {
+
+  print('ADD PIECE DEBUG');
+  print('rowId   = ${piece.rowId}');
+  print('pieceId = ${piece.pieceId}');
+  print('label   = ${piece.label}');
+
   final pieceProduct = Product(
     id:                 piece.cartId(base.id),
     name:               '${base.name} – ${piece.label}',

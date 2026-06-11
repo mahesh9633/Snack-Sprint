@@ -45,12 +45,28 @@ class OrderApiService {
         pieceRowId    = 0;
       }
 
-      // Since _addPiece stores pieces:[piece], first() is always the right piece
       final matchedPiece = item.product.pieces.isNotEmpty
           ? item.product.pieces.first
           : null;
 
-      final minQty      = matchedPiece?.minQuantity ?? 0;
+      if (kDebugMode) {
+        print('============== ORDER DEBUG ==============');
+        print('Cart Key        : $cartKey');
+        print('Product Name    : ${item.product.name}');
+        print('Base Product ID : $baseProductId');
+        print('Piece Row ID    : $pieceRowId');
+        print('Cart Row ID : $pieceRowId');
+        print('Piece ID    : ${matchedPiece?.pieceId}');
+        print('Model Row ID: ${matchedPiece?.rowId}');
+
+        if (matchedPiece != null) {
+          print('Matched Piece   : $matchedPiece');
+        }
+
+        print('=========================================');
+      }
+
+      final minQty = matchedPiece?.minQuantity ?? 0;
       final isCombo     = item.product.isCombo;
       // quantity = min_quantity × user quantity (e.g. min=2, user=3 → quantity=6)
       final comboQty    = minQty > 0 ? minQty * item.quantity : item.quantity;
@@ -63,7 +79,7 @@ class OrderApiService {
         'price':             item.product.price.round(),
         'total':             total.round(),
         'is_combo':          isCombo ? 'Yes' : 'No',
-        'piece_id':          pieceRowId,
+        'piece_id': int.tryParse(matchedPiece?.pieceId ?? '') ?? pieceRowId,
         'min_quantity':      minQty,             // e.g. 2 or 4
         'selected_quantity': item.quantity,      // user tapped qty e.g. 3
       };
@@ -129,6 +145,12 @@ class OrderApiService {
 
     final body     = {'orderDetails': orderDetails};
     final jsonBody = jsonEncode(body);
+
+    if (kDebugMode) {
+      print('=========== ORDER JSON ===========');
+      print(jsonBody);
+      print('=================================');
+    }
 
     if (kDebugMode) {
     }

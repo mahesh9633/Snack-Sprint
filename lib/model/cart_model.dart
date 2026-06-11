@@ -22,9 +22,6 @@ class CartItem {
   );
 }
 
-//   // ── Per-user key (set on login, reset on logout) ───────────────────────────
-//   String _cartKey = 'mtl_cart_items_guest';
-
 class CartModel extends ChangeNotifier {
 
   // callback to notify UI when stock limit is reached

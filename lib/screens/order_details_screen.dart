@@ -250,7 +250,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-                    pw.Text('DURGA BHAVANI MART', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.white)),
+                    pw.Text('Smile Basket', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.white)),
                     pw.Text('Order Receipt', style: pw.TextStyle(fontSize: 10, color: PdfColor(0.85, 0.80, 1.0))),
                   ]),
                   pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
@@ -452,7 +452,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               ),
               child: pw.Center(
                 child: pw.Text(
-                  'Thank you for shopping with DURGA BHAVANI MART!',
+                  'Thank you for shopping with Smile Basket!',
                   style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: purple, fontStyle: pw.FontStyle.italic),
                 ),
               ),

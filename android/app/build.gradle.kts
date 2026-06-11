@@ -17,7 +17,7 @@ plugins {
 android {
     namespace = "com.dbm.mtl_groceriesapp"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "27.0.12077973"
+    ndkVersion = "29.0.14206865"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -49,12 +49,23 @@ android {
 
     buildTypes {
         release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+
             if (keystorePropertiesFile.exists()) {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
-        debug {
-            // no signing needed → allows teammates to run app
+    }
+
+    splits {
+        abi {
+            isEnable = false
         }
     }
 }
