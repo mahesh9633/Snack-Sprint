@@ -495,7 +495,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: Colors.pink),
+          Icon(icon, size: 20, color: AppColors.floatingCartBg),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -554,7 +554,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.extension_outlined, size: 16, color: Colors.pink),
+          const Icon(Icons.extension_outlined, size: 16, color: AppColors.floatingCartBg),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -822,7 +822,7 @@ class _ContactRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 16, color: Colors.pink),
+        Icon(icon, size: 16, color: AppColors.floatingCartBg),
         const SizedBox(width: 8),
         Expanded(
           child: Text(

@@ -124,19 +124,26 @@ class _PieceSelectorSheet extends StatelessWidget {
 
   const _PieceSelectorSheet({required this.product, required this.pieces});
 
+  double _initialSize(BuildContext context) {
+    final screenH     = MediaQuery.of(context).size.height;
+    final itemHeight  = pieces.length * 105.0;
+    final totalHeight = itemHeight + 150.0;
+    final ratio       = totalHeight / screenH;
+    if (ratio < 0.25) return 0.25;
+    if (ratio > 0.60) return 0.60;
+    return ratio;
+  }
+
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
-      initialChildSize: 0.75,
-      minChildSize:     0.50,
+      initialChildSize: _initialSize(context),
+      minChildSize:     0.30,
       maxChildSize:     0.92,
       expand:           false,
       snap:             false,
-      builder: (_, scrollCtrl) => Stack(
-        children: [
-          // ── Main sheet container ───────────────────────────────────
-          Container(
-            decoration: const BoxDecoration(
+      builder: (_, scrollCtrl) => Container(
+        decoration: const BoxDecoration(
               color:        Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
@@ -216,21 +223,10 @@ class _PieceSelectorSheet extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-
-          // ── Floating cart bar pinned at bottom of sheet ────────────
-          const Positioned(
-            bottom: 16,
-            left:   16,
-            right:  16,
-            child:  FloatingCartBar(),
-          ),
-        ],
       ),
     );
   }
 }
-
 // ─── Single piece row ─────────────────────────────────────────────────────────
 class _PieceRow extends StatelessWidget {
   final Product      product;
@@ -455,13 +451,13 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
   // }
   void _startEditing(int currentQty) {
     _ctrl.text = '$currentQty';
-    _focus.requestFocus();
     setState(() => _editing = true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _ctrl.selection = TextSelection(
         baseOffset:   0,
         extentOffset: _ctrl.text.length,
       );
+      _focus.requestFocus();
     });
   }
   void _commitEdit(CartModel cart, Product tempProduct, int effectiveStock) {
@@ -573,9 +569,12 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
 
       if (qty == 0) {
         final isOutOfStock = effectiveStock == 0;
-        return GestureDetector(
-          onTap: isOutOfStock ? null : () => _addPiece(ctx, widget.product, widget.piece),
-          child: Container(
+        return AnimatedSwitcher(
+            duration: const Duration(milliseconds: 180),
+            child: GestureDetector(
+              key: const ValueKey('add'),
+              onTap: isOutOfStock ? null : () => _addPiece(ctx, widget.product, widget.piece),
+              child: Container(
             padding: const EdgeInsets.symmetric(
                 horizontal: 18, vertical: 8),
             decoration: BoxDecoration(
@@ -592,7 +591,7 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
                     fontWeight:    FontWeight.bold,
                     letterSpacing: 0.5)),
           ),
-        );
+        ));
       }
 
       // Live price: updates as user types, before committing
@@ -601,11 +600,14 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
           : qty;
       final liveTotal = (liveQty * widget.piece.effectivePrice).toInt();
 
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            height: 36,
+      return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          child: Column(
+            key: const ValueKey('stepper'),
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                height: 36,
             decoration: BoxDecoration(
                 color:        const Color(0xFFFF0080),
                 borderRadius: BorderRadius.circular(8)),
@@ -644,7 +646,8 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
                 )
               else
                 GestureDetector(
-                  onTapDown: (_) => _startEditing(qty),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _startEditing(qty),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 6),
                     child: Text('$qty',
@@ -728,7 +731,7 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
                 fontWeight: FontWeight.bold),
           ),
         ],
-      );
+      ));
       },
     );
   }

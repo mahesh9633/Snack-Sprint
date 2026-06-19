@@ -148,7 +148,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 _imageSourceOption(
                   icon: Icons.camera_front,
                   label: 'Selfie',
-                  color: AppColors.lightBrown,
+                  color: AppColors.primaryBlue,
                   onTap: () async {
                     Navigator.pop(context);
                     final picked = await ImagePicker().pickImage(
@@ -167,7 +167,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 _imageSourceOption(
                   icon: Icons.photo_library,
                   label: 'Album',
-                  color: AppColors.success,
+                  color: AppColors.freshGreen,
                   onTap: () async {
                     Navigator.pop(context);
                     final picked = await ImagePicker().pickImage(
@@ -347,10 +347,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       child: Stack(children: [
         CircleAvatar(
           radius: 44,
-          backgroundColor: AppColors.buttonPrimary,
+          backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
           backgroundImage: imageProvider,
           child: imageProvider == null
-              ? const Icon(Icons.person, color: AppColors.white, size: 48)
+              ? const Icon(Icons.person, color: AppColors.primaryBlue, size: 48)
               : null,
         ),
         Positioned(
@@ -358,7 +358,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           child: Container(
             padding: const EdgeInsets.all(6),
             decoration: const BoxDecoration(
-                color: AppColors.buttonPrimary, shape: BoxShape.circle),
+                color: AppColors.primaryOrange, shape: BoxShape.circle),
             child: const Icon(Icons.camera_alt, color: AppColors.white, size: 14),
           ),
         ),
@@ -370,19 +370,18 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // ── Background: white (AppColors.white) ───────────────────────────────
-      backgroundColor: AppColors.white,
+      backgroundColor: AppColors.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: AppColors.appBarBg,
+        backgroundColor: AppColors.cardWhite,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.appBarIcon),
+          icon: const Icon(Icons.arrow_back, color: AppColors.primaryBlue),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Profile',
           style: TextStyle(
-              color: AppColors.appBarText,
+              color: AppColors.primaryBlue,
               fontWeight: FontWeight.bold,
               fontSize: 18),
         ),
@@ -393,7 +392,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       ),
       body: _loading
           ? const Center(
-          child: CircularProgressIndicator(color: AppColors.loader))
+          child: CircularProgressIndicator(color: AppColors.primaryBlue))
           : SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 32, 20, 32),
         child: Form(
@@ -476,8 +475,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 child: ElevatedButton(
                   onPressed: _saving ? null : _submit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.buttonPrimary,
-                    disabledBackgroundColor: AppColors.buttonPrimaryDisabled,
+                    backgroundColor: AppColors.primaryOrange,
+                    disabledBackgroundColor: AppColors.primaryOrange.withOpacity(0.5),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
                     elevation: 0,
@@ -486,12 +485,12 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       ? const SizedBox(
                       width: 22, height: 22,
                       child: CircularProgressIndicator(
-                          color: AppColors.buttonPrimaryText,
+                          color: AppColors.textLight,
                           strokeWidth: 2.5))
                       : const Text(
                     'Submit',
                     style: TextStyle(
-                        color: AppColors.buttonPrimaryText,
+                        color: AppColors.textLight,
                         fontSize: 16,
                         fontWeight: FontWeight.bold),
                   ),

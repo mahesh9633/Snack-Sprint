@@ -53,7 +53,7 @@ class _YourOrdersScreenState extends State<YourOrdersScreen> {
         ),
         title: const Text('Your Orders',
             style: TextStyle(
-                color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
+                color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 18)),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Container(height: 1, color: Colors.grey[200]),
@@ -62,9 +62,9 @@ class _YourOrdersScreenState extends State<YourOrdersScreen> {
 
       body: RefreshableScreen(
         onRefresh: _retry,
-        color: Colors.pink,
+        color: AppColors.primaryBlue,
         child: _loading
-            ? const Center(child: CircularProgressIndicator(color: Color(0xFFFF0080)))
+            ? const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue))
             : _error.isNotEmpty
             ? ListView(
           children: [
@@ -83,8 +83,8 @@ class _YourOrdersScreenState extends State<YourOrdersScreen> {
                     icon: const Icon(Icons.refresh),
                     label: const Text('Retry'),
                     style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF8B3A0F),
-                        foregroundColor: Colors.white),
+                        backgroundColor: AppColors.primaryOrange,
+                        foregroundColor: AppColors.textLight),
                   ),
                 ]),
               ),
@@ -158,7 +158,7 @@ class _SummaryBanner extends StatelessWidget {
   Widget _stat(String label, String value, IconData icon) => Column(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Icon(icon, color: AppColors.pink, size: 18),
+      Icon(icon, color: AppColors.primaryBlue, size: 18),
       const SizedBox(height: 4),
       Text(value,
           style: const TextStyle(
@@ -424,12 +424,12 @@ class _OrderCard extends StatelessWidget {
                         children: [
                           Row(children: [
                             const Icon(Icons.payment,
-                                size: 14, color: Color(0xFFFF0080)),
+                                size: 14, color: AppColors.primaryBlue),
                             const SizedBox(width: 4),
-                            Text(paymentLabel,
-                                style: const TextStyle(
+                            const Text('Payment',
+                                style: TextStyle(
                                     fontSize: 12,
-                                    color: Color(0xFFFF0080),
+                                    color: AppColors.primaryBlue,
                                     fontWeight: FontWeight.w500)),
                           ]),
                           Text('₹${subTotal.toStringAsFixed(2)}',
@@ -511,18 +511,18 @@ class _OrderCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(vertical: 9),
                         decoration: BoxDecoration(
                           border: Border.all(
-                              color: const Color(0xFFFF0080), width: 1.2),
+                              color: AppColors.primaryBlue, width: 1.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(Icons.local_shipping_outlined,
-                                size: 14, color: AppColors.buttonPrimary),
+                                size: 14, color: AppColors.primaryBlue),
                             SizedBox(width: 5),
                             Text('Track Order',
                                 style: TextStyle(
-                                    color:  AppColors.buttonPrimary,
+                                    color:  AppColors.primaryBlue,
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold)),
                           ],
@@ -544,18 +544,18 @@ class _OrderCard extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 9),
                         decoration: BoxDecoration(
-                          color: AppColors.buttonPrimary,
+                          color: AppColors.primaryOrange,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(Icons.receipt_long_outlined,
-                                size: 14, color: Colors.white),
+                                size: 14, color: AppColors.textLight),
                             SizedBox(width: 5),
                             Text('View Details',
                                 style: TextStyle(
-                                    color: Colors.white,
+                                    color: AppColors.textLight,
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold)),
                           ],

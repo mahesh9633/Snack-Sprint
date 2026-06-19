@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -90,15 +91,25 @@ class CartModel extends ChangeNotifier {
   void refreshCart() {
     notifyListeners();
   }
+  Timer? _saveDebounce;
 
   Future<void> _saveCart() async {
-    try {
-      final prefs   = await SharedPreferences.getInstance();
-      final encoded = jsonEncode(
-          _items.values.map((i) => i.toJson()).toList());
-      await prefs.setString(_cartKey, encoded);
-    } catch (e) {
-    }
+    _saveDebounce?.cancel();
+    _saveDebounce = Timer(const Duration(milliseconds: 350), () async {
+      try {
+        final prefs   = await SharedPreferences.getInstance();
+        final encoded = jsonEncode(
+            _items.values.map((i) => i.toJson()).toList());
+        await prefs.setString(_cartKey, encoded);
+      } catch (e) {
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _saveDebounce?.cancel();
+    super.dispose();
   }
 
   // ── Cart operations ──────────────────────────────────────────────────────────

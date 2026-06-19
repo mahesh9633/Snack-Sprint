@@ -36,12 +36,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String  _contact          = '';
   int     _rewardPoints     = 0;
 
-  // ── Theme: warm brown / cream ───────────────────────────────────────────────
-  static const Color _primaryBrown = Color(0xFFFF0080);
-  static const Color _accentBrown  = Color(0xFFFF0080);
-  static const Color _lightCream   = Color(0xFFF5EFE6);
-  static const Color _sectionBg    = Color(0xFFF0E9DC);
-  static const Color _cardBg       = Color(0xFFFFFFFF);
+  // ── Theme: Smile Basket Blue / Cream ───────────────────────────────────────────────
+  static const Color _primaryBlue  = AppColors.primaryBlue;
+  static const Color _accentBlue   = AppColors.primaryBlue;
+  static const Color _scaffoldBg   = AppColors.scaffoldBg;
+  static const Color _cardBg       = AppColors.cardWhite;
 
   String _kName(String phone)  => 'profile_name_$phone';
   String _kImage(String phone) => 'profile_image_$phone';
@@ -275,19 +274,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         : '$_addressCount ${_addressCount == 1 ? 'Address' : 'Addresses'}';
 
     return Scaffold(
-      // ── CHANGED: white background instead of _lightCream ──────────────────
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
-        ),
+        backgroundColor: AppColors.cardWhite,
         title: const Text(
           'Settings',
           style: TextStyle(
-              color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 18),
+              color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 18),
         ),
       ),
 
@@ -305,7 +298,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Stack(children: [
                   CircleAvatar(
                     radius: 32,
-                    backgroundColor: _accentBrown,
+                    backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
                     backgroundImage: _profileImagePath != null &&
                         File(_profileImagePath!).existsSync()
                         ? FileImage(File(_profileImagePath!)) as ImageProvider
@@ -390,7 +383,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Expanded(
             child: RefreshIndicator(
               onRefresh: _onRefresh,
-              color: AppColors.pink,
+              color: AppColors.floatingCartBg,
               backgroundColor: Colors.white,
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -517,20 +510,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Icon(icon,
               size: 24,
-              color: isActive ? Colors.white : _primaryBrown),
+              color: isActive ? Colors.white : AppColors.primaryBlue),
           const SizedBox(height: 5),
           Text(label,
               style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: isActive ? Colors.white : _primaryBrown)),
+                  color: isActive ? Colors.white : AppColors.primaryBlue)),
         ]),
       ),
     );
   }
 
   Widget _tabDivider() =>
-      Container(width: 1, height: 36, color: _accentBrown.withOpacity(0.35));
+      Container(width: 1, height: 36, color: AppColors.primaryBlue.withOpacity(0.15));
 
   Widget _settingsCard(List<Widget> children) =>
       Container(color: _cardBg, child: Column(children: children));
@@ -544,11 +537,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(children: [
-          Icon(icon, size: 22, color: _accentBrown),
+          Icon(icon, size: 22, color: AppColors.primaryBlue),
           const SizedBox(width: 16),
           Expanded(
               child: Text(title,
-                  style: const TextStyle(fontSize: 14, color: Colors.black87))),
+                  style: const TextStyle(fontSize: 14, color: AppColors.textDark))),
           Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey[400]),
         ]),
       ),
@@ -567,22 +560,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(children: [
-          Icon(icon, size: 22, color: _accentBrown),
+          Icon(icon, size: 22, color: AppColors.primaryBlue),
           const SizedBox(width: 16),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(title,
-                  style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                  style: const TextStyle(fontSize: 14, color: AppColors.textDark)),
               const SizedBox(height: 2),
               Text(subtitle,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                  style: const TextStyle(fontSize: 12, color: AppColors.textGrey)),
             ]),
           ),
           if (badge != null) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: const Color(0xFFFF0080),
+                color: AppColors.floatingCartBg,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(badge,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../config/app_color.dart';
 import '../model/cart_model.dart';
 import '../screens/cart_screen.dart';
 
@@ -19,38 +20,21 @@ class FloatingCartBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<CartModel>(
       builder: (context, cart, _) {
-        // final totalQty   = cart.totalQuantity;
-        // final totalPrice = cart.totalPrice;
-        //
-        // return AnimatedSlide(
-        final totalQty     = cart.totalQuantity;
-        final totalPrice   = cart.totalPrice;
+        final totalQty   = cart.totalQuantity;
+        final totalPrice = cart.totalPrice;
 
-        // Build combo summary e.g. "1KG × 2  ·  1KG × 4 ×2"
-        final comboItems = cart.items.values.where((item) =>
-            item.product.id.contains('_piece_')).toList();
-        final comboSummary = comboItems.isEmpty ? '' :
-        comboItems.map((item) {
-          final label = item.product.weight.isNotEmpty
-              ? item.product.weight : item.product.name;
-          final matchedPiece = item.product.pieces.isNotEmpty
-              ? item.product.pieces.first : null;
-          final minQty = matchedPiece?.minQuantity ?? 0;
-          final totalUnits = minQty > 0 ? minQty * item.quantity : item.quantity;
-          return '$label × $totalUnits units';
-        }).join('  ·  ');
-        final hasCombo = comboSummary.isNotEmpty;
-
-        return AnimatedSlide(
-          duration: const Duration(milliseconds: 300),
-          curve:    Curves.easeInOut,
-          offset:   totalQty == 0
-              ? const Offset(0, 1.5)
-              : Offset.zero,
-          child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 250),
-            opacity:  totalQty == 0 ? 0.0 : 1.0,
-            child: GestureDetector(
+        return IgnorePointer(
+            ignoring: totalQty == 0,
+            child: AnimatedSlide(
+              duration: const Duration(milliseconds: 300),
+              curve:    Curves.easeInOut,
+              offset:   totalQty == 0
+                  ? const Offset(0, 1.5)
+                  : Offset.zero,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 250),
+                opacity:  totalQty == 0 ? 0.0 : 1.0,
+                child: GestureDetector(
               onTap: totalQty == 0 ? null : () {
                 Navigator.push(
                   context,
@@ -63,133 +47,53 @@ class FloatingCartBar extends StatelessWidget {
                   ),
                 );
               },
-              child: Container(
-                // height: 62,
-                height: hasCombo ? 72 : 62,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFF0080), Color(0xFFFF0080)],
-                    begin:  Alignment.centerLeft,
-                    end:    Alignment.centerRight,
-                  ),
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: [
-                    BoxShadow(
-                      color:      const Color(0xFFFF0080).withOpacity(0.4),
-                      blurRadius: 16,
-                      offset:     const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                // padding: const EdgeInsets.symmetric(horizontal: 18),
-                // child: Row(
-                //   children: [
-                //     // ── Item count badge ───────────────────────────────────
-                //     Container(
-                //       padding: const EdgeInsets.symmetric(
-                //           horizontal: 10, vertical: 5),
-                //       decoration: BoxDecoration(
-                //         color:        Colors.white.withOpacity(0.22),
-                //         borderRadius: BorderRadius.circular(10),
-                //       ),
-                //       child: Text(
-                //         '$totalQty ${totalQty == 1 ? 'item' : 'items'}',
-                //         style: const TextStyle(
-                //           color:      Colors.white,
-                //           fontSize:   13,
-                //           fontWeight: FontWeight.bold,
-                //         ),
-                //       ),
-                //     ),
-                //
-                //     // ── Centre label ───────────────────────────────────────
-                //     const Expanded(
-                //       child: Text(
-                //         'View Cart',
-                //         textAlign: TextAlign.center,
-                //         style: TextStyle(
-                //           color:         Colors.white,
-                //           fontSize:      16,
-                //           fontWeight:    FontWeight.bold,
-                //           letterSpacing: 0.5,
-                //         ),
-                //       ),
-                //     ),
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // ── Item count badge ───────────────────────────────────
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color:        Colors.white.withOpacity(0.22),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '$totalQty ${totalQty == 1 ? 'item' : 'items'}',
-                        style: const TextStyle(
-                          color:      Colors.white,
-                          fontSize:   13,
-                          fontWeight: FontWeight.bold,
+              // ── FIX: Row shrink-wraps its height regardless of how much
+              // vertical space the parent offers, unlike Align — so this
+              // pill no longer gets stretched + centered in the full
+              // screen height when used as a Scaffold FAB.
+              child: Row(
+                mainAxisSize:      MainAxisSize.max,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Container(
+                    height: 44,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: AppColors.floatingCartBg,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.floatingCartBg.withOpacity(0.35),
+                          blurRadius: 12,
+                          offset:     const Offset(0, 4),
                         ),
-                      ),
+                      ],
                     ),
-
-                    const SizedBox(width: 10),
-
-                    // ── Centre: "View Cart" + optional combo line ──────────
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            'View Cart',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color:         Colors.white,
-                              fontSize:      16,
-                              fontWeight:    FontWeight.bold,
-                              letterSpacing: 0.5,
-                            ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.shopping_bag, color: Colors.white, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          '$totalQty',
+                          style: const TextStyle(
+                            color:      Colors.white,
+                            fontSize:   15,
+                            fontWeight: FontWeight.bold,
                           ),
-                          if (hasCombo) ...[
-                            const SizedBox(height: 3),
-                            Text(
-                              comboSummary,
-                              textAlign: TextAlign.center,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color:      Colors.white.withOpacity(0.85),
-                                fontSize:   11,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.arrow_forward,
+                            color: Colors.white, size: 16),
+                      ],
                     ),
-
-                    // ── Total + chevron ────────────────────────────────────
-                    Text(
-                      '₹${totalPrice.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        color:      Colors.white,
-                        fontSize:   15,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    const Icon(Icons.arrow_forward_ios,
-                        color: Colors.white70, size: 14),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
-        );
+        ));
       },
     );
   }

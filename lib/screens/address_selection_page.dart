@@ -123,7 +123,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
             child: _loading
                 ?
             const Center(
-                child: CircularProgressIndicator(color: Color(0xFFFF0080)))
+                child: CircularProgressIndicator(color: AppColors.floatingCartBg))
                 : RefreshableScreen(
               onRefresh: _load,
               color: AppColors.loader,
@@ -199,7 +199,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                       onPressed: () => Navigator.pop(context),
                       child: const Text('Back to cart',
                           style: TextStyle(
-                              fontSize: 16, color: Color(0xFFFF0080))),
+                              fontSize: 16, color: AppColors.floatingCartBg)),
                     ),
                   ),
                   const SizedBox(height: 24),],
@@ -230,7 +230,7 @@ class _AddressCard extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           border: Border.all(
-            color: isSelected ? const Color(0xFFFF0080) : Colors.grey[300]!,
+            color: isSelected ? AppColors.floatingCartBg: Colors.grey[300]!,
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
@@ -243,7 +243,7 @@ class _AddressCard extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                    color: isSelected ? const Color(0xFFFF0080) : Colors.grey[400]!,
+                    color: isSelected ? AppColors.floatingCartBg : Colors.grey[400]!,
                     width: 2),
               ),
               child: isSelected
@@ -251,7 +251,7 @@ class _AddressCard extends StatelessWidget {
                 child: Container(
                   width: 9, height: 9,
                   decoration: const BoxDecoration(
-                      color: Color(0xFFFF0080),
+                      color: AppColors.floatingCartBg,
                       shape: BoxShape.circle),
                 ),
               )
@@ -310,7 +310,7 @@ class _AddressCard extends StatelessWidget {
                   onPressed: onSelect,
                   style: ElevatedButton.styleFrom(
 
-                    backgroundColor: const Color(0xFFFF0080),
+                    backgroundColor:AppColors.floatingCartBg,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(

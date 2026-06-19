@@ -419,7 +419,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                     if (_addrLoading)
                       const Padding(
                         padding: EdgeInsets.only(bottom: 24),
-                        child: LinearProgressIndicator(color: Color(0xFFFF0080)),
+                        child: LinearProgressIndicator(color:AppColors.floatingCartBg),
                       )
                     else if (_defaultAddress != null) ...[
                       const Text('Delivery Address',
@@ -755,7 +755,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.account_balance_wallet_outlined,
-                        color: Color(0xFFFF0080), size: 20),
+                        color: AppColors.floatingCartBg, size: 20),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -772,7 +772,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                           Text(_store!.upiId,
                               style: const TextStyle(
                                   fontSize: 13,
-                                  color: Color(0xFF8B4513),
+                                  color: AppColors.floatingCartBg,
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 0.5)),
                           const SizedBox(width: 6),
@@ -862,7 +862,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                 focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: const BorderSide(
-                        color: Color(0xFF8B4513), width: 1.5)),
+                        color: AppColors.floatingCartBg, width: 1.5)),
               ),
             ),
           ),
@@ -871,7 +871,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
             onTap: _pickScreenshot,
             child: _paymentScreenshot == null
                 ? DottedBorder(
-              color: const Color(0xFFFF0080),
+              color: AppColors.floatingCartBg,
               strokeWidth: 1.5,
               dashPattern: const [6, 3],
               borderType: BorderType.RRect,
@@ -884,7 +884,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Icon(Icons.attach_file,
-                          color: Color(0xFFFF0080), size: 20),
+                          color:  AppColors.floatingCartBg, size: 20),
                       const SizedBox(height: 2),
                       Text('Attach',
                           style: TextStyle(
@@ -955,7 +955,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
         height: 24,
         alignment: Alignment.center,
         decoration: const BoxDecoration(
-          color: Color(0xFFFF0080),
+          color: AppColors.floatingCartBg,
           shape: BoxShape.circle,
         ),
         child: Text(number,
@@ -1021,11 +1021,11 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
             Container(
               padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
-                color: const Color(0xFF8B4513).withOpacity(0.08),
+                color: AppColors.floatingCartBg.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.local_offer_outlined,
-                  color: Color(0xFFFF0080), size: 18),
+                  color: AppColors.floatingCartBg, size: 18),
             ),
             const SizedBox(width: 10),
             const Text('Apply Coupon',
@@ -1052,7 +1052,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                 width: 16,
                 height: 16,
                 child: CircularProgressIndicator(
-                    strokeWidth: 2, color: Color(0xFF8B4513)),
+                    strokeWidth: 2,  color: AppColors.floatingCartBg),
               )
             else
               GestureDetector(
@@ -1067,11 +1067,11 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                   Container(
                     padding: const EdgeInsets.all(3),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFF0080).withOpacity(0.08),
+                      color: AppColors.floatingCartBg.withOpacity(0.08),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.keyboard_arrow_down_rounded,
-                        size: 16, color: Color(0xFF8B4513)),
+                        size: 16,  color: AppColors.floatingCartBg),
                   ),
                 ]),
               ),
@@ -1322,7 +1322,7 @@ class _AllCouponsScreen extends StatelessWidget {
           const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(children: [
             const Icon(Icons.shopping_cart_outlined,
-                size: 16, color: Color(0xFFFF0080)),
+                size: 16,  color: AppColors.floatingCartBg),
             const SizedBox(width: 8),
             Text('Your cart total: ',
                 style:
@@ -1431,7 +1431,7 @@ class _CouponCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color accent =
-    isEligible ? const Color(0xFFFF0080) : Colors.grey;
+    isEligible ?   AppColors.floatingCartBg : Colors.grey;
 
     return Opacity(
       opacity: isEligible ? 1.0 : 0.55,
@@ -1724,12 +1724,12 @@ class _OrderSuccessScreen extends StatelessWidget {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 12, vertical: 8),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFF0080)
+                                    color:  AppColors.floatingCartBg
                                         .withOpacity(0.08),
                                     borderRadius:
                                     BorderRadius.circular(10),
                                     border: Border.all(
-                                        color: const Color(0xFFFF0080)
+                                        color: AppColors.floatingCartBg
                                             .withOpacity(0.2)),
                                   ),
                                   child: Column(
@@ -1745,15 +1745,14 @@ class _OrderSuccessScreen extends StatelessWidget {
                                           const Icon(
                                               Icons.payments_outlined,
                                               size: 14,
-                                              color: Color(0xFFFF0080)),
+                                              color: AppColors.floatingCartBg),
                                           const SizedBox(width: 4),
                                           Text(paymentLabel,
                                               style: const TextStyle(
                                                   fontSize: 13,
                                                   fontWeight:
                                                   FontWeight.bold,
-                                                  color: Color(
-                                                      0xFFFF0080))),
+                                                  color: AppColors.floatingCartBg)),
                                         ]),
                                       ]),
                                 ),
@@ -1767,14 +1766,14 @@ class _OrderSuccessScreen extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                  color: const Color(0xFFFF0080)
+                                  color: AppColors.floatingCartBg
                                       .withOpacity(0.1),
                                   borderRadius:
                                   BorderRadius.circular(8)),
                               child: const Icon(
                                   Icons.shopping_bag_outlined,
                                   size: 16,
-                                  color: Color(0xFFFF0080)),
+                                  color: AppColors.floatingCartBg),
                             ),
                             const SizedBox(width: 10),
                             Text(
@@ -2057,13 +2056,13 @@ class _ItemRow extends StatelessWidget {
                       color: const Color(0xFFF3E5D8),
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(
-                          color: const Color(0xFF8B4513)
+                          color: AppColors.floatingCartBg
                               .withOpacity(0.3)),
                     ),
                     child: Text('Qty: ${item.quantity}',
                         style: const TextStyle(
                             fontSize: 11,
-                            color: Color(0xFF8B4513),
+                            color: AppColors.floatingCartBg,
                             fontWeight: FontWeight.w600)),
                   ),
                   if (p.weight.isNotEmpty) ...[

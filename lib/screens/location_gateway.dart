@@ -218,7 +218,7 @@ class _LocationGatewayState extends State<LocationGateway> {
               'Skip for now',
               style: TextStyle(
                   fontSize:   13,
-                  color:      Colors.pink,
+                  color: AppColors.buttonPrimary,
                   decoration: TextDecoration.underline),
             ),
           ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'config/app_color.dart';
 import 'login/splash_screen.dart';
 import 'model/cart_model.dart';
 import 'model/favorites_model.dart';
@@ -74,21 +75,24 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       scaffoldMessengerKey: scaffoldMessengerKey,
-      title: 'MTL Groceries',
+      title: 'Smile Basket',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        scaffoldBackgroundColor: Colors.white,
+        scaffoldBackgroundColor: AppColors.scaffoldBg,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFFF0080),
+          seedColor: AppColors.primaryBlue,
+          primary: AppColors.primaryBlue,
+          secondary: AppColors.primaryOrange,
           brightness: Brightness.light,
         ).copyWith(
-          background: Colors.white,
-          surface: Colors.white,
-          surfaceVariant: Colors.white,
+          surface: AppColors.cardWhite,
           surfaceTint: Colors.transparent,
         ),
         fontFamily: 'Roboto',
         appBarTheme: const AppBarTheme(
+          backgroundColor: AppColors.cardWhite,
+          foregroundColor: AppColors.primaryBlue,
+          elevation: 0,
           systemOverlayStyle: SystemUiOverlayStyle(
             statusBarColor: Colors.transparent,
             statusBarIconBrightness: Brightness.dark,
