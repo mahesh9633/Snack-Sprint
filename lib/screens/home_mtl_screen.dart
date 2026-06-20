@@ -4363,7 +4363,7 @@ class _MtlProductCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize:       MainAxisSize.max,
         children: [
-          GestureDetector(
+          InkWell(
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(

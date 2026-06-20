@@ -1989,7 +1989,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           return;
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      // silenced
+    }
 
     if (mounted) {
       setState(() {
@@ -2051,6 +2053,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               color: _kGreen,
               onRefresh: _loadFullProduct,
               child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
                   // ── App bar ──────────────────────────────────────────────
                   SliverAppBar(
@@ -3020,7 +3023,7 @@ class _DetailAddButton extends StatelessWidget {
       ),
       const SizedBox(width: 10),
       // ADD TO CART
-      Expanded(
+      Flexible(
         child: GestureDetector(
           onTap: () {
             for (int i = 0; i < qty; i++) { cart.addItem(product); }

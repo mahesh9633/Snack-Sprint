@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../model/address_model.dart';
 import '../model/product_model.dart';
 
@@ -118,7 +117,12 @@ class CartModel extends ChangeNotifier {
     final stock = product.quantity > 0 ? product.quantity : product.posQuantity;
     final currentQty = _items[product.id]?.quantity ?? 0;
 
-    if (stock > 0 && currentQty >= stock) {
+    if (stock <= 0) {
+      onStockLimitReached?.call('Product is currently out of stock');
+      return;
+    }
+
+    if (currentQty >= stock) {
       onStockLimitReached?.call(
         'Only $stock item${stock == 1 ? '' : 's'} available in stock',
       );
@@ -147,7 +151,12 @@ class CartModel extends ChangeNotifier {
           ? item.product.quantity
           : item.product.posQuantity;
 
-      if (stock > 0 && item.quantity >= stock) {
+      if (stock <= 0) {
+        onStockLimitReached?.call('Product is currently out of stock');
+        return;
+      }
+
+      if (item.quantity >= stock) {
         onStockLimitReached?.call(
           'Only $stock item${stock == 1 ? '' : 's'} available in stock',
         );

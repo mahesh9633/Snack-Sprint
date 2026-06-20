@@ -658,7 +658,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       backgroundColor: AppColors.white,
       appBar: _buildAppBar(),
         body: RefreshIndicator(
-          color: const Color(0xFFFF0080),
+          color: AppColors.primaryBlue,
           onRefresh: () async {
             await Future.wait([_fetchTrackOrder(), _fetchAddresses()]);
           },
@@ -707,7 +707,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
           ],
         ),
         child: const Center(
-          child: CircularProgressIndicator(color: Color(0xFFFF0080)),
+          child: CircularProgressIndicator(color: AppColors.primaryOrange),
         ),
       );
     }
@@ -875,14 +875,14 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                           color: Colors.grey[100],
                           child: const Center(
                               child: Icon(Icons.inventory_2_outlined,
-                                  color: Color(0xFFFF0080), size: 48)))))
+                                  color: AppColors.primaryOrange, size: 48)))))
                   : Container(
                   width: double.infinity,
                   height: 140,
                   color: Colors.grey[100],
                   child: const Center(
                       child: Icon(Icons.inventory_2_outlined,
-                          color: Color(0xFFFF0080), size: 48))),
+                          color: AppColors.primaryOrange, size: 48))),
             );
           }),
 
@@ -1112,7 +1112,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                       child: Text('Qty: $orderedQty',
                           style: const TextStyle(
                               fontSize: 11,
-                              color: Color(0xFF8B3A0F),
+                              color: AppColors.primaryBlue,
                               fontWeight: FontWeight.w600)),
                     ),
                   ],
@@ -1135,7 +1135,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     color: Colors.grey[100],
     child: const Center(
         child: Icon(Icons.inventory_2_outlined,
-            color: Color(0xFFFF0080), size: 36)),
+            color: AppColors.primaryOrange, size: 36)),
   );
 
   Widget _buildOrderTotalsRow(Map<String, dynamic> details) {
@@ -1213,7 +1213,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [AppColors.pink, AppColors.pink],
+          colors: [AppColors.primaryOrange, AppColors.primaryOrange],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -1426,7 +1426,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                 onTap: _openChangeSheet,
                 child: const Text('CHANGE',
                     style: TextStyle(
-                        color: Colors.pink,
+                        color: AppColors.primaryOrange,
                         fontSize: 12,
                         fontWeight: FontWeight.bold)),
               ),
@@ -1438,7 +1438,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 16),
                 child: CircularProgressIndicator(
-                    strokeWidth: 2, color: Color(0xFFFF0080)),
+                  strokeWidth: 2,
+                  color: AppColors.primaryOrange,
+                ),
               ),
             )
           else if (_addressError != null)
@@ -1474,7 +1476,7 @@ class _HorizontalStepper extends StatelessWidget {
     required this.iconForStep,
   });
 
-  static const _brown = Color(0xFFFF0080);
+  static const _orange = AppColors.primaryOrange;
 
   @override
   Widget build(BuildContext context) {
@@ -1503,7 +1505,7 @@ class _HorizontalStepper extends StatelessWidget {
                   width: (totalWidth - 36) * progressAnim.value,
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
-                        colors: [_brown, Color(0xFFFF0080)]),
+                        colors: [_orange, AppColors.primaryOrange]),
                   ),
                 ),
               ),
@@ -1560,7 +1562,7 @@ class _StepCircle extends StatelessWidget {
   final TrackStepStatus status;
   final IconData icon;
   const _StepCircle({required this.status, required this.icon});
-  static const _brown = Color(0xFFB05A0A);
+  static const _blue = AppColors.primaryBlue;
 
   @override
   Widget build(BuildContext context) {
@@ -1570,7 +1572,7 @@ class _StepCircle extends StatelessWidget {
           width: 36,
           height: 36,
           decoration: const BoxDecoration(
-              shape: BoxShape.circle, color: _brown),
+              shape: BoxShape.circle, color: _blue),
           child: const Icon(Icons.check, color: Colors.white, size: 18),
         );
       case TrackStepStatus.active:
@@ -1580,15 +1582,15 @@ class _StepCircle extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: Colors.white,
-            border: Border.all(color: _brown, width: 2.5),
+            border: Border.all(color: _blue, width: 2.5),
             boxShadow: [
               BoxShadow(
-                  color: _brown.withOpacity(0.3),
+                  color: _blue.withOpacity(0.3),
                   blurRadius: 8,
                   spreadRadius: 2)
             ],
           ),
-          child: Icon(icon, color: _brown, size: 18),
+          child: Icon(icon, color: _blue, size: 18),
         );
       case TrackStepStatus.pending:
         return Container(
@@ -1671,7 +1673,7 @@ class _TimelineRow extends StatelessWidget {
     this.orderDate = '',
   });
 
-  static const _brown = Color(0xFF8B3A0F);
+  static const _blue = AppColors.primaryBlue;
 
   String _formattedDate() {
     if (orderDate.isEmpty) return '';
@@ -1716,12 +1718,12 @@ class _TimelineRow extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: isDone
-                        ? _brown
+                        ? _blue
                         : isActive
                         ? Colors.white
                         : Colors.grey[200],
                     border: isActive
-                        ? Border.all(color: _brown, width: 2)
+                        ? Border.all(color: _blue, width: 2)
                         : null,
                   ),
                   child: isDone
@@ -1732,7 +1734,7 @@ class _TimelineRow extends StatelessWidget {
                       width: 8,
                       height: 8,
                       decoration: const BoxDecoration(
-                          shape: BoxShape.circle, color: _brown),
+                          shape: BoxShape.circle, color: _blue),
                     ),
                   )
                       : null,
@@ -1742,7 +1744,7 @@ class _TimelineRow extends StatelessWidget {
                     child: Container(
                       width: 2,
                       color: isDone
-                          ? _brown.withOpacity(0.3)
+                          ? _blue.withOpacity(0.3)
                           : Colors.grey[200],
                     ),
                   ),
@@ -1783,9 +1785,9 @@ class _TimelineRow extends StatelessWidget {
                         style: TextStyle(
                             fontSize: 12,
                             color: isDone
-                                ? _brown
+                                ? _blue
                                 : isActive
-                                ? _brown.withOpacity(0.7)
+                                ? _blue.withOpacity(0.7)
                                 : Colors.grey[400])),
                   ],
                 ],
@@ -1810,18 +1812,18 @@ class _InfoChip extends StatelessWidget {
     padding:
     const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
     decoration: BoxDecoration(
-      color: const Color(0xFFFBF0EB),
+      color: AppColors.primaryBlue.withOpacity(0.05),
       borderRadius: BorderRadius.circular(20),
       border: Border.all(
-          color: const Color(0xFF8B3A0F).withOpacity(0.2)),
+          color: AppColors.primaryBlue.withOpacity(0.2)),
     ),
     child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, size: 13, color: const Color(0xFF8B3A0F)),
+      Icon(icon, size: 13, color: AppColors.primaryBlue),
       const SizedBox(width: 5),
       Text(label,
           style: const TextStyle(
               fontSize: 11,
-              color: Color(0xFF8B3A0F),
+              color: AppColors.primaryBlue,
               fontWeight: FontWeight.w600)),
     ]),
   );
@@ -1921,7 +1923,7 @@ class _ProductDetailSheet extends StatelessWidget {
         color: Colors.grey[100],
         borderRadius: BorderRadius.circular(12)),
     child: const Icon(Icons.inventory_2_outlined,
-        color: Color(0xFF8B3A0F), size: 64),
+        color: AppColors.primaryBlue, size: 64),
   );
 }
 
@@ -1950,7 +1952,7 @@ class _AddressDisplay extends StatelessWidget {
               padding:
               const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                  color: const Color(0xFFFF0080),
+                  color: AppColors.primaryOrange,
                   borderRadius: BorderRadius.circular(6)),
               child: Text(address.name,
                   style: const TextStyle(
@@ -1978,13 +1980,13 @@ class _AddressDisplay extends StatelessWidget {
               onTap: onEdit,
               child: const Row(
                 children: [
-                  Icon(Icons.edit_outlined,
-                      size: 14, color: Color(0xFFFF0080)),
-                  SizedBox(width: 4),
-                  Text('Edit',
+                  const Icon(Icons.edit_outlined,
+                      size: 14, color: AppColors.primaryOrange),
+                  const SizedBox(width: 4),
+                  const Text('Edit',
                       style: TextStyle(
                           fontSize: 12,
-                          color: Color(0xFFFF0080),
+                          color: AppColors.primaryOrange,
                           fontWeight: FontWeight.w500)),
                 ],
               ),
@@ -2102,26 +2104,26 @@ class _ChangeAddressSheet extends StatelessWidget {
                 decoration: BoxDecoration(
                   border: Border.all(
                     color: isSelected
-                        ? const Color(0xFF8B3A0F)
-                        : Colors.grey[200]!,
-                    width: isSelected ? 1.5 : 1,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  color: isSelected
-                      ? const Color(0xFFFBF0EB)
-                      : Colors.white,
+                      ? AppColors.primaryBlue
+                      : Colors.grey[200]!,
+                  width: isSelected ? 1.5 : 1,
                 ),
-                child: Row(
-                  children: [
-                    Radio<String>(
-                      value: addr.id,
-                      groupValue: selected?.id,
-                      activeColor: const Color(0xFF8B3A0F),
-                      onChanged: (_) {
-                        onSelected(addr);
-                        Navigator.pop(context);
-                      },
-                    ),
+                borderRadius: BorderRadius.circular(12),
+                color: isSelected
+                    ? AppColors.primaryBlue.withOpacity(0.05)
+                    : Colors.white,
+              ),
+              child: Row(
+                children: [
+                  Radio<String>(
+                    value: addr.id,
+                    groupValue: selected?.id,
+                    activeColor: AppColors.primaryBlue,
+                    onChanged: (_) {
+                      onSelected(addr);
+                      Navigator.pop(context);
+                    },
+                  ),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2168,7 +2170,7 @@ class _ChangeAddressSheet extends StatelessWidget {
                     ),
                     IconButton(
                       icon: const Icon(Icons.edit_outlined,
-                          size: 18, color: Color(0xFFFF0080)),
+                          size: 18, color: AppColors.primaryOrange),
                       onPressed: () {
                         Navigator.pop(context);
                         onEdit(addr);
@@ -2368,7 +2370,7 @@ class _EditAddressSheetState extends State<_EditAddressSheet> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isChosen ? Colors.pink : Colors.grey[100],
+                        color: isChosen ? AppColors.primaryOrange : Colors.grey[100],
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(label,

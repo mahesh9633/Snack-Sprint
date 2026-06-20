@@ -503,7 +503,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
         decoration: isActive
             ? BoxDecoration(
-          color: _accentBrown,
+          color: AppColors.primaryBlue,
           borderRadius: BorderRadius.circular(8),
         )
             : null,

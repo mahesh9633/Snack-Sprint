@@ -381,7 +381,7 @@ class _OrderCard extends StatelessWidget {
                       width: 6, height: 6,
                       decoration: const BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.pink),
+                          color: AppColors.primaryOrange),
                     ),
                     const SizedBox(width: 8),
                     Expanded(

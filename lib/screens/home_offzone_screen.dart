@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mtl_groceriesapp/screens/see_all.dart';
+import '../config/app_color.dart';
 import '../model/product_model.dart';
 import '../products/product_card.dart';
 import '../services/api_config_service.dart';
@@ -284,7 +285,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
             child: Center(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 Icon(Icons.local_offer_outlined,
-                    size: 56, color: Colors.pink),
+                    size: 56, color: AppColors.primaryOrange),
                 const SizedBox(height: 12),
                 Text(
                   _searchText.isNotEmpty || _selectedCategory != null
@@ -349,7 +350,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-            colors: [Color(0xFF6366F1), Color(0xFFFF0080)]),
+            colors: [AppColors.primaryBlue, AppColors.primaryOrange]),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Stack(children: [
@@ -431,7 +432,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
         ),
         child: Row(children: [
           const SizedBox(width: 14),
-          const Icon(Icons.search, color: Color(0xFFFF0080), size: 20),
+          const Icon(Icons.search, color: AppColors.primaryOrange, size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: TextField(
@@ -452,7 +453,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
                   setState(() { _searchText = ''; _searchCtrl.clear(); }),
               child: Padding(
                 padding: const EdgeInsets.only(right: 10),
-                child: Icon(Icons.close, size: 18, color: Colors.pink),
+                child: Icon(Icons.close, size: 18, color: AppColors.primaryOrange),
               ),
             ),
         ]),
@@ -562,7 +563,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('All Deals',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,color: Colors.pink,)),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,color: AppColors.primaryOrange,)),
           Text('${displayed.length} items with 50%+ off',
               style: TextStyle(fontSize: 11, color: Colors.black87)),
         ]),
@@ -573,10 +574,10 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
                   builder: (_) => SeeAllScreen(
                       title: '50% OFF Zone', products: displayed))),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Text('See all',
-                style: TextStyle(color: Colors.pink, fontSize: 16)),
-            Icon(Icons.arrow_forward_ios,
-                size: 12, color: Colors.pink),
+            const Text('See all',
+                style: TextStyle(color: AppColors.primaryOrange, fontSize: 16)),
+            const Icon(Icons.arrow_forward_ios,
+                size: 12, color: AppColors.primaryOrange),
           ]),
         ),
       ]),

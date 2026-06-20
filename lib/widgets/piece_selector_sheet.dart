@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../config/app_color.dart';
 import '../model/cart_model.dart';
 import '../model/product_model.dart';
 import '../products/product_detail_screen.dart';
@@ -194,12 +195,12 @@ class _PieceSelectorSheet extends StatelessWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: const [
-                              Icon(Icons.card_giftcard,
-                                  size: 13, color: Color(0xFFFF6B00)),
-                              SizedBox(width: 4),
-                              Text('Combo Deal',
+                              const Icon(Icons.card_giftcard,
+                                  size: 13, color: AppColors.primaryOrange),
+                              const SizedBox(width: 4),
+                              const Text('Combo Deal',
                                   style: TextStyle(
-                                      color: Color(0xFFFF6B00),
+                                      color: AppColors.primaryOrange,
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold)),
                             ],
@@ -253,7 +254,7 @@ class _PieceRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: piece.isCombo
-              ? const Color(0xFFFF6B00).withOpacity(0.5)
+              ? AppColors.primaryOrange.withOpacity(0.5)
               : Colors.grey[200]!,
           width: piece.isCombo ? 1.5 : 1.0,
         ),
@@ -485,7 +486,7 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.info_outline, color: Color(0xFFFF0080), size: 36),
+                const Icon(Icons.info_outline, color: AppColors.primaryBlue, size: 36),
                 const SizedBox(height: 12),
                 Text(
                   'Only $stock item${stock == 1 ? '' : 's'} available',
@@ -493,7 +494,7 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                    color: AppColors.textDark,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -502,12 +503,12 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFF0080),
+                      color: AppColors.primaryOrange,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text('OK',
                         style: TextStyle(
-                            color: Colors.white,
+                            color: AppColors.textLight,
                             fontWeight: FontWeight.bold,
                             fontSize: 14)),
                   ),
@@ -586,7 +587,7 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
             child: Text(
                 isOutOfStock ? 'Out of Stock' : 'ADD',
                 style: TextStyle(
-                    color:         isOutOfStock ? Colors.red : const Color(0xFFFF0080),
+                    color:         isOutOfStock ? Colors.red : AppColors.freshGreen,
                     fontSize:      13,
                     fontWeight:    FontWeight.bold,
                     letterSpacing: 0.5)),
@@ -609,7 +610,7 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
               Container(
                 height: 36,
             decoration: BoxDecoration(
-                color:        const Color(0xFFFF0080),
+                color:        AppColors.freshGreen,
                 borderRadius: BorderRadius.circular(8)),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               GestureDetector(
@@ -617,7 +618,7 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
                 child: const SizedBox(
                     width: 34, height: 36,
                     child: Icon(Icons.remove,
-                        color: Colors.white, size: 16)),
+                        color: AppColors.textLight, size: 16)),
               ),
 
               // ── Tappable qty / inline editor ──────────────────
@@ -679,15 +680,15 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.info_outline, color: Color(0xFFFF0080), size: 36),
+                              const Icon(Icons.info_outline, color: AppColors.primaryBlue, size: 36),
                               const SizedBox(height: 12),
-                              Text(
-                                'Only $stock item${stock == 1 ? '' : 's'} available',
+                               Text(
+                                'Only $stock item(s) available',
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.black87,
+                                  color: AppColors.textDark,
                                 ),
                               ),
                               const SizedBox(height: 16),
@@ -696,12 +697,12 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFF0080),
+                                    color: AppColors.primaryOrange,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: const Text('OK',
                                       style: TextStyle(
-                                          color: Colors.white,
+                                          color: AppColors.textLight,
                                           fontWeight: FontWeight.bold,
                                           fontSize: 14)),
                                 ),
@@ -726,7 +727,7 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
           Text(
             '₹$liveTotal',
             style: const TextStyle(
-                color:      Color(0xFFFF0080),
+                color:      AppColors.freshGreen,
                 fontSize:   11,
                 fontWeight: FontWeight.bold),
           ),

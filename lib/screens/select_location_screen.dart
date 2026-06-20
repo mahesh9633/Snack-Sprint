@@ -943,8 +943,8 @@ class _AddNewAddressPageState extends State<AddNewAddressPage> {
                         decoration: InputDecoration(
                           hintText:   'Enter 6-digit pincode',
                           hintStyle:  TextStyle(color: Colors.black87),
-                          prefixIcon: Icon(Icons.pin_drop_outlined,
-                              color: Colors.pink),
+                          prefixIcon: const Icon(Icons.pin_drop_outlined,
+                              color: AppColors.primaryOrange),
                           counterText:    '',
                           border:         InputBorder.none,
                           contentPadding:

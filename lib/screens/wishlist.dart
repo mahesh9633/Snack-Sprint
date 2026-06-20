@@ -582,7 +582,7 @@ class _WishlistCard extends StatelessWidget {
   children: [
   const Icon(Icons.info_outline, color: AppColors.primaryBlue, size: 36),
   const SizedBox(height: 12),
-  const Text(
+   Text(
   'Only $stock item(s) available',
   textAlign: TextAlign.center,
   style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textDark),

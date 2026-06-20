@@ -138,7 +138,7 @@ class _HomeBannerSliderState extends State<HomeBannerSlider>
                           color: Colors.grey[200],
                           child: const Center(
                             child: CircularProgressIndicator(
-                                color: Color(0xFFFF0080)),
+                                color: AppColors.primaryOrange),
                           ),
                         ),
                         errorBuilder: (_, __, ___) =>
@@ -178,8 +178,8 @@ class _HomeBannerSliderState extends State<HomeBannerSlider>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: active
-                        ? const Color(0xFFFF0080)
-                        : const Color(0xFFFF0080).withOpacity(0.3),
+                        ? AppColors.primaryOrange
+                        : AppColors.primaryOrange.withOpacity(0.3),
                   ),
                 );
               }),
@@ -201,7 +201,7 @@ class _BannerPlaceholder extends StatelessWidget {
       color: const Color(0xFFFFF3E0),
       child: const Center(
         child: Icon(Icons.image_not_supported,
-            color: Color(0xFFB85C00), size: 40),
+            color: AppColors.primaryBlue, size: 40),
       ),
     );
   }
