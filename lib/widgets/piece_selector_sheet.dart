@@ -21,6 +21,7 @@ class ProductPiece {
   final int    minQuantity;   // <-- new
   final bool   isCombo;       // <-- new
   final int    stock;         // piece-level stock
+  final double piecePrice;    // <-- new: backend combo per-unit price (raw)
 
   const ProductPiece({
     this.rowId = '',
@@ -32,6 +33,7 @@ class ProductPiece {
     this.minQuantity = 0,
     this.isCombo     = false,
     this.stock       = 0,
+    this.piecePrice  = 0,    // <-- new
   });
 
   factory ProductPiece.fromJson(Map<String, dynamic> j) {
@@ -40,6 +42,7 @@ class ProductPiece {
 
     final price      = double.tryParse(j['price']?.toString()         ?? '0') ?? 0;
     final special    = double.tryParse(j['special_price']?.toString() ?? '0') ?? 0;
+    final piecePrice = double.tryParse(j['piece_price']?.toString()   ?? '0') ?? 0; // <-- new
     final pieceName  = j['piece']?.toString() ?? '';
     final minQtyInt  = int.tryParse(j['min_quantity']?.toString() ?? '0') ?? 0;
     final isCombo    = (j['is_combo']?.toString() ?? 'No').toLowerCase() == 'yes';
@@ -62,12 +65,21 @@ class ProductPiece {
       minQuantity:  minQtyInt,
       isCombo:      isCombo,
       stock:        stockInt,
+      piecePrice:   piecePrice,   // <-- new
     );
   }
 
   double get effectivePrice => (specialPrice > 0 && specialPrice < price) ? specialPrice : price;
   bool   get hasDiscount    => specialPrice > 0 && specialPrice < price;
   int    get discountPct    => hasDiscount ? ((price - specialPrice) / price * 100).round() : 0;
+
+  // <-- new: per-unit price for combo pieces, mirrors backend formula
+  // $piece_price = $special_price > 0 ? ($special_price / $min_quantity) : ($price / $min_quantity);
+  double get perUnitPrice {
+    if (!isCombo || minQuantity <= 0) return effectivePrice;
+    final qty = minQuantity < 1 ? 1 : minQuantity;
+    return specialPrice > 0 ? (specialPrice / qty) : (price / qty);
+  }
 
   // String cartId(String baseProductId) => '${baseProductId}_piece_$pieceId';
   String cartId(String baseProductId)
@@ -375,6 +387,15 @@ class _PieceRow extends StatelessWidget {
                           decoration: TextDecoration.lineThrough)),
                 ],
               ]),
+              // <-- new: per-piece price for combo packs
+              if (piece.isCombo && piece.minQuantity > 1)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    '₹${piece.perUnitPrice.toStringAsFixed(2)} / piece',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                  ),
+                ),
             ],
           ),
         ),

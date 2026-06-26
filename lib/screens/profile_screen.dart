@@ -13,6 +13,7 @@ import '../model/address_model.dart';
 import '../model/favorites_model.dart';
 import '../model/cart_model.dart';
 import '../services/api_config_service.dart';
+import '../services/get_address_service.dart';
 import '../services/get_profile_service.dart';
 import '../services/logout_service.dart';
 import '../services/session_manager.dart';
@@ -24,10 +25,10 @@ class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  State<ProfileScreen> createState() => ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class ProfileScreenState extends State<ProfileScreen> {
   String  _telephone        = '';
   String  _displayName      = 'Smile Basket user';
   int     _addressCount     = 0;
@@ -64,6 +65,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ── Pull-to-refresh handler ────────────────────────────────────────────────
   Future<void> _onRefresh() async {
+    await _loadUserData();
+  }
+
+  Future<void> refresh() async {
     await _loadUserData();
   }
 
@@ -120,10 +125,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _refreshAddressCount() async {
     try {
+      final token = await SessionManager.getString('token') ?? '';
+      final serverList = await GetAddressApi.getAddresses(token: token);
+      if (serverList.isNotEmpty) {
+        await AddressStorage.replaceAll(serverList);
+        if (mounted) setState(() => _addressCount = serverList.length);
+        return;
+      }
+      // Server returned empty — fall back to local cache (offline-safe)
       final list = await AddressStorage.load();
       if (mounted) setState(() => _addressCount = list.length);
     } catch (_) {
-      // keep existing count if load fails
+      // Network failed — fall back to local cache
+      final list = await AddressStorage.load();
+      if (mounted) setState(() => _addressCount = list.length);
     }
   }
 
@@ -274,7 +289,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         : '$_addressCount ${_addressCount == 1 ? 'Address' : 'Addresses'}';
 
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: AppColors.cardWhite,
       appBar: AppBar(
         backgroundColor: AppColors.cardWhite,
         title: const Text(

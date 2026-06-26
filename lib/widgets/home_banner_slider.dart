@@ -1,3 +1,5 @@
+
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mtl_groceriesapp/config/app_color.dart';
@@ -6,7 +8,9 @@ import '../services/home_banner_service.dart';
 import '../services/session_manager.dart';
 
 class HomeBannerSlider extends StatefulWidget {
-  const HomeBannerSlider({super.key});
+  final void Function(BannerItem banner) onCategoryTap;
+
+  const HomeBannerSlider({super.key, required this.onCategoryTap});
 
   @override
   State<HomeBannerSlider> createState() => _HomeBannerSliderState();
@@ -70,7 +74,16 @@ class _HomeBannerSliderState extends State<HomeBannerSlider>
     super.dispose();
   }
 
+  // ── Banner tap → navigate to category in-app, or open external link ────
+  // If the banner has a category_id, hand it off to the parent's
+  // onCategoryTap callback (which fetches the category and opens the
+  // full-category screen). Falls back to opening fullLink as a URL only
+  // when there's no category_id at all.
   Future<void> _onBannerTap(BannerItem banner) async {
+    if (banner.hasCategory) {
+      widget.onCategoryTap(banner);
+      return;
+    }
     if (banner.fullLink.isEmpty) return;
     final uri = Uri.parse(banner.fullLink);
     try {
