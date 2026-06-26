@@ -5,6 +5,7 @@ import '../config/app_color.dart';
 import '../model/cart_model.dart';
 import '../model/category_data_model.dart';
 import '../model/product_model.dart';
+import '../products/product_card.dart';
 import '../products/product_detail_screen.dart';
 import '../services/api_config_service.dart';
 import '../services/api_server.dart';
@@ -86,6 +87,18 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   final Map<String, Future<void>>                  _inFlight   = {};
 
   String? _cachedToken;
+
+  // ─── Muted/pale tile palette — subtle multicolor, BigBasket-clean ────────
+  static const List<Color> _tileColors = [
+    Color(0xFFF3EFEA), // pale warm beige
+    Color(0xFFEEF3EE), // pale mint
+    Color(0xFFF5F1E8), // pale butter
+    Color(0xFFEFEEF3), // pale lavender
+    Color(0xFFF5EEEF), // pale pink
+    Color(0xFFEDF2F3), // pale sky
+    Color(0xFFEFF3EF), // pale sage
+    Color(0xFFF5F0EA), // pale apricot
+  ];
 
   @override
   void initState() {
@@ -194,26 +207,26 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:AppColors.white,
+      backgroundColor: AppColors.scaffoldBg,
       floatingActionButton: const Padding(
         padding: EdgeInsets.only(bottom: 8),
         child: FloatingCartBar(),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       appBar: AppBar(
-        backgroundColor:AppColors.white,
+        backgroundColor: AppColors.cardWhite,
         elevation:       0,
         automaticallyImplyLeading: false,
         title: const Text('Categories',
             style: TextStyle(
-                color:      Colors.black87,
+                color:      AppColors.primaryBlue,
                 fontWeight: FontWeight.bold,
                 fontSize:   22)),
         centerTitle: false,
       ),
       body: _loading
           ? const Center(
-          child: CircularProgressIndicator(color: AppColors.lightBrown))
+          child: CircularProgressIndicator(color: AppColors.primaryBlue))
           : _error != null
           ? _buildError()
           : _subcategories.isEmpty && _parentProducts.isEmpty
@@ -245,92 +258,123 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   Widget _buildEmpty() => Center(
     child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Icon(Icons.category_outlined, size: 60, color:Colors.pink),
+      const Icon(Icons.category_outlined, size: 60, color: AppColors.primaryBlue),
       const SizedBox(height: 16),
-      Text('No categories found',
-          style: TextStyle(color:Colors.black87)),
+      const Text('No categories found',
+          style: TextStyle(color: AppColors.textDark)),
       const SizedBox(height: 12),
       ElevatedButton(
         onPressed: _fetchData,
         style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.buttonPrimary),
-        child: const Text('Retry', style: TextStyle(color: Colors.white)),
+            backgroundColor: AppColors.primaryOrange),
+        child: const Text('Retry', style: TextStyle(color: AppColors.textLight)),
       ),
     ]),
   );
 
+  // ─── Responsive 4-per-row colored tile grid (fixed-size chips, like
+  //     the home-tab category chips: same box size + BoxFit.cover for
+  //     every tile, so nothing ever looks bigger/smaller than another) ──
   Widget _buildList() {
     return RefreshIndicator(
       color: AppColors.buttonPrimary,
       onRefresh: _fetchData,
-      child: ListView.builder(
-        physics:   const AlwaysScrollableScrollPhysics(),
-        padding:   const EdgeInsets.fromLTRB(16, 8, 16, 100),
-        itemCount: _subcategories.length,
-        itemBuilder: (context, index) {
-          final cat    = _subcategories[index];
-          final imgUrl = (cat.image.isNotEmpty && cat.image != 'no_image.png')
-              ? '$_imgBase${cat.image}'
-              : '';
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Responsive column count based on available width:
+          //   < 600   → phones            → 4 per row
+          //   600-899 → small tablets     → 5 per row
+          //   900-1199→ large tablets     → 6 per row
+          //   >=1200  → desktop/web       → 7 per row
+          final width = constraints.maxWidth;
+          int crossAxisCount;
+          if (width >= 1200) {
+            crossAxisCount = 7;
+          } else if (width >= 900) {
+            crossAxisCount = 6;
+          } else if (width >= 600) {
+            crossAxisCount = 5;
+          } else {
+            crossAxisCount = 4;
+          }
 
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              color:        Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color:AppColors.buttonPrimary, width: 1),
-              boxShadow: [
-                BoxShadow(
-                    color:      AppColors.buttonPrimary.withOpacity(0.06),
-                    blurRadius: 8,
-                    offset:     const Offset(0, 2))
-              ],
+          // Fixed square tile size derived once from available width —
+          // same idea as _buildCatChip's hardcoded 65x65 box, just
+          // computed so it adapts cleanly to any screen instead of
+          // being a single hardcoded number.
+          const double hPad        = 12; // outer grid padding (left+right combined /2 *2)
+          const double crossSpace  = 10; // spacing between columns
+          final double totalSpacing =
+              (hPad * 2) + (crossSpace * (crossAxisCount - 1));
+          final double tileSize =
+              (width - totalSpacing) / crossAxisCount;
+
+          return GridView.builder(
+            physics:   const AlwaysScrollableScrollPhysics(),
+            padding:   const EdgeInsets.fromLTRB(12, 10, 12, 100),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount:   crossAxisCount,
+              crossAxisSpacing: crossSpace,
+              mainAxisSpacing:  16,
+              mainAxisExtent:   tileSize + 38,
             ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap:        () => _openCategory(cat),
-                borderRadius: BorderRadius.circular(16),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12),
-                  child: Row(children: [
+            itemCount: _subcategories.length,
+            itemBuilder: (context, index) {
+              final cat    = _subcategories[index];
+              final imgUrl = (cat.image.isNotEmpty && cat.image != 'no_image.png')
+                  ? '$_imgBase${cat.image}'
+                  : '';
+              final tileColor = _tileColors[index % _tileColors.length];
+
+              return GestureDetector(
+                onTap: () => _openCategory(cat),
+                child: Column(
+                  children: [
+                    // Fixed-size square box — identical for every tile,
+                    // regardless of source image shape. BoxFit.cover +
+                    // clipBehavior crops each image to fill it exactly,
+                    // the same technique _buildCatChip uses.
                     Container(
-                      width: 52, height: 52,
-                      decoration: BoxDecoration(
-                        color:        AppColors.warningLight,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                            color:AppColors.buttonPrimary, width: 1),
-                      ),
+                      width:  tileSize,
+                      height: tileSize,
                       clipBehavior: Clip.antiAlias,
+                      decoration: BoxDecoration(
+                        color:        tileColor,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                       child: imgUrl.isNotEmpty
                           ? Image.network(imgUrl, fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _catIcon())
-                          : _catIcon(),
+                          width: tileSize,
+                          height: tileSize,
+                          filterQuality: FilterQuality.high,
+                          errorBuilder: (_, __, ___) => Center(child: _catIcon()))
+                          : Center(child: _catIcon()),
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
+                    const SizedBox(height: 5),
+                    SizedBox(
+                      height: 30,
                       child: Text(cat.name,
                           style: const TextStyle(
-                              fontSize:   15,
-                              fontWeight: FontWeight.bold,
-                              color:      AppColors.textDark)),
+                              fontSize:   11.5,
+                              fontWeight: FontWeight.w600,
+                              height:     1.15,
+                              color:      AppColors.textDark),
+                          textAlign: TextAlign.center,
+                          maxLines:  2,
+                          overflow:  TextOverflow.ellipsis),
                     ),
-                    const Icon(Icons.chevron_right,
-                        color: AppColors.buttonPrimary, size: 22),
-                  ]),
+                  ],
                 ),
-              ),
-            ),
+              );
+            },
           );
         },
       ),
     );
   }
 
-  Widget _catIcon() => Icon(Icons.category,
-      color: AppColors.lightBrown.withOpacity(0.7), size: 24);
+  Widget _catIcon() => const Icon(Icons.category_outlined,
+      color: AppColors.primaryBlue, size: 26);
 }
 
 // ─── Category Split Screen ────────────────────────────────────────────────────
@@ -423,7 +467,7 @@ class _CategorySplitScreenState extends State<_CategorySplitScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+        backgroundColor: AppColors.cardWhite,
       // ── Floating cart bar ─────────────────────────────────────────────────
       floatingActionButton: const Padding(
         padding: EdgeInsets.only(bottom: 8),
@@ -584,7 +628,7 @@ class _CategorySplitScreenState extends State<_CategorySplitScreen> {
               child: Center(
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
                   Icon(Icons.inventory_2_outlined,
-                      size: 48, color: Colors.pink),
+                      size: 48,  color: AppColors.floatingCartBg),
                   const SizedBox(height: 10),
                   Text('No products found',
                       style: TextStyle(
@@ -608,7 +652,7 @@ class _CategorySplitScreenState extends State<_CategorySplitScreen> {
                 ),
                 delegate: SliverChildBuilderDelegate(
                       (_, i) => RepaintBoundary(
-                      child: _ProductCard(p: products[i])),
+                      child: ProductCard(product: _toProduct(products[i]), imageHeight: imgH)),
                   childCount: products.length > _previewMax
                       ? _previewMax
                       : products.length,
@@ -746,7 +790,6 @@ class _ProductCard extends StatelessWidget {
         children: [
 
           // ── Image ─────────────────────────────────────────────────────
-          // LayoutBuilder(builder: (_, constraints) {
           GestureDetector(
             onTap: () => Navigator.push(context,
                 MaterialPageRoute(
@@ -832,7 +875,6 @@ class _ProductCard extends StatelessWidget {
                               decoration: BoxDecoration(
                                   color:        AppColors.priceGreen,
                                   borderRadius: BorderRadius.circular(4)),
-                              // child: Text('₹${p.retailPrice.toInt()}',
                               child: Text('₹${product.price.toInt()}',
                                   style: const TextStyle(
                                       color:      Colors.white,
@@ -950,13 +992,13 @@ class _CartButtonState extends State<_CartButton> {
 
   void _startEditing(int currentQty) {
     _ctrl.text = '$currentQty';
-    _focus.requestFocus();
     setState(() => _editing = true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _ctrl.selection = TextSelection(
         baseOffset:   0,
         extentOffset: _ctrl.text.length,
       );
+      _focus.requestFocus();
     });
   }
 
@@ -1361,7 +1403,8 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
 
     final screenW = MediaQuery.of(context).size.width;
     final cardW   = (screenW - 44) / 2;
-    final cardH   = _ProductCard.cardHeightForWidth(cardW);
+    final imgH    = cardW * 0.72;
+    final cardH   = imgH + 138;
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -1439,7 +1482,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                   ));
             }
             return RepaintBoundary(
-                child: _ProductCard(p: visible[i]));
+                child: ProductCard(product: _toProduct(visible[i]), imageHeight: imgH));
           },
         ),
       ),

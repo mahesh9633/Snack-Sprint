@@ -1,13 +1,14 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'api_config_service.dart';
-
 class BannerItem {
   final String bannerId;
   final String name;
   final String title;
   final String image;
   final String link;
+  final String categoryId;
+  final String categoryName;
   final int    sortOrder;
 
   const BannerItem({
@@ -16,6 +17,8 @@ class BannerItem {
     required this.title,
     required this.image,
     required this.link,
+    required this.categoryId,
+    required this.categoryName,
     required this.sortOrder,
   });
 
@@ -26,8 +29,13 @@ class BannerItem {
         : '${ApiConfig.imageBase}$image';
   }
 
-  /// Builds the full product/category link from the relative route
+  /// True when this banner should navigate to a category screen in-app.
+  // bool get hasCategory => categoryId.isNotEmpty && categoryId != '0';
+  bool get hasCategory =>
+      categoryId.isNotEmpty && int.tryParse(categoryId) != null && categoryId != '0';
 
+  /// Builds the full product/category link from the relative route
+  /// — only used as a fallback when there's no category_id at all.
   String get fullLink {
     if (link.isEmpty) return '';
     // Already a full URL — use as-is
@@ -41,12 +49,14 @@ class BannerItem {
 
   factory BannerItem.fromJson(Map<String, dynamic> j) {
     return BannerItem(
-      bannerId:  j['banner_id']?.toString() ?? '',
-      name:      j['name']?.toString()      ?? '',
-      title:     j['title']?.toString()     ?? '',
-      image:     j['image']?.toString()     ?? '',
-      link:      j['link']?.toString()      ?? '',
-      sortOrder: int.tryParse(j['sort_order']?.toString() ?? '0') ?? 0,
+      bannerId:     j['banner_id']?.toString()    ?? '',
+      name:         j['name']?.toString()         ?? '',
+      title:        j['title']?.toString()        ?? '',
+      image:        j['image']?.toString()        ?? '',
+      link:         j['link']?.toString()          ?? '',
+      categoryId:   j['category_id']?.toString()   ?? '',
+      categoryName: j['category_name']?.toString() ?? '',
+      sortOrder:    int.tryParse(j['sort_order']?.toString() ?? '0') ?? 0,
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../config/app_color.dart';
 import '../model/cart_model.dart';
 import '../model/product_model.dart';
 import '../products/product_detail_screen.dart';
@@ -20,6 +21,7 @@ class ProductPiece {
   final int    minQuantity;   // <-- new
   final bool   isCombo;       // <-- new
   final int    stock;         // piece-level stock
+  final double piecePrice;    // <-- new: backend combo per-unit price (raw)
 
   const ProductPiece({
     this.rowId = '',
@@ -31,6 +33,7 @@ class ProductPiece {
     this.minQuantity = 0,
     this.isCombo     = false,
     this.stock       = 0,
+    this.piecePrice  = 0,    // <-- new
   });
 
   factory ProductPiece.fromJson(Map<String, dynamic> j) {
@@ -39,6 +42,7 @@ class ProductPiece {
 
     final price      = double.tryParse(j['price']?.toString()         ?? '0') ?? 0;
     final special    = double.tryParse(j['special_price']?.toString() ?? '0') ?? 0;
+    final piecePrice = double.tryParse(j['piece_price']?.toString()   ?? '0') ?? 0; // <-- new
     final pieceName  = j['piece']?.toString() ?? '';
     final minQtyInt  = int.tryParse(j['min_quantity']?.toString() ?? '0') ?? 0;
     final isCombo    = (j['is_combo']?.toString() ?? 'No').toLowerCase() == 'yes';
@@ -61,12 +65,21 @@ class ProductPiece {
       minQuantity:  minQtyInt,
       isCombo:      isCombo,
       stock:        stockInt,
+      piecePrice:   piecePrice,   // <-- new
     );
   }
 
   double get effectivePrice => (specialPrice > 0 && specialPrice < price) ? specialPrice : price;
   bool   get hasDiscount    => specialPrice > 0 && specialPrice < price;
   int    get discountPct    => hasDiscount ? ((price - specialPrice) / price * 100).round() : 0;
+
+  // <-- new: per-unit price for combo pieces, mirrors backend formula
+  // $piece_price = $special_price > 0 ? ($special_price / $min_quantity) : ($price / $min_quantity);
+  double get perUnitPrice {
+    if (!isCombo || minQuantity <= 0) return effectivePrice;
+    final qty = minQuantity < 1 ? 1 : minQuantity;
+    return specialPrice > 0 ? (specialPrice / qty) : (price / qty);
+  }
 
   // String cartId(String baseProductId) => '${baseProductId}_piece_$pieceId';
   String cartId(String baseProductId)
@@ -124,19 +137,26 @@ class _PieceSelectorSheet extends StatelessWidget {
 
   const _PieceSelectorSheet({required this.product, required this.pieces});
 
+  double _initialSize(BuildContext context) {
+    final screenH     = MediaQuery.of(context).size.height;
+    final itemHeight  = pieces.length * 105.0;
+    final totalHeight = itemHeight + 150.0;
+    final ratio       = totalHeight / screenH;
+    if (ratio < 0.25) return 0.25;
+    if (ratio > 0.60) return 0.60;
+    return ratio;
+  }
+
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
-      initialChildSize: 0.75,
-      minChildSize:     0.50,
+      initialChildSize: _initialSize(context),
+      minChildSize:     0.30,
       maxChildSize:     0.92,
       expand:           false,
       snap:             false,
-      builder: (_, scrollCtrl) => Stack(
-        children: [
-          // ── Main sheet container ───────────────────────────────────
-          Container(
-            decoration: const BoxDecoration(
+      builder: (_, scrollCtrl) => Container(
+        decoration: const BoxDecoration(
               color:        Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
@@ -187,12 +207,12 @@ class _PieceSelectorSheet extends StatelessWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: const [
-                              Icon(Icons.card_giftcard,
-                                  size: 13, color: Color(0xFFFF6B00)),
-                              SizedBox(width: 4),
-                              Text('Combo Deal',
+                              const Icon(Icons.card_giftcard,
+                                  size: 13, color: AppColors.primaryOrange),
+                              const SizedBox(width: 4),
+                              const Text('Combo Deal',
                                   style: TextStyle(
-                                      color: Color(0xFFFF6B00),
+                                      color: AppColors.primaryOrange,
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold)),
                             ],
@@ -216,21 +236,10 @@ class _PieceSelectorSheet extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-
-          // ── Floating cart bar pinned at bottom of sheet ────────────
-          const Positioned(
-            bottom: 16,
-            left:   16,
-            right:  16,
-            child:  FloatingCartBar(),
-          ),
-        ],
       ),
     );
   }
 }
-
 // ─── Single piece row ─────────────────────────────────────────────────────────
 class _PieceRow extends StatelessWidget {
   final Product      product;
@@ -257,7 +266,7 @@ class _PieceRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: piece.isCombo
-              ? const Color(0xFFFF6B00).withOpacity(0.5)
+              ? AppColors.primaryOrange.withOpacity(0.5)
               : Colors.grey[200]!,
           width: piece.isCombo ? 1.5 : 1.0,
         ),
@@ -378,6 +387,15 @@ class _PieceRow extends StatelessWidget {
                           decoration: TextDecoration.lineThrough)),
                 ],
               ]),
+              // <-- new: per-piece price for combo packs
+              if (piece.isCombo && piece.minQuantity > 1)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    '₹${piece.perUnitPrice.toStringAsFixed(2)} / piece',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                  ),
+                ),
             ],
           ),
         ),
@@ -455,13 +473,13 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
   // }
   void _startEditing(int currentQty) {
     _ctrl.text = '$currentQty';
-    _focus.requestFocus();
     setState(() => _editing = true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _ctrl.selection = TextSelection(
         baseOffset:   0,
         extentOffset: _ctrl.text.length,
       );
+      _focus.requestFocus();
     });
   }
   void _commitEdit(CartModel cart, Product tempProduct, int effectiveStock) {
@@ -489,7 +507,7 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.info_outline, color: Color(0xFFFF0080), size: 36),
+                const Icon(Icons.info_outline, color: AppColors.primaryBlue, size: 36),
                 const SizedBox(height: 12),
                 Text(
                   'Only $stock item${stock == 1 ? '' : 's'} available',
@@ -497,7 +515,7 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                    color: AppColors.textDark,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -506,12 +524,12 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFF0080),
+                      color: AppColors.primaryOrange,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text('OK',
                         style: TextStyle(
-                            color: Colors.white,
+                            color: AppColors.textLight,
                             fontWeight: FontWeight.bold,
                             fontSize: 14)),
                   ),
@@ -573,9 +591,12 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
 
       if (qty == 0) {
         final isOutOfStock = effectiveStock == 0;
-        return GestureDetector(
-          onTap: isOutOfStock ? null : () => _addPiece(ctx, widget.product, widget.piece),
-          child: Container(
+        return AnimatedSwitcher(
+            duration: const Duration(milliseconds: 180),
+            child: GestureDetector(
+              key: const ValueKey('add'),
+              onTap: isOutOfStock ? null : () => _addPiece(ctx, widget.product, widget.piece),
+              child: Container(
             padding: const EdgeInsets.symmetric(
                 horizontal: 18, vertical: 8),
             decoration: BoxDecoration(
@@ -587,12 +608,12 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
             child: Text(
                 isOutOfStock ? 'Out of Stock' : 'ADD',
                 style: TextStyle(
-                    color:         isOutOfStock ? Colors.red : const Color(0xFFFF0080),
+                    color:         isOutOfStock ? Colors.red : AppColors.freshGreen,
                     fontSize:      13,
                     fontWeight:    FontWeight.bold,
                     letterSpacing: 0.5)),
           ),
-        );
+        ));
       }
 
       // Live price: updates as user types, before committing
@@ -601,13 +622,16 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
           : qty;
       final liveTotal = (liveQty * widget.piece.effectivePrice).toInt();
 
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            height: 36,
+      return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          child: Column(
+            key: const ValueKey('stepper'),
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                height: 36,
             decoration: BoxDecoration(
-                color:        const Color(0xFFFF0080),
+                color:        AppColors.freshGreen,
                 borderRadius: BorderRadius.circular(8)),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               GestureDetector(
@@ -615,7 +639,7 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
                 child: const SizedBox(
                     width: 34, height: 36,
                     child: Icon(Icons.remove,
-                        color: Colors.white, size: 16)),
+                        color: AppColors.textLight, size: 16)),
               ),
 
               // ── Tappable qty / inline editor ──────────────────
@@ -644,7 +668,8 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
                 )
               else
                 GestureDetector(
-                  onTapDown: (_) => _startEditing(qty),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _startEditing(qty),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 6),
                     child: Text('$qty',
@@ -676,15 +701,15 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.info_outline, color: Color(0xFFFF0080), size: 36),
+                              const Icon(Icons.info_outline, color: AppColors.primaryBlue, size: 36),
                               const SizedBox(height: 12),
-                              Text(
-                                'Only $stock item${stock == 1 ? '' : 's'} available',
+                               Text(
+                                'Only $stock item(s) available',
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.black87,
+                                  color: AppColors.textDark,
                                 ),
                               ),
                               const SizedBox(height: 16),
@@ -693,12 +718,12 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFF0080),
+                                    color: AppColors.primaryOrange,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: const Text('OK',
                                       style: TextStyle(
-                                          color: Colors.white,
+                                          color: AppColors.textLight,
                                           fontWeight: FontWeight.bold,
                                           fontSize: 14)),
                                 ),
@@ -723,12 +748,12 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
           Text(
             '₹$liveTotal',
             style: const TextStyle(
-                color:      Color(0xFFFF0080),
+                color:      AppColors.freshGreen,
                 fontSize:   11,
                 fontWeight: FontWeight.bold),
           ),
         ],
-      );
+      ));
       },
     );
   }

@@ -1,4 +1,3 @@
-
 enum AppEnv { dev, production }
 
 class ApiConfig {
@@ -7,7 +6,7 @@ class ApiConfig {
 
   // ── Environment base URLs ─────────────────────────────────────────────────
   static const String _productionBase = 'https://dbmarts.com/DBM/';
-  static const String _devBase        = 'http://192.168.100.183:8000';
+  static const String _devBase        = 'http://192.168.100.186:8002';
 
   // ── Active base URL (normalized — always ends with /) ─────────────────────
   static String get baseUrl {

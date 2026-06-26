@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_color.dart';
 
 class CategoryChip extends StatelessWidget {
   final String? icon;
@@ -30,18 +31,18 @@ class CategoryChip extends StatelessWidget {
               width:  62,
               height: 62,
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFFE91E63) : Colors.white,
+                color: isSelected ? AppColors.primaryOrange : Colors.white,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: isSelected
-                      ? const Color(0xFFE91E63)
+                      ? AppColors.primaryOrange
                       : Colors.grey[300]!,
                   width: 1.5,
                 ),
                 boxShadow: isSelected
                     ? [
                   BoxShadow(
-                      color: const Color(0xFFE91E63)
+                      color: AppColors.primaryOrange
                           .withValues(alpha: 0.30),
                       blurRadius: 8,
                       offset: const Offset(0, 3))
@@ -70,7 +71,7 @@ class CategoryChip extends StatelessWidget {
                   fontWeight:
                   isSelected ? FontWeight.bold : FontWeight.w500,
                   color: isSelected
-                      ? const Color(0xFFE91E63)
+                      ? AppColors.primaryOrange
                       : Colors.black87,
                 ),
               ),
@@ -115,7 +116,7 @@ class CategoryChip extends StatelessWidget {
       child: SizedBox(
         width: 18, height: 18,
         child: CircularProgressIndicator(
-            strokeWidth: 2, color: Color(0xFFE91E63)),
+            strokeWidth: 2, color: AppColors.primaryOrange),
       ),
     ),
   );

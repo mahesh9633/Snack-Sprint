@@ -123,14 +123,14 @@ class _RewardsScreenState extends State<RewardsScreen> {
             padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [AppColors.pink, AppColors.pink],
+                colors: [AppColors.primaryOrange, AppColors.primaryOrange],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.accentDark.withOpacity(0.35),
+                  color: AppColors.primaryBlue.withOpacity(0.35),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -181,7 +181,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
                   _totalPoints == 0
                       ? Icons.info_outline
                       : Icons.emoji_events_outlined,
-                  color: AppColors.pink,
+                  color: AppColors.primaryOrange,
                   size: 26,
                 ),
               ),
@@ -207,7 +207,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
           const Center(
             child: Text(
               'Pull down to refresh your points',
-              style: TextStyle(fontSize: 12, color: AppColors.pink),
+              style: TextStyle(fontSize: 12, color: AppColors.primaryOrange),
             ),
           ),
           const SizedBox(height: 16),

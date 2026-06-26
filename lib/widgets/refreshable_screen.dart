@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_color.dart';
 
 class RefreshableScreen extends StatelessWidget {
   final Future<void> Function() onRefresh;
@@ -11,7 +12,7 @@ class RefreshableScreen extends StatelessWidget {
     super.key,
     required this.onRefresh,
     required this.child,
-    this.color = const Color(0xFFE91E63),
+    this.color = AppColors.primaryBlue,
   });
 
   @override

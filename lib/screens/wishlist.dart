@@ -23,23 +23,23 @@ class _WishlistScreenState extends State<WishlistScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: AppColors.scaffoldBg,
       floatingActionButton: const Padding(
         padding: EdgeInsets.only(bottom: 0),
         child: FloatingCartBar(),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       appBar: AppBar(
-        backgroundColor: AppColors.appBarBg,
+        backgroundColor: AppColors.cardWhite,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.appBarIcon),
+          icon: const Icon(Icons.arrow_back, color: AppColors.primaryBlue),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'My Wishlist',
           style: TextStyle(
-              color: AppColors.appBarText, fontWeight: FontWeight.bold, fontSize: 18),
+              color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 18),
         ),
       ),
       body: Consumer<FavoritesModel>(
@@ -55,14 +55,14 @@ class _WishlistScreenState extends State<WishlistScreen> {
               // ── count bar ───────────────────────────────────────────────────
               Container(
                 width: double.infinity,
-                color: Colors.white,
+                color: AppColors.cardWhite,
                 padding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 child: Text(
                   '${items.length} ${items.length == 1 ? 'item' : 'items'} saved',
-                  style: TextStyle(
+                  style: const TextStyle(
                       fontSize: 13,
-                      color: Colors.grey[600],
+                      color: AppColors.textGrey,
                       fontWeight: FontWeight.w500),
                 ),
               ),
@@ -71,7 +71,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
               Expanded(
                 child: RefreshableScreen(
                   onRefresh: () async {},// call your existing reload/fetch
-                  color: AppColors.textAccent,
+                  color: AppColors.primaryBlue,
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(12, 12, 12, 100),
                     itemCount: items.length,
@@ -100,7 +100,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
               color:Colors.white.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.favorite_border, size: 56, color:Colors.pink),
+            child: const Icon(Icons.favorite_border, size: 56, color: AppColors.primaryBlue),
           ),
           const SizedBox(height: 20),
           const Text(
@@ -108,19 +108,19 @@ class _WishlistScreenState extends State<WishlistScreen> {
             style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppColors.buttonPrimary),
+                color: AppColors.primaryBlue),
           ),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             'Tap ♡ on any product to save it here.\nYour items stay saved even after logout.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: Colors.black87),
+            style: TextStyle(fontSize: 14, color: AppColors.textDark),
           ),
           const SizedBox(height: 28),
           ElevatedButton(
             onPressed: () => Navigator.pop(context),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.buttonPrimary,
+              backgroundColor: AppColors.primaryOrange,
               padding:
               const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
               shape: RoundedRectangleBorder(
@@ -129,7 +129,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
             child: const Text(
               'Browse Products',
               style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textLight,
                   fontSize: 15,
                   fontWeight: FontWeight.w600),
             ),
@@ -220,21 +220,21 @@ class _WishlistCard extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        '${product.discountPercentage.toStringAsFixed(0)}% OFF',
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold),
+                        decoration: BoxDecoration(
+                          color: AppColors.freshGreen,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '${product.discountPercentage.toStringAsFixed(0)}% OFF',
+                          style: const TextStyle(
+                              color: AppColors.textLight,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ),
-                  ),
-              ],
-            ),
+                ],
+              ),
             ),
 
             // ── Details ──────────────────────────────────────────────────────
@@ -250,7 +250,7 @@ class _WishlistCard extends StatelessWidget {
                       style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Colors.black87),
+                          color: AppColors.textDark),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -259,7 +259,7 @@ class _WishlistCard extends StatelessWidget {
                       Text(
                         product.weight,
                         style:
-                        TextStyle(fontSize: 12, color: Colors.grey[500]),
+                        const TextStyle(fontSize: 12, color: AppColors.textGrey),
                       ),
                     ],
                     const SizedBox(height: 8),
@@ -270,15 +270,15 @@ class _WishlistCard extends StatelessWidget {
                           style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.priceGreen),
+                              color: AppColors.freshGreen),
                         ),
                         if (hasDiscount) ...[
                           const SizedBox(width: 6),
                           Text(
                             '₹${product.originalPrice.toStringAsFixed(0)}',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[400],
+                              color: AppColors.textGrey,
                               decoration: TextDecoration.lineThrough,
                             ),
                           ),
@@ -409,9 +409,9 @@ class _WishlistCard extends StatelessWidget {
 
                         final hasItems = totalQty > 0;
                         final Color accent =
-                        hasItems ? AppColors.priceGreen : AppColors.buttonPrimary;
+                        hasItems ? AppColors.freshGreen : AppColors.primaryBlue;
                         final Color accentBorder =
-                        hasItems ? AppColors.priceGreen : Colors.grey[300]!;
+                        hasItems ? AppColors.freshGreen : AppColors.border;
 
                         return GestureDetector(
                           onTap: () => handleAddToCart(
@@ -424,7 +424,7 @@ class _WishlistCard extends StatelessWidget {
                             height: 40,
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: AppColors.cardWhite,
                               border: Border.all(color: accentBorder, width: 1.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -472,7 +472,6 @@ class _WishlistCard extends StatelessWidget {
                         );
                       }
 
-                      // ── No pieces, qty == 0 → plain ADD ────────────────
                       final int qty = cart.getQuantity(product);
                       if (qty == 0) {
                         return GestureDetector(
@@ -482,14 +481,14 @@ class _WishlistCard extends StatelessWidget {
                             height: 40,
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: AppColors.cardWhite,
                               border: Border.all(
-                                  color: Colors.grey[300]!, width: 1.2),
+                                  color: AppColors.border, width: 1.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Text('ADD',
                                 style: TextStyle(
-                                    color:         AppColors.buttonPrimary,
+                                    color:         AppColors.freshGreen,
                                     fontSize:      12,
                                     fontWeight:    FontWeight.bold,
                                     letterSpacing: 0.5)),
@@ -511,10 +510,10 @@ class _WishlistCard extends StatelessWidget {
   }
 
   Widget _placeholder() => Container(
-    color: AppColors.sidebarBg,
+    color: AppColors.scaffoldBg,
     child: const Center(
       child: Icon(Icons.image_not_supported_outlined,
-          color: AppColors.buttonPrimary, size: 32),
+          color: AppColors.primaryBlue, size: 32),
     ),
   );
 }
@@ -574,27 +573,27 @@ class _WishlistCard extends StatelessWidget {
   margin: const EdgeInsets.symmetric(horizontal: 40),
   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
   decoration: BoxDecoration(
-  color: Colors.white,
+  color: AppColors.cardWhite,
   borderRadius: BorderRadius.circular(16),
   boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 20)],
   ),
   child: Column(
   mainAxisSize: MainAxisSize.min,
   children: [
-  const Icon(Icons.info_outline, color: AppColors.buttonPrimary, size: 36),
+  const Icon(Icons.info_outline, color: AppColors.primaryBlue, size: 36),
   const SizedBox(height: 12),
-  Text(
-  'Only $stock item${stock == 1 ? '' : 's'} available',
+   Text(
+  'Only $stock item(s) available',
   textAlign: TextAlign.center,
-  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
+  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textDark),
   ),
   const SizedBox(height: 16),
   GestureDetector(
   onTap: () => Navigator.pop(context),
   child: Container(
   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
-  decoration: BoxDecoration(color: AppColors.buttonPrimary, borderRadius: BorderRadius.circular(8)),
-  child: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+  decoration: BoxDecoration(color: AppColors.primaryOrange, borderRadius: BorderRadius.circular(8)),
+  child: const Text('OK', style: TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold, fontSize: 14)),
   ),
   ),
   ],
@@ -641,13 +640,13 @@ class _WishlistCard extends StatelessWidget {
   totalAmt += q * piece.effectivePrice;
   }
   final hasItems = totalQty > 0;
-  final Color accent = hasItems ? AppColors.priceGreen : AppColors.buttonPrimary;
+  final Color accent = hasItems ? AppColors.freshGreen : AppColors.primaryBlue;
   return GestureDetector(
   onTap: () => handleAddToCart(context: context, product: product, pieces: product.pieces),
   child: Container(
   width: 90, height: 40,
   alignment: Alignment.center,
-  decoration: BoxDecoration(color: Colors.white, border: Border.all(color: accent, width: 1.2), borderRadius: BorderRadius.circular(8)),
+  decoration: BoxDecoration(color: AppColors.cardWhite, border: Border.all(color: accent, width: 1.2), borderRadius: BorderRadius.circular(8)),
   child: hasItems
   ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [
   Text('ADD (${product.pieces.length} opp)',
@@ -675,12 +674,12 @@ class _WishlistCard extends StatelessWidget {
   width: 90, height: 40,
   alignment: Alignment.center,
   decoration: BoxDecoration(
-  color: Colors.white,
-    border: Border.all(color: Colors.grey[300]!, width: 1.2),
+  color: AppColors.cardWhite,
+    border: Border.all(color: AppColors.border, width: 1.2),
   borderRadius: BorderRadius.circular(8),
   ),
   child: const Text('ADD',
-  style: TextStyle(color: AppColors.buttonPrimary, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+  style: TextStyle(color: AppColors.freshGreen, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
   ),
   );
   }
@@ -691,13 +690,13 @@ class _WishlistCard extends StatelessWidget {
   children: [
   Container(
   width: 90, height: 38,
-  decoration: BoxDecoration(color: AppColors.buttonPrimary, borderRadius: BorderRadius.circular(8)),
+  decoration: BoxDecoration(color: AppColors.freshGreen, borderRadius: BorderRadius.circular(8)),
   child: Row(
   mainAxisAlignment: MainAxisAlignment.spaceBetween,
   children: [
   GestureDetector(
   onTap: () => cart.decrementQuantity(product.id),
-  child: const SizedBox(width: 22, height: 32, child: Icon(Icons.remove, color: Colors.white, size: 14)),
+  child: const SizedBox(width: 22, height: 32, child: Icon(Icons.remove, color: AppColors.textLight, size: 14)),
   ),
   if (_editing)
   SizedBox(
@@ -707,7 +706,7 @@ class _WishlistCard extends StatelessWidget {
   focusNode:    _focus,
   keyboardType: TextInputType.number,
   textAlign:    TextAlign.center,
-  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+  style: const TextStyle(color: AppColors.textLight, fontSize: 11, fontWeight: FontWeight.bold),
   decoration: const InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
   onChanged:    (_) => setState(() {}),
   onSubmitted:  (_) => _commitEdit(cart),
@@ -717,7 +716,7 @@ class _WishlistCard extends StatelessWidget {
   else
   GestureDetector(
   onTapDown: (_) => _startEditing(qty),
-  child: Text('$qty', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+  child: Text('$qty', style: const TextStyle(color: AppColors.textLight, fontSize: 12, fontWeight: FontWeight.bold)),
   ),
   GestureDetector(
   onTap: () {
@@ -731,22 +730,22 @@ class _WishlistCard extends StatelessWidget {
   margin: const EdgeInsets.symmetric(horizontal: 40),
   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
   decoration: BoxDecoration(
-  color: Colors.white, borderRadius: BorderRadius.circular(16),
+  color: AppColors.cardWhite, borderRadius: BorderRadius.circular(16),
   boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 20)],
   ),
   child: Column(mainAxisSize: MainAxisSize.min, children: [
-  const Icon(Icons.info_outline, color: AppColors.buttonPrimary, size: 36),
+  const Icon(Icons.info_outline, color: AppColors.primaryBlue, size: 36),
   const SizedBox(height: 12),
-  Text('Only $stock item${stock == 1 ? '' : 's'} available',
+  Text('Only $stock item(s) available',
   textAlign: TextAlign.center,
-  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87)),
+  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textDark)),
   const SizedBox(height: 16),
   GestureDetector(
   onTap: () => Navigator.pop(context),
   child: Container(
   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
-  decoration: BoxDecoration(color: AppColors.buttonPrimary, borderRadius: BorderRadius.circular(8)),
-  child: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+  decoration: BoxDecoration(color: AppColors.primaryOrange, borderRadius: BorderRadius.circular(8)),
+  child: const Text('OK', style: TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold, fontSize: 14)),
   ),
   ),
   ]),
@@ -757,13 +756,13 @@ class _WishlistCard extends StatelessWidget {
   }
   cart.addItem(product);
   },
-  child: const SizedBox(width: 22, height: 32, child: Icon(Icons.add, color: Colors.white, size: 14)),
+  child: const SizedBox(width: 22, height: 32, child: Icon(Icons.add, color: AppColors.textLight, size: 14)),
   ),
   ],
   ),
   ),
   const SizedBox(height: 3),
-  Text('₹$liveTotal', style: const TextStyle(color: AppColors.buttonPrimary, fontSize: 10, fontWeight: FontWeight.bold)),
+  Text('₹$liveTotal', style: const TextStyle(color: AppColors.freshGreen, fontSize: 10, fontWeight: FontWeight.bold)),
   ],
   );
   },

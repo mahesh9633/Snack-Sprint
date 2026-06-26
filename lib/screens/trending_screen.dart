@@ -7,6 +7,7 @@ import '../model/cart_model.dart';
 import '../model/favorites_model.dart';
 import '../model/product_model.dart';
 import '../model/category_data_model.dart';
+import '../products/product_card.dart';
 import '../products/product_detail_screen.dart';
 import '../services/api_config_service.dart';
 import '../services/api_server.dart';
@@ -220,7 +221,7 @@ class _TrendingScreenState extends State<TrendingScreen>
   Widget build(BuildContext context) {
     return Consumer2<CartModel, FavoritesModel>(
       builder: (ctx, cart, favs, _) => Scaffold(
-        backgroundColor: AppColors.white,
+        backgroundColor: AppColors.scaffoldBg,
         appBar: _buildAppBar(favs),
         floatingActionButton: const Padding(
           padding: EdgeInsets.only(bottom: 8),
@@ -229,7 +230,7 @@ class _TrendingScreenState extends State<TrendingScreen>
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         body: _loading
             ? const Center(
-            child: CircularProgressIndicator(color:AppColors.buttonPrimary))
+            child: CircularProgressIndicator(color: AppColors.primaryBlue))
             : _error != null
             ? _buildError()
             : Column(children: [
@@ -263,13 +264,13 @@ class _TrendingScreenState extends State<TrendingScreen>
 
   PreferredSizeWidget _buildAppBar(FavoritesModel favs) {
     return AppBar(
-      backgroundColor:AppColors.white,
+      backgroundColor: AppColors.cardWhite,
       elevation: 0,
       automaticallyImplyLeading: false,
       title: const Text(
           'Trending',
           style: TextStyle(
-              color: AppColors.appBarText, fontWeight: FontWeight.bold, fontSize: 20)
+              color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 20)
       ),
       centerTitle: false,
       actions: [
@@ -277,11 +278,11 @@ class _TrendingScreenState extends State<TrendingScreen>
           Container(
             margin: const EdgeInsets.only(right: 12),
             decoration: BoxDecoration(
-              color: AppColors.buttonPrimary.withOpacity(0.2),
+              color: AppColors.primaryBlue.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: IconButton(
-              icon: const Icon(Icons.favorite, color: AppColors.buttonPrimary, size: 20),
+              icon: const Icon(Icons.favorite, color: AppColors.primaryBlue, size: 20),
               onPressed: () => _tabController.animateTo(0),
             ),
           ),
@@ -291,11 +292,11 @@ class _TrendingScreenState extends State<TrendingScreen>
               child: Container(
                 width: 16, height: 16,
                 decoration: const BoxDecoration(
-                    color: Colors.white, shape: BoxShape.circle),
+                    color: AppColors.primaryOrange, shape: BoxShape.circle),
                 alignment: Alignment.center,
                 child: Text('${favs.count}',
                     style: const TextStyle(
-                        color: AppColors.lightBrown,
+                        color: Colors.white,
                         fontSize: 9,
                         fontWeight: FontWeight.bold)),
               ),
@@ -307,12 +308,12 @@ class _TrendingScreenState extends State<TrendingScreen>
 
   Widget _buildTabBar(FavoritesModel favs) {
     return Container(
-      color: AppColors.white,
+      color: AppColors.cardWhite,
       child: TabBar(
         controller: _tabController,
-        labelColor: AppColors.buttonPrimary,
-        unselectedLabelColor: Colors.black54,
-        indicatorColor: AppColors.buttonPrimary,
+        labelColor: AppColors.primaryBlue,
+        unselectedLabelColor: AppColors.textGrey,
+        indicatorColor: AppColors.primaryBlue,
         indicatorWeight: 2.5,
         labelPadding: EdgeInsets.zero,
         labelStyle:
@@ -362,7 +363,7 @@ class _TrendingScreenState extends State<TrendingScreen>
           'No favourites yet\nTap ♥ on any product to save it here');
     }
     return RefreshIndicator(
-      color:AppColors.buttonPrimary,
+      color: AppColors.primaryBlue,
       onRefresh: _onRefresh,
       child: GridView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -371,10 +372,11 @@ class _TrendingScreenState extends State<TrendingScreen>
             crossAxisCount: 2, childAspectRatio: 0.68,
             crossAxisSpacing: 10, mainAxisSpacing: 10),
         itemCount: list.length,
-        itemBuilder: (_, i) => _ProductCard(
-          product: list[i], cart: cart, favs: favs,
-          onTap: () => _openDetail(list[i]),
-        ),
+        // itemBuilder: (_, i) => _ProductCard(
+        //   product: list[i], cart: cart, favs: favs,
+        //   onTap: () => _openDetail(list[i]),
+        // ),
+        itemBuilder: (_, i) => ProductCard(product: list[i], imageHeight: 110),
       ),
     );
   }
@@ -386,7 +388,7 @@ class _TrendingScreenState extends State<TrendingScreen>
           Icons.local_offer_outlined, 'No deals available right now');
     }
     return RefreshIndicator(
-      color:AppColors.buttonPrimary,
+      color: AppColors.primaryBlue,
       onRefresh: _onRefresh,
       child: GridView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -395,10 +397,11 @@ class _TrendingScreenState extends State<TrendingScreen>
             crossAxisCount: 2, childAspectRatio: 0.68,
             crossAxisSpacing: 10, mainAxisSpacing: 10),
         itemCount: deals.length,
-        itemBuilder: (_, i) => _ProductCard(
-          product: deals[i], cart: cart, favs: favs,
-          onTap: () => _openDetail(deals[i]),
-        ),
+        // itemBuilder: (_, i) => _ProductCard(
+        //   product: deals[i], cart: cart, favs: favs,
+        //   onTap: () => _openDetail(deals[i]),
+        // ),
+        itemBuilder: (_, i) => ProductCard(product: deals[i], imageHeight: 110),
       ),
     );
   }
@@ -420,12 +423,12 @@ class _TrendingScreenState extends State<TrendingScreen>
         margin: const EdgeInsets.fromLTRB(12, 10, 12, 4),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFF7B3F00),
+          color: AppColors.primaryBlue.withOpacity(0.05),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(children: [
           const Icon(Icons.local_fire_department,
-              color:AppColors.lightBrown, size: 18),
+              color: AppColors.primaryOrange, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -490,7 +493,7 @@ class _TrendingScreenState extends State<TrendingScreen>
           icon: const Icon(Icons.refresh, color: Colors.white),
           label: const Text('Retry', style: TextStyle(color: Colors.white)),
           style: ElevatedButton.styleFrom(
-              backgroundColor:AppColors.lightBrown),
+              backgroundColor: AppColors.primaryOrange),
         ),
       ]),
     ),
@@ -498,12 +501,12 @@ class _TrendingScreenState extends State<TrendingScreen>
 
   Widget _emptyState(IconData icon, String msg) => Center(
     child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, size: 64, color: AppColors.buttonPrimary),
+      Icon(icon, size: 64, color: AppColors.primaryBlue),
       const SizedBox(height: 14),
       Text(msg,
           textAlign: TextAlign.center,
           style: const TextStyle(
-              fontSize: 14, color:AppColors.appBarText, height: 1.5)),
+              fontSize: 14, color: AppColors.textDark, height: 1.5)),
     ]),
   );
 

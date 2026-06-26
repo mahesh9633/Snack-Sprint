@@ -1,10 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:mtl_groceriesapp/screens/profile_screen.dart';
 import 'package:mtl_groceriesapp/screens/quick_tab_enum.dart';
 import 'package:mtl_groceriesapp/screens/select_location_screen.dart';
+import '../config/app_color.dart';
 import '../model/cart_model.dart';
 import '../services/api_config_service.dart';
 import '../services/get_profile_service.dart';
@@ -39,6 +42,8 @@ class HomeTabState extends State<HomeTab> {
   // ── Profile image ──────────────────────────────────────────────────────────
   String? _profileImagePath;
   String? _profileServerImageUrl;
+  String  _contact   = '';
+  String  _telephone = '';
 
   final TextEditingController _searchCtrl  = TextEditingController();
   final FocusNode             _searchFocus = FocusNode();
@@ -76,11 +81,15 @@ class HomeTabState extends State<HomeTab> {
     try {
       final result = await ProfileGetApiService.getProfile();
       if (result['success'] == true) {
-        final data   = result['data'] as Map<String, dynamic>;
-        final imgUrl = data['profile_image'] as String? ?? '';
+        final data      = result['data'] as Map<String, dynamic>;
+        final imgUrl    = data['profile_image'] as String? ?? '';
+        final contact   = data['contact']       as String? ?? '';
+        final telephone = data['telephone']     as String? ?? '';
         if (mounted) {
           setState(() {
             _profileServerImageUrl = imgUrl.isNotEmpty ? imgUrl : null;
+            _contact   = contact;
+            _telephone = telephone;
           });
         }
       }
@@ -110,6 +119,29 @@ class HomeTabState extends State<HomeTab> {
     final state = _mtlKey.currentState;
     if (state != null) {
       await (state as dynamic).refresh();
+    }
+  }
+
+  // ── Support (WhatsApp) ────────────────────────────────────────────────────
+  Future<void> _openSupport() async {
+    final number = _contact.isNotEmpty ? _contact : _telephone;
+    if (number.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Support contact not available')),
+      );
+      return;
+    }
+    final digits = number.replaceAll(RegExp(r'\D'), '');
+    final e164   = digits.startsWith('91') ? digits : '91$digits';
+    final uri    = Uri.parse('https://wa.me/$e164');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('WhatsApp is not installed')),
+        );
+      }
     }
   }
 
@@ -162,12 +194,14 @@ class HomeTabState extends State<HomeTab> {
       backgroundColor: const Color(0xFFFFFFFF),
       body: Stack(
         children: [
-          RefreshIndicator(
-            color:       const Color(0xFFFF0080),
-            strokeWidth: 2.5,
-            displacement: 80,
-            onRefresh:   _onRefresh,
-            child: CustomScrollView(
+        SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          color: AppColors.primaryBlue,
+          strokeWidth: 2.5,
+          displacement: 80,
+          onRefresh:   _onRefresh,
+          child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               keyboardDismissBehavior:
               ScrollViewKeyboardDismissBehavior.onDrag,
@@ -179,6 +213,14 @@ class HomeTabState extends State<HomeTab> {
                     child: _buildQuickTabBar(),
                   ),
                 ),
+                // if (_activeTab == QuickTab.mtl)
+                //   SliverPersistentHeader(
+                //     pinned: true,
+                //     delegate: _SearchBarDelegate(
+                //       child: _buildSearchBar(),
+                //       isTablet: isTablet,
+                //     ),
+                //   ),
                 if (_activeTab == QuickTab.mtl)
                   SliverPersistentHeader(
                     pinned: true,
@@ -202,8 +244,9 @@ class HomeTabState extends State<HomeTab> {
                   const CafeTabBody(),
                 const SliverToBoxAdapter(child: SizedBox(height: 100)),
               ],
-            ),
           ),
+        ),
+        ),
           Positioned(
             bottom: 12 + MediaQuery.of(context).padding.bottom,
             left:   16,
@@ -217,142 +260,145 @@ class HomeTabState extends State<HomeTab> {
 
   // ── Address bar ────────────────────────────────────────────────────────────
   Widget _buildAddressBar() {
-    return Container(
-      // margin: EdgeInsets.fromLTRB(isTablet ? 24 : 16, isTablet ? 20 : 16, isTablet ? 24 : 16, 8),
-      margin: EdgeInsets.fromLTRB(isTablet ? 24 : 16, MediaQuery.of(context).padding.top + (isTablet ? 8 : 8), isTablet ? 24 : 16, 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: Row(children: [
-        Expanded(
-          child: GestureDetector(
-            onTap: _showLocationSheet,
-            behavior: HitTestBehavior.opaque,
-            child: Row(children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                    color: const Color(0xFFFF0080).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8)),
-                child: const Icon(Icons.home, color: Color(0xFFFF0080), size: 24),
-              ),
-              const SizedBox(width: 12),
+    return Padding(
+        padding: EdgeInsets.fromLTRB(isTablet ? 24 : 16, isTablet ? 8 : 8, isTablet ? 24 : 16, 8),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── Address card ───────────────────────────────────────────
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(_addressLabel,
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[700],
-                            letterSpacing: 0.5)),
-                    const SizedBox(height: 2),
-                    Text(_addressSubtitle,
-                        style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.grey[900]),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1),
-                  ],
-                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2))
+                ],
               ),
-            ]),
-          ),
-        ),
-        GestureDetector(
-          onTap: () {
-            _searchFocus.unfocus();
-            FocusScope.of(context).unfocus();
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ProfileScreen()),
-            ).then((_) {
-              _loadProfileImage();
-            });
-          },
-          child: Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-                color: const Color(0xFFFF0080).withValues(alpha: 0.1),
-                shape: BoxShape.circle),
-            child: CircleAvatar(
-              radius: 14,
-              backgroundColor: const Color(0xFFFF0080),
-              backgroundImage: _profileImagePath != null &&
-                  File(_profileImagePath!).existsSync()
-                  ? FileImage(File(_profileImagePath!)) as ImageProvider
-                  : _profileServerImageUrl != null
-                  ? NetworkImage(
-                _profileServerImageUrl!.startsWith('http')
-                    ? _profileServerImageUrl!
-                    : '${ApiConfig.imageBase}$_profileServerImageUrl',
-              ) as ImageProvider
-                  : null,
-              child: (_profileImagePath == null ||
-                  !File(_profileImagePath!).existsSync()) &&
-                  _profileServerImageUrl == null
-                  ? const Icon(Icons.person, color: Colors.white, size: 16)
-                  : null,
+              child: GestureDetector(
+                onTap: _showLocationSheet,
+                behavior: HitTestBehavior.opaque,
+                child: Row(children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                        color:AppColors.floatingCartBg.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8)),
+                    child: const Icon(Icons.home, color:AppColors.floatingCartBg, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(_addressLabel,
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[700],
+                                letterSpacing: 0.5)),
+                        const SizedBox(height: 2),
+                        Text(_addressSubtitle,
+                            style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey[900]),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1),
+                      ],
+                    ),
+                  ),
+                ]),
+              ),
             ),
           ),
-        ),
-      ]),
-    );
+
+          const SizedBox(width: 10),
+
+          // ── WhatsApp support — separate card, matches address card height ──
+          GestureDetector(
+            onTap: _openSupport,
+            child: Container(
+              width:  56,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2))
+                ],
+              ),
+              child: Center(
+                child: Container(
+                  width:  40,
+                  height: 40,
+                  decoration: const BoxDecoration(
+                      color: Color(0xFF25D366),
+                      shape: BoxShape.circle),
+                  child: const Center(
+                    child: FaIcon(FontAwesomeIcons.whatsapp,
+                        color: Colors.white, size: 20),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ));
   }
 
   // ── Quick tab bar ──────────────────────────────────────────────────────────
   Widget _buildQuickTabBar() {
-    final double tabWidth = isTablet ? 120 : 80;
+    final double tabWidth = isTablet ? 120 : 76;
 
     // ── DBM tab colors ─────────────────────────────────────────────────────
-    const Color dbmSelectedBg       = Color(0xFFDEDEDE); // ← change selected bg
-    const Color dbmUnselectedBg     = Colors.white;       // ← change unselected bg
-    const Color dbmSelectedText     = Colors.black87;       // ← change selected text
-    const Color dbmUnselectedText   = Color(0xFFB85C00);  // ← change unselected text
-    const Color dbmBorderColor      = Color(0xFFFFB3D9);  // ← change border color
+    const Color dbmSelectedBg       = AppColors.primaryBlue;
+    const Color dbmUnselectedBg     = AppColors.cardWhite;
+    const Color dbmSelectedText     = AppColors.textLight;
+    const Color dbmUnselectedText   = AppColors.primaryBlue;
+    const Color dbmBorderColor      = AppColors.primaryBlue;
 
     // ── 50% OFF ZONE tab colors ────────────────────────────────────────────
-    const Color offZoneSelectedBg       = Color(0xFFDEDEDE); // ← change selected bg
-    const Color offZoneUnselectedBg     = Colors.white;       // ← change unselected bg
-    const Color offZoneSelectedText     = Colors.black87;       // ← change selected text
-    const Color offZoneUnselectedText   = Color(0xFFB85C00);  // ← change unselected text
-    const Color offZoneBorderColor      = Color(0xFFFFB3D9);  // ← change border color
+    const Color offZoneSelectedBg       = AppColors.primaryOrange;
+    const Color offZoneUnselectedBg     = AppColors.cardWhite;
+    const Color offZoneSelectedText     = AppColors.textLight;
+    const Color offZoneUnselectedText   = AppColors.primaryOrange;
+    const Color offZoneBorderColor      = AppColors.primaryOrange;
 
     // ── 10% OFF ZONE tab colors ────────────────────────────────────────────
-    const Color superMallSelectedBg     = Color(0xFFDEDEDE); // ← change selected bg
-    const Color superMallUnselectedBg   = Colors.white;       // ← change unselected bg
-    const Color superMallSelectedText   = Colors.black87;       // ← change selected text
-    const Color superMallUnselectedText = Color(0xFF1B5E20);  // ← change unselected text
-    const Color superMallBorderColor    = Color(0xFFFFB3D9);  // ← change border color
+    const Color superMallSelectedBg     = AppColors.freshGreen;
+    const Color superMallUnselectedBg   = AppColors.cardWhite;
+    const Color superMallSelectedText   = AppColors.textLight;
+    const Color superMallUnselectedText = AppColors.freshGreen;
+    const Color superMallBorderColor    = AppColors.freshGreen;
 
     // ── Café tab colors ────────────────────────────────────────────────────
-    const Color cafeSelectedBg       = Color(0xFFDEDEDE); // ← change selected bg
-    const Color cafeUnselectedBg     = Colors.white;       // ← change unselected bg
-    const Color cafeSelectedText     = Colors.black87;       // ← change selected text
-    const Color cafeUnselectedText   = Color(0xFFB85C00);  // ← change unselected text
-    const Color cafeBorderColor      = Color(0xFFFFB3D9);  // ← change border color
+    const Color cafeSelectedBg       = AppColors.deepBlue;
+    const Color cafeUnselectedBg     = AppColors.cardWhite;
+    const Color cafeSelectedText     = AppColors.textLight;
+    const Color cafeUnselectedText   = AppColors.deepBlue;
+    const Color cafeBorderColor      = AppColors.deepBlue;
 
     return SizedBox(
-      height: isTablet ? 60 : 45,
+      height: isTablet ? 60 : 43,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: isTablet ? 20 : 12),
+        padding: EdgeInsets.symmetric(horizontal: isTablet ? 24 : 16),
         children: [
           SizedBox(
             width: tabWidth,
             child: _tabItem(
               tab: QuickTab.mtl,
-              label: 'DBM',
+              label: 'SB',
+              imageAsset: 'assets/images/smile_basket_icon.png',
               selectedColor:       dbmSelectedBg,
               unselectedBg:        dbmUnselectedBg,
               selectedTextColor:   dbmSelectedText,
@@ -431,6 +477,7 @@ class HomeTabState extends State<HomeTab> {
     bool isItalic   = false,
     bool isTablet   = false,
     bool bigTopLine = false,
+    String? imageAsset,
   }) {
     final isSelected = _activeTab == tab;
     final isMtl      = tab == QuickTab.mtl;
@@ -444,17 +491,17 @@ class HomeTabState extends State<HomeTab> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeInOut,
-        constraints: BoxConstraints(
-          minHeight: isTablet ? 52 : 42,
-          maxHeight: isTablet ? 56 : 44,
-        ),
-        padding: EdgeInsets.symmetric(
-          horizontal: isTablet ? 16 : 10,
-          vertical:   isTablet ? 10 : 6,
-        ),
+          constraints: BoxConstraints(
+            minHeight: isTablet ? 64 : 50,
+            maxHeight: isTablet ? 68 : 50,
+          ),
+          padding: EdgeInsets.symmetric(
+            horizontal: isTablet ? 14 : 8,
+            vertical:   isTablet ? 4 : 2,
+          ),
         decoration: BoxDecoration(
           color: isSelected ? selectedColor : unselectedBg,         // ← bg color
-          borderRadius: BorderRadius.circular(14),                   // ← corner shape
+          borderRadius: BorderRadius.circular(10),                   // ← corner shape
           border: Border.all(
               color: isSelected ? selectedColor : borderColor,       // ← border color
               width: 1.5),                                           // ← border width
@@ -469,7 +516,17 @@ class HomeTabState extends State<HomeTab> {
               offset: const Offset(0, 1))],
         ),
         child: Center(
-          child: bigTopLine
+          // AFTER
+          child: imageAsset != null
+              ? SizedBox(
+            width: double.infinity,
+            height: isTablet ? 56 : 46,
+            child: Image.asset(
+              imageAsset,
+              fit: BoxFit.contain,
+            ),
+          )
+              : bigTopLine
               ? RichText(
             textAlign: TextAlign.center,
             text: TextSpan(children: [
@@ -503,7 +560,7 @@ class HomeTabState extends State<HomeTab> {
               fontWeight:    isBold ? FontWeight.bold : FontWeight.w500,
               fontStyle:     isItalic ? FontStyle.italic : FontStyle.normal,
               color: isSelected ? selectedTextColor : unselectedTextColor,
-              height:        1.25,
+              height:        1.0,
               letterSpacing: isMtl ? 0.5 : 0,
             ),
           ),
@@ -525,7 +582,7 @@ class HomeTabState extends State<HomeTab> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: _searchFocus.hasFocus
-                  ? const Color(0xFFFF0080)
+                  ? AppColors.primaryBlue
                   : Colors.grey.shade300,
               width: 1.5,
             ),
@@ -604,66 +661,41 @@ class HomeTabState extends State<HomeTab> {
                   ),
                 );
               },
-              child: Container(
-                height: 62,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFF0080), Color(0xFFFF0080)],
-                    begin:  Alignment.centerLeft,
-                    end:    Alignment.centerRight,
-                  ),
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: [
-                    BoxShadow(
-                      color:      const Color(0xFFFF0080).withOpacity(0.4),
-                      blurRadius: 16,
-                      offset:     const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 18),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color:        Colors.white.withOpacity(0.22),
-                        borderRadius: BorderRadius.circular(10),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Container(
+                  height: 44,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color:      AppColors.floatingCartBg,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color:     AppColors.floatingCartBg.withOpacity(0.4),
+                        blurRadius: 12,
+                        offset:     const Offset(0, 4),
                       ),
-                      child: Text(
-                        '$totalQty ${totalQty == 1 ? 'item' : 'items'}',
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.shopping_bag, color: Colors.white, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        '$totalQty',
                         style: const TextStyle(
                           color:      Colors.white,
-                          fontSize:   13,
+                          fontSize:   15,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                    const Expanded(
-                      child: Text(
-                        'View Cart',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color:         Colors.white,
-                          fontSize:      16,
-                          fontWeight:    FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      '₹${totalPrice.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        color:      Colors.white,
-                        fontSize:   15,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    const Icon(Icons.arrow_forward_ios,
-                        color: Colors.white70, size: 14),
-                  ],
+                      const SizedBox(width: 8),
+                      const Icon(Icons.arrow_forward,
+                          color: Colors.white, size: 16),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -673,8 +705,45 @@ class HomeTabState extends State<HomeTab> {
     );
   }
 }
-
-// ── Search bar delegate ────────────────────────────────────────────────────
+//
+// // ── Search bar delegate ────────────────────────────────────────────────────
+// class _SearchBarDelegate extends SliverPersistentHeaderDelegate {
+//   final Widget child;
+//   final bool   isTablet;
+//
+//   const _SearchBarDelegate({required this.child, required this.isTablet});
+//
+//   double get _height => isTablet ? 72.0 : 64.0;
+//
+//   @override double get minExtent => _height;
+//   @override double get maxExtent => _height;
+//
+//   @override
+//   bool shouldRebuild(_SearchBarDelegate old) =>
+//       old.isTablet != isTablet || old.child != child;
+//
+//   @override
+//   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+//     final isScrolled = shrinkOffset > 0;
+//     return AnimatedContainer(
+//       duration: const Duration(milliseconds: 200),
+//       decoration: BoxDecoration(
+//         color: isScrolled ? AppColors.creamBackground : AppColors.cardWhite,
+//         boxShadow: isScrolled
+//             ? [BoxShadow(
+//           color: AppColors.primaryBlue.withOpacity(0.1),
+//           blurRadius: 6,
+//           offset: const Offset(0, 2),
+//         )]
+//             : [],
+//       ),
+//       child: Padding(
+//         padding: const EdgeInsets.symmetric(vertical: 8),
+//         child: child,
+//       ),
+//     );
+//   }
+// }
 class _SearchBarDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
   final bool   isTablet;
@@ -696,10 +765,10 @@ class _SearchBarDelegate extends SliverPersistentHeaderDelegate {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       decoration: BoxDecoration(
-        color: isScrolled ? const Color(0xFFFFCDD2) : Colors.white,
+        color: isScrolled ? AppColors.creamBackground : AppColors.cardWhite,
         boxShadow: isScrolled
             ? [BoxShadow(
-          color: Colors.red.withOpacity(0.15),
+          color: AppColors.primaryBlue.withOpacity(0.1),
           blurRadius: 6,
           offset: const Offset(0, 2),
         )]

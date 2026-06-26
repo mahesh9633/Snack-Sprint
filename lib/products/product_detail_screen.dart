@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:mtl_groceriesapp/config/app_color.dart';
 import 'package:provider/provider.dart';
 import '../model/cart_model.dart';
 import '../model/favorites_model.dart';
@@ -244,7 +245,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             const Expanded(
               child: Center(
                 child: CircularProgressIndicator(
-                  color: Color(0xFFE91E63),
+                  color: AppColors.buttonPrimary,
                 ),
               ),
             ),
@@ -281,7 +282,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           final isFav = favs.isFavorite(_product.id);
           return Stack(children: [
             RefreshIndicator(
-              color: const Color(0xFFFF0080),
+              color: AppColors.buttonPrimary,
               onRefresh: _loadFullProduct,
               child: CustomScrollView(
                 slivers: [
@@ -300,7 +301,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       IconButton(
                         icon: _circleIcon(
                           isFav ? Icons.favorite : Icons.favorite_border,
-                          const Color(0xFFFF0080),
+                          AppColors.error,
                         ),
                         onPressed: () {
                           favs.toggleFavorite(_product);
@@ -311,7 +312,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   ? '❤️ Added to Favourites'
                                   : '🤍 Removed from Favourites'),
                               duration: const Duration(seconds: 1),
-                              backgroundColor: const Color(0xFFFF0080),
+                              backgroundColor: AppColors.groceryGreen,
                               behavior: SnackBarBehavior.floating,
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10)),
@@ -438,21 +439,21 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 ),
                                 const SizedBox(height: 8),
                               ],
-                              if (_product.tag.isNotEmpty) ...[
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                      color: const Color(0xFFE8F5E9),
-                                      borderRadius: BorderRadius.circular(6)),
-                                  child: Text(_product.tag,
-                                      style: const TextStyle(
-                                          color: Color(0xFF388E3C),
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold)),
-                                ),
-                                const SizedBox(height: 8),
-                              ],
+                              // if (_product.tag.isNotEmpty) ...[
+                              //   Container(
+                              //     padding: const EdgeInsets.symmetric(
+                              //         horizontal: 10, vertical: 4),
+                              //     decoration: BoxDecoration(
+                              //         color: const Color(0xFFE8F5E9),
+                              //         borderRadius: BorderRadius.circular(6)),
+                              //     child: Text(_product.tag,
+                              //         style: const TextStyle(
+                              //             color: Color(0xFF388E3C),
+                              //             fontSize: 11,
+                              //             fontWeight: FontWeight.bold)),
+                              //   ),
+                              //   const SizedBox(height: 8),
+                              // ],
 
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -464,35 +465,39 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                             fontWeight: FontWeight.bold,
                                             color: Colors.black87)),
                                   ),
-                                  const SizedBox(width: 8),
-                                  GestureDetector(
-                                    onTap: () => favs.toggleFavorite(_product),
-                                    child: AnimatedContainer(
-                                      duration: const Duration(milliseconds: 200),
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: isFav
-                                            ? const Color(0xFFB85C00)
-                                            .withOpacity(0.1)
-                                            : Colors.grey[100],
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        isFav
-                                            ? Icons.favorite
-                                            : Icons.favorite_border,
-                                        color: const Color(0xFFFF0080),
-                                        size: 22,
-                                      ),
-                                    ),
-                                  ),
+                                  // const SizedBox(width: 8),
+                                  // GestureDetector(
+                                  //   onTap: () => favs.toggleFavorite(_product),
+                                  //   child: AnimatedContainer(
+                                  //     duration: const Duration(milliseconds: 200),
+                                  //     padding: const EdgeInsets.all(8),
+                                  //     decoration: BoxDecoration(
+                                  //       color: isFav
+                                  //           ? const Color(0xFFB85C00)
+                                  //           .withOpacity(0.1)
+                                  //           : Colors.grey[100],
+                                  //       shape: BoxShape.circle,
+                                  //     ),
+                                  //     child:
+                                  //     Icon(
+                                  //       isFav
+                                  //           ? Icons.favorite
+                                  //           : Icons.favorite_border,
+                                  //       color: const Color(0xFFFF0080),
+                                  //       size: 22,
+                                  //     ),
+                                  //   ),
+                                  // ),
                                 ],
                               ),
 
                               const SizedBox(height: 4),
 
-                              if (_product.displayWeight.isNotEmpty)
-                                Text(_product.displayWeight,
+                              if (_selectedPiece != null
+                                  ? _selectedPiece!.piece.isNotEmpty
+                                  : _product.displayWeight.isNotEmpty)
+                                Text(
+                                    _selectedPiece != null ? _selectedPiece!.piece : _product.displayWeight,
                                     style: TextStyle(
                                         fontSize: 14, color: Colors.grey[600])),
 
@@ -537,18 +542,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 ],
                               ),
 
-                              const SizedBox(height: 8),
-                              Row(children: [
-                                const Icon(Icons.bolt,
-                                    size: 16, color: Colors.grey),
-                                const SizedBox(width: 4),
-                                Text(
-                                    _product.deliveryMinutes > 0
-                                        ? '${_product.deliveryMinutes} mins delivery'
-                                        : 'Fast delivery',
-                                    style: TextStyle(
-                                        fontSize: 13, color: Colors.grey[600])),
-                              ]),
 
                               if (_pieces.isNotEmpty) ...[
                                 const SizedBox(height: 12),
@@ -656,27 +649,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           _DetailRow(
                               label: 'Category', value: _product.category),
 
-                        if (_product.displayWeight.isNotEmpty &&
+                        if (_selectedPiece != null
+                            ? _selectedPiece!.piece.isNotEmpty
+                            : (_product.displayWeight.isNotEmpty &&
                             _product.displayWeight != '0.000' &&
-                            _product.displayWeight != '0')
+                            _product.displayWeight != '0'))
                           _DetailRow(
                               label: 'Net Quantity',
-                              value: _product.displayWeight),
+                              value: _selectedPiece != null
+                                  ? _selectedPiece!.piece
+                                  : _product.displayWeight),
 
-                        _DetailRow(
-                          label: 'Food Type',
-                          value: _product.isVeg ? 'Vegetarian' : 'Non-Vegetarian',
-                        ),
 
-                        _DetailRow(
-                          label: 'Delivery Time',
-                          value: _product.deliveryMinutes > 0
-                              ? '${_product.deliveryMinutes} minutes'
-                              : 'Standard delivery',
-                        ),
-
-                        if (_product.tag.isNotEmpty)
-                          _DetailRow(label: 'Tag', value: _product.tag),
+                        // if (_product.tag.isNotEmpty)
+                        //   _DetailRow(label: 'Tag', value: _product.tag),
 
                         if (_product.sku.isNotEmpty &&
                             !RegExp(r'^\d{5,}$').hasMatch(_product.sku))
@@ -1138,7 +1124,7 @@ class _SimilarAddButton extends StatelessWidget {
       ),
       child: const Text('ADD',
           style: TextStyle(
-              color: Color(0xFFFF0080),
+              color: AppColors.buttonPrimary,
               fontSize: 13,
               fontWeight: FontWeight.bold,
               letterSpacing: 0.5)),
@@ -1158,7 +1144,7 @@ class _SimilarStepper extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     height: 36,
     decoration: BoxDecoration(
-        color: const Color(0xFFFF0080),
+        color: AppColors.buttonPrimary,
         borderRadius: BorderRadius.circular(6)),
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1237,7 +1223,7 @@ class _PiecesAddButton extends StatelessWidget {
         final borderClr =
         hasItems ? const Color(0xFF388E3C) : Colors.grey[300]!;
         final textClr =
-        hasItems ? const Color(0xFF388E3C) : const Color(0xFFFF0080);
+        hasItems ? const Color(0xFF388E3C) : AppColors.buttonPrimary;
 
         return GestureDetector(
           onTap: () => handleAddToCart(
@@ -1397,27 +1383,29 @@ class _DetailRow extends StatelessWidget {
   const _DetailRow(
       {required this.label, required this.value, this.valueColor});
   @override
-  Widget build(BuildContext context) => Container(
-    padding:
-    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-    decoration: BoxDecoration(
-        border:
-        Border(bottom: BorderSide(color: Colors.grey.shade100))),
-    child: Row(children: [
-      Expanded(
-          flex: 2,
-          child: Text(label,
-              style:
-              TextStyle(fontSize: 13, color: Colors.grey[600]))),
-      Expanded(
-          flex: 3,
-          child: Text(value,
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: valueColor ?? Colors.black87))),
-    ]),
-  );
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final gap = screenWidth * 0.50; // ~42% of screen width, scales on any device
+
+    return Container(
+      padding:
+      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+          border:
+          Border(bottom: BorderSide(color: Colors.grey.shade100))),
+      child: Row(children: [
+        Text(label,
+            style:
+            TextStyle(fontSize: 13, color: Colors.grey[600])),
+        SizedBox(width: gap),
+        Text(value,
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: valueColor ?? Colors.black87)),
+      ]),
+    );
+  }
 }
 
 class _DetailAddButton extends StatelessWidget {
@@ -1444,7 +1432,7 @@ class _DetailAddButton extends StatelessWidget {
         onPressed: null,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.grey,
-          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
         child: const Text('OUT OF STOCK',
@@ -1460,8 +1448,8 @@ class _DetailAddButton extends StatelessWidget {
         }
       },
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFFFF0080),
-        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+        backgroundColor: AppColors.buttonPrimary,
+        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       child: qty > 1
@@ -1541,15 +1529,15 @@ class _PiecesSelector extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFFFF0080), width: 1.4),
+              border: Border.all(color: AppColors.buttonPrimary, width: 1.4),
               borderRadius: BorderRadius.circular(10),
-              color: const Color(0xFFFFF0F6),
+              // color: const Color(0xFFFFF0F6),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(Icons.layers_outlined,
-                    size: 16, color: Color(0xFFFF0080)),
+                    size: 16, color: AppColors.buttonPrimary),
                 const SizedBox(width: 6),
                 Text(
                   selected != null
@@ -1558,7 +1546,7 @@ class _PiecesSelector extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFFFF0080),
+                    color: AppColors.buttonPrimary,
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -1566,7 +1554,7 @@ class _PiecesSelector extends StatelessWidget {
                   turns: expanded ? 0.5 : 0,
                   duration: const Duration(milliseconds: 200),
                   child: const Icon(Icons.keyboard_arrow_down,
-                      size: 18, color: Color(0xFFFF0080)),
+                      size: 18, color:AppColors.buttonPrimary),
                 ),
               ],
             ),
@@ -1605,10 +1593,12 @@ class _PiecesSelector extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: (effectiveStockMap[p.pieceId] ?? p.stock) == 0 ? Colors.grey[50] : Colors.white,
                         border: Border.all(
-                          color: isSelected
-                              ? const Color(0xFFFF0080)
-                              : Colors.grey.shade300,
-                          width: isSelected ? 2.0 : 1.4,
+                          color: (effectiveStockMap[p.pieceId] ?? p.stock) == 0
+                              ? Colors.grey.shade300
+                              : (isSelected ? AppColors.buttonPrimary : Colors.grey.shade300),
+                          width: (effectiveStockMap[p.pieceId] ?? p.stock) == 0
+                              ? 1.2
+                              : (isSelected ? 2.0 : 1.4),
                         ),
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -1625,28 +1615,32 @@ class _PiecesSelector extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 2),
-                          Text(
-                            '₹${p.displayPrice.toStringAsFixed(0)}',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: (effectiveStockMap[p.pieceId] ?? p.stock) == 0 ? Colors.grey : const Color(0xFF0C831F),
-                            ),
-                          ),
-                          if (p.hasDiscount) ...[
-                            const SizedBox(height: 1),
-                            Text(
-                              '₹${(double.tryParse(p.price) ?? 0).toStringAsFixed(0)}',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 9,
-                                color: Colors.black54,
-                                decoration: TextDecoration.lineThrough,
-                                decorationColor: Colors.black54,
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                '₹${p.displayPrice.toStringAsFixed(0)}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: (effectiveStockMap[p.pieceId] ?? p.stock) == 0 ? Colors.grey : const Color(0xFF0C831F),
+                                ),
                               ),
-                            ),
-                          ],
+                              if (p.hasDiscount) ...[
+                                const SizedBox(width: 4),
+                                Text(
+                                  '₹${(double.tryParse(p.price) ?? 0).toStringAsFixed(0)}',
+                                  style: const TextStyle(
+                                    fontSize: 9,
+                                    color: Colors.black54,
+                                    decoration: TextDecoration.lineThrough,
+                                    decorationColor: Colors.black54,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
                         ],
                       ),
                     ),
@@ -1718,7 +1712,7 @@ class _DetailStepperButtonState extends State<_DetailStepperButton> {
         ..showSnackBar(SnackBar(
           content: Text('Only $stock quantity available'),
           duration: const Duration(seconds: 2),
-          backgroundColor: const Color(0xFFFF0080),
+          backgroundColor:AppColors.buttonPrimary,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10)),
@@ -1738,7 +1732,7 @@ class _DetailStepperButtonState extends State<_DetailStepperButton> {
 
     return Container(
       decoration: BoxDecoration(
-          color: const Color(0xFFFF0080),
+          color: AppColors.buttonPrimary,
           borderRadius: BorderRadius.circular(12)),
       child: Row(children: [
         InkWell(
@@ -1794,7 +1788,7 @@ class _DetailStepperButtonState extends State<_DetailStepperButton> {
                 ..showSnackBar(SnackBar(
                   content: Text('Only $stock quantity available'),
                   duration: const Duration(seconds: 2),
-                  backgroundColor: const Color(0xFFFF0080),
+                  backgroundColor: AppColors.buttonPrimary,
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
@@ -1823,3 +1817,4 @@ ProductPiece _toPiece(_PieceOption opt) => ProductPiece(
   image:        opt.image,
   minQuantity:  opt.minQuantity,
 );
+

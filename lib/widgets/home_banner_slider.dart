@@ -1,3 +1,5 @@
+
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mtl_groceriesapp/config/app_color.dart';
@@ -6,7 +8,9 @@ import '../services/home_banner_service.dart';
 import '../services/session_manager.dart';
 
 class HomeBannerSlider extends StatefulWidget {
-  const HomeBannerSlider({super.key});
+  final void Function(BannerItem banner) onCategoryTap;
+
+  const HomeBannerSlider({super.key, required this.onCategoryTap});
 
   @override
   State<HomeBannerSlider> createState() => _HomeBannerSliderState();
@@ -23,7 +27,11 @@ class _HomeBannerSliderState extends State<HomeBannerSlider>
 
   static const Duration _autoScrollInterval = Duration(seconds: 4);
   static const Duration _animDuration       = Duration(milliseconds: 500);
-  static const double   _bannerAspectRatio  = 1200 / 420;
+
+  // Adjust this ratio to control banner height:
+  // wider number (e.g. 2.5) = shorter banner
+  // smaller number (e.g. 1.8) = taller banner
+  static const double _bannerAspectRatio = 2.2;
 
   @override
   bool get wantKeepAlive => true;
@@ -66,37 +74,41 @@ class _HomeBannerSliderState extends State<HomeBannerSlider>
     super.dispose();
   }
 
-  // ── Banner tap → open link ─────────────────────────────────────────────────
+  // ── Banner tap → navigate to category in-app, or open external link ────
+  // If the banner has a category_id, hand it off to the parent's
+  // onCategoryTap callback (which fetches the category and opens the
+  // full-category screen). Falls back to opening fullLink as a URL only
+  // when there's no category_id at all.
   Future<void> _onBannerTap(BannerItem banner) async {
+    if (banner.hasCategory) {
+      widget.onCategoryTap(banner);
+      return;
+    }
     if (banner.fullLink.isEmpty) return;
     final uri = Uri.parse(banner.fullLink);
     try {
-      bool launched = await launchUrl(
-        uri,
-        mode: LaunchMode.inAppWebView,
-      );
+      bool launched = await launchUrl(uri, mode: LaunchMode.inAppWebView);
       if (!launched) {
-        launched = await launchUrl(
-          uri,
-          mode: LaunchMode.externalApplication,
-        );
+        launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
       }
     } catch (e) {
-      await launchUrl(
-        uri,
-        mode: LaunchMode.platformDefault,
-      );
+      await launchUrl(uri, mode: LaunchMode.platformDefault);
     }
   }
 
-  // ── BUILD ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     super.build(context);
+
+    final screenW  = MediaQuery.of(context).size.width;
+    final padH     = 12.0;
+    final bannerW  = screenW - (padH * 2);
+    final bannerH  = bannerW / _bannerAspectRatio;
+
     if (_loading) {
       return Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        height: (MediaQuery.of(context).size.width - 32) / _bannerAspectRatio,
+        margin: EdgeInsets.symmetric(horizontal: padH),
+        height: bannerH,
         decoration: BoxDecoration(
           color:        Colors.grey[200],
           borderRadius: BorderRadius.circular(16),
@@ -107,153 +119,92 @@ class _HomeBannerSliderState extends State<HomeBannerSlider>
       );
     }
 
-    // ── Empty — nothing to show ──────────────────────────────────────────────
     if (_banners.isEmpty) return const SizedBox.shrink();
 
-    final bannerH =
-        (MediaQuery.of(context).size.width - 32) / _bannerAspectRatio;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: padH),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ── PageView with rounded corners ──────────────────────────────────
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: SizedBox(
+              height: bannerH,
+              child: PageView.builder(
+                controller:    _pageController,
+                itemCount:     _banners.length,
+                onPageChanged: (i) => setState(() => _currentPage = i),
+                itemBuilder: (_, i) {
+                  final b = _banners[i];
+                  return Stack(fit: StackFit.expand, children: [
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(children: [
-        // ── PageView ──────────────────────────────────────────────────────────
-        ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: SizedBox(
-            height: 160,
-            child: PageView.builder(
-              controller:    _pageController,
-              itemCount:     _banners.length,
-              onPageChanged: (i) => setState(() => _currentPage = i),
-              itemBuilder: (_, i) {
-                final b = _banners[i];
-                return Stack(fit: StackFit.expand, children: [
-
-                  // ── Banner image ───────────────────────────────────────────
-                  Positioned.fill(
-                    child: b.imageUrl.isNotEmpty
-                        ? Image.network(
-                      b.imageUrl,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (_, child, prog) => prog == null
-                          ? child
-                          : Container(
-                        color: Colors.grey[200],
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                              color: Color(0xFFFF0080)),
-                        ),
-                      ),
-                      errorBuilder: (_, __, ___) =>
-                      const _BannerPlaceholder(),
-                    )
-                        : const _BannerPlaceholder(),
-                  ),
-
-                  // ── Name at TOP ────────────────────────────────────────────
-                  if (b.name.isNotEmpty)
-                    Positioned(
-                      left: 0, right: 0, top: 0,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 10),
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            begin:  Alignment.topCenter,
-                            end:    Alignment.bottomCenter,
-                            colors: [Colors.black54, Colors.transparent],
+                    // ── Banner image — cover fills fully, no white gaps ────────
+                    Positioned.fill(
+                      child: b.imageUrl.isNotEmpty
+                          ? Image.network(
+                        b.imageUrl,
+                        fit:       BoxFit.fill,
+                        loadingBuilder: (_, child, prog) => prog == null
+                            ? child
+                            : Container(
+                          color: Colors.grey[200],
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                                color: AppColors.primaryOrange),
                           ),
                         ),
-                        child: Text(
-                          b.name,
-                          style: const TextStyle(
-                            color:      Colors.white,
-                            fontSize:   13,
-                            fontWeight: FontWeight.w600,
-                            shadows: [
-                              Shadow(color: Colors.black87, blurRadius: 6),
-                            ],
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        errorBuilder: (_, __, ___) =>
+                        const _BannerPlaceholder(),
+                      )
+                          : const _BannerPlaceholder(),
+                    ),
+
+                    // ── Tap layer ─────────────────────────────────────────────
+                    Positioned.fill(
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          splashColor: Colors.white.withOpacity(0.1),
+                          onTap: () => _onBannerTap(b),
                         ),
                       ),
                     ),
-
-                  // ── Title at BOTTOM ────────────────────────────────────────
-                  if (b.title.isNotEmpty)
-                    Positioned(
-                      left: 0, right: 0, bottom: 0,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 10),
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            begin:  Alignment.bottomCenter,
-                            end:    Alignment.topCenter,
-                            colors: [Colors.black54, Colors.transparent],
-                          ),
-                        ),
-                        child: Text(
-                          b.title,
-                          style: const TextStyle(
-                            color:      Colors.white,
-                            fontSize:   14,
-                            fontWeight: FontWeight.bold,
-                            shadows: [
-                              Shadow(color: Colors.black87, blurRadius: 6),
-                            ],
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-
-                  // ── Full-banner tap layer ──────────────────────────────────
-                  Positioned.fill(
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        splashColor: Colors.white.withOpacity(0.1),
-                        onTap: () => _onBannerTap(b),
-                      ),
-                    ),
-                  ),
-                ]);
-              },
+                  ]);
+                },
+              ),
             ),
           ),
-        ),
 
-        // ── Dot indicators ────────────────────────────────────────────────────
-        if (_banners.length > 1) ...[
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(_banners.length, (i) {
-              final active = i == _currentPage;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                width:  active ? 20 : 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: active
-                      ? const Color(0xFFFF0080)
-                      : const Color(0xFFFF0080).withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              );
-            }),
-          ),
+          // ── Dot indicators (circular) ──────────────────────────────────────
+          if (_banners.length > 1) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(_banners.length, (i) {
+                final active = i == _currentPage;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width:  6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: active
+                        ? AppColors.primaryOrange
+                        : AppColors.primaryOrange.withOpacity(0.3),
+                  ),
+                );
+              }),
+            ),
+            const SizedBox(height: 4),
+          ],
         ],
-      ]),
+      ),
     );
   }
 }
 
-// ─── Placeholder shown when image fails to load ───────────────────────────────
 class _BannerPlaceholder extends StatelessWidget {
   const _BannerPlaceholder();
 
@@ -263,7 +214,7 @@ class _BannerPlaceholder extends StatelessWidget {
       color: const Color(0xFFFFF3E0),
       child: const Center(
         child: Icon(Icons.image_not_supported,
-            color: Color(0xFFB85C00), size: 40),
+            color: AppColors.primaryBlue, size: 40),
       ),
     );
   }

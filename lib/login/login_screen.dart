@@ -79,7 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: AppColors.scaffoldBg,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -91,8 +91,8 @@ class _LoginScreenState extends State<LoginScreen> {
               Center(
                 child: Image.asset(
                   'assets/images/smile_logo.png',
-                  width: 250,
-                  height: 210,
+                  width: 280,
+                  height: 240,
                   fit: BoxFit.contain,
                 ),
               ),
@@ -104,14 +104,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: TextStyle(
                   fontSize: 30,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.sectionHeader,
-
+                  color: AppColors.primaryBlue,
                 ),
               ),
               const SizedBox(height: 6),
               const Text(
                 'Enter your WhatsApp mobile number',
-                style: TextStyle(fontSize: 15, color: AppColors.appBarText),
+                style: TextStyle(fontSize: 15, color: AppColors.textGrey),
               ),
               const SizedBox(height: 36),
 
@@ -122,7 +121,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
+                        color: Colors.black.withOpacity(0.08),
                         blurRadius: 10,
                       ),
                     ],
@@ -137,7 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 2,
-                      color: AppColors.sectionHeader,
+                      color: AppColors.textDark,
                     ),
                     onChanged: (value) {
                       String digits = value.replaceAll(RegExp(r'\D'), '');
@@ -179,7 +178,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.appBarText,
+                            // color: AppColors.appBarText,
+                            color: Color(0xFF6B7280),
                           ),
                         ),
                       ),
@@ -221,13 +221,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed:
                   (_isValidTelephone && !_isSending) ? _sendOtp : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.buttonPrimary,
-                    disabledBackgroundColor: AppColors.buttonPrimaryDisabled,
+                    backgroundColor: AppColors.primaryOrange,
+                    disabledBackgroundColor: AppColors.primaryOrange.withOpacity(0.5),
 
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
                     elevation: 4,
-                    shadowColor: AppColors.buttonPrimary.withOpacity(0.4),
+                    shadowColor: AppColors.primaryOrange.withOpacity(0.4),
                   ),
                   child: _isSending
                       ? const SizedBox(
@@ -242,7 +242,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                    ),
+                    ),        
                   ),
                 ),
               ),
@@ -254,12 +254,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   textAlign: TextAlign.center,
                   text: TextSpan(
                     text: 'By continuing, you agree to our ',
-                    style: TextStyle(color: Colors.black87, fontSize: 12),
+                    style: const TextStyle(color: AppColors.textGrey, fontSize: 12),
                     children: [
                       TextSpan(
                         text: 'Terms of Service',
                         style: const TextStyle(
-                          color: AppColors.buttonPrimary,
+                          color: AppColors.primaryBlue,
                           fontWeight: FontWeight.w600,
                           fontSize: 12,
                           decoration: TextDecoration.underline,
@@ -267,14 +267,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         recognizer: TapGestureRecognizer()
                           ..onTap = _openTerms,
                       ),
-                      TextSpan(
+                      const TextSpan(
                         text: ' & ',
-                        style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                        style: TextStyle(color: AppColors.textGrey, fontSize: 12),
                       ),
                       TextSpan(
                         text: 'Privacy Policy',
                         style: const TextStyle(
-                          color: AppColors.buttonPrimary,
+                          color: AppColors.primaryBlue,
                           fontWeight: FontWeight.w600,
                           fontSize: 12,
                           decoration: TextDecoration.underline,
