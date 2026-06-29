@@ -46,9 +46,11 @@ class OrderApiService {
       }
 
       final matchedPiece = item.product.pieces.isNotEmpty
-          ? item.product.pieces.first
+          ? item.product.pieces.firstWhere(
+            (p) => p.rowId.toString() == pieceRowId.toString(),
+        orElse: () => item.product.pieces.first,
+      )
           : null;
-
       if (kDebugMode) {
         print('============== ORDER DEBUG ==============');
         print('Cart Key        : $cartKey');
