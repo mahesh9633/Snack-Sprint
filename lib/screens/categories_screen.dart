@@ -561,7 +561,7 @@ class _CategorySplitScreenState extends State<_CategorySplitScreen> {
     final rightW   = screenW - 91;
     final cardW    = (rightW - 24) / 2;
     final imgH     = cardW * 0.72;
-    final cardH    = imgH + 138;
+    final cardH    = imgH + 115;
 
     CategoryDataSubcategory currentCat() {
       if (_selectedCatId == widget.parentCat.categoryId) {

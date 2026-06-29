@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
@@ -131,11 +132,44 @@ class AuthService {
 
       return VerifyResult(
           success: false, message: 'Invalid response from server');
+
     } catch (e) {
 
       return VerifyResult(success: false, message: e.toString());
     } finally {
 
+    }
+  }
+
+  // ── Send FCM Token ───────────────────────────────────────────────────────────
+  static Future<void> sendFcmToken(String authToken) async {
+    // final url = '$_baseUrl?route=groceries/categories.saveLoginToken';
+    final url = '$_baseUrl?route=groceries/categories.saveLoginToken&token=$authToken';
+
+    try {
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+
+      debugPrint("FCM TOKEN = $fcmToken");
+
+      if (fcmToken == null) {
+        debugPrint("FCM token is null");
+        return;
+      }
+
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: {
+          'login_token': fcmToken,
+        },
+      ).timeout(const Duration(seconds: 15));
+
+      debugPrint("SAVE TOKEN STATUS = ${response.statusCode}");
+      debugPrint("SAVE TOKEN RESPONSE = ${response.body}");
+    } catch (e) {
+      debugPrint("FCM token send failed: $e");
     }
   }
 }

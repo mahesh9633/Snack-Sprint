@@ -11,10 +11,11 @@ import '../services/edit_address_service.dart';
 import '../services/get_address_service.dart';
 import '../services/cancel_order_service.dart';
 import '../services/get_profile_service.dart';
-import '../services/track_order_service.dart'; // ✅ NEW service
-import '../services/return_order_service.dart'; // ✅ NEW
+import '../services/track_order_service.dart';
+import '../services/return_order_service.dart';
 
 import 'package:url_launcher/url_launcher.dart';
+
 // ── Main Screen ──────────────────────────────────────────────────────────────
 class OrderTrackingScreen extends StatefulWidget {
   final String orderId;
@@ -25,7 +26,6 @@ class OrderTrackingScreen extends StatefulWidget {
   final String orderDate;
   final Map<String, dynamic>? productDetails;
   final String productId;
-  // ✅ NEW: list of all purchased products in this order
   final List<Map<String, dynamic>> products;
   final String invoiceNo;
 
@@ -39,7 +39,7 @@ class OrderTrackingScreen extends StatefulWidget {
     required this.orderDate,
     this.productDetails,
     this.productId = '',
-    this.products = const [],   // ✅ NEW
+    this.products = const [],
     this.invoiceNo = '',
   });
 
@@ -57,17 +57,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
   bool _trackLoading = true;
   String? _trackError;
 
-  // ── Address state ───────────────────────────────────────────────────────
-  List<AddressModel> _addresses = [];
-  AddressModel? _selectedAddress;
-  bool _addressLoading = true;
-  String? _addressError;
-
   bool _cancelling = false;
   bool _returning  = false;
   String? _fetchedImageUrl;
-  String _orderStatus = ''; // NEW: tracks current order status
-  final Map<String, String> _productImageCache = {}; // NEW: cache for multi-product images
+  String _orderStatus = '';
+  final Map<String, String> _productImageCache = {};
 
   @override
   void initState() {
@@ -76,13 +70,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
-    // placeholder — will be rebuilt once API data arrives
     _progressAnim = const AlwaysStoppedAnimation(0);
 
     _fetchTrackOrder();
-    _fetchAddresses();
     if (widget.productId.isNotEmpty) _fetchProductImage();
-    _fetchAllProductImages(); // NEW
+    _fetchAllProductImages();
   }
 
   // ── Fetch live tracking steps ───────────────────────────────────────────
@@ -102,7 +94,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     if (result.success) {
       final steps = result.steps;
 
-      // Determine active step: last step whose status == completed
       int activeStep = 0;
       for (int i = 0; i < steps.length; i++) {
         if (steps[i].isCompleted) activeStep = i;
@@ -120,7 +111,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       setState(() {
         _trackSteps = steps;
         _trackLoading = false;
-        // Derive current status from last completed step
         if (steps.isNotEmpty) {
           for (int i = steps.length - 1; i >= 0; i--) {
             if (steps[i].isCompleted) {
@@ -175,6 +165,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       }
     } catch (_) {}
   }
+
   Future<void> _fetchAllProductImages() async {
     for (final p in widget.products) {
       final productId = p['product_id']?.toString() ?? p['id']?.toString() ?? '';
@@ -212,33 +203,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       } catch (_) {}
     }
   }
-  // ── Fetch addresses ─────────────────────────────────────────────────────
-  Future<void> _fetchAddresses() async {
-    setState(() {
-      _addressLoading = true;
-      _addressError = null;
-    });
-    try {
-      final list = await GetAddressApi.getAddresses(token: widget.token);
-      if (!mounted) return;
-      setState(() {
-        _addresses = list;
-        _selectedAddress = list.isEmpty
-            ? null
-            : list.firstWhere(
-              (a) => a.isDefault,
-          orElse: () => list.first,
-        );
-        _addressLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _addressError = 'Could not load address';
-        _addressLoading = false;
-      });
-    }
-  }
 
   @override
   void dispose() {
@@ -246,7 +210,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     super.dispose();
   }
 
-  // ── Helpers: step status from API data ──────────────────────────────────
+  // ── Helpers ─────────────────────────────────────────────────────────────
 
   bool get _isDelivered {
     return _trackSteps.any((s) =>
@@ -274,11 +238,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
 
   TrackStepStatus _stepStatus(int index) {
     if (_trackSteps[index].isCompleted) return TrackStepStatus.done;
-    // First not-completed step after all done steps = active
     if (index == _activeStep + 1 || (index == 0 && !_trackSteps[0].isCompleted)) {
       return TrackStepStatus.active;
     }
-    // The very first step is always at least "active" (order placed)
     if (index == 0) return TrackStepStatus.active;
     return TrackStepStatus.pending;
   }
@@ -295,7 +257,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       default:             return Icons.radio_button_unchecked;
     }
   }
-  // ── Open WhatsApp with support number from profile ───────────────────────
+
+  // ── Open WhatsApp ────────────────────────────────────────────────────────
   Future<void> _openWhatsApp() async {
     try {
       final result = await ProfileGetApiService.getProfile();
@@ -340,6 +303,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       }
     }
   }
+
   // ── Cancel order ────────────────────────────────────────────────────────
   Future<void> _cancelOrder() async {
     final confirmed = await showDialog<bool>(
@@ -480,7 +444,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       );
     }
   }
-// ── Open product detail sheet ───────────────────────────────────────────
+
+  // ── Open product detail sheet ───────────────────────────────────────────
   void _openProductDetail() {
     showModalBottomSheet(
       context: context,
@@ -498,7 +463,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
   void _openProductDetailForItem(Map<String, dynamic> p) {
     final productId = p['product_id']?.toString() ?? '';
     final name      = p['name']?.toString() ?? widget.productName;
-    final rawImage  = (p['product_image'] ?? p['image'])?.toString()?.trim() ?? '';
+    final rawImage  = (p['product_image'] ?? p['image'])?.toString().trim() ?? '';
     final imgUrl    = rawImage.startsWith('http')
         ? rawImage
         : rawImage.isNotEmpty && rawImage != 'no_image.png'
@@ -530,7 +495,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
 
   // ── Multi-product list ──────────────────────────────────────────────────
   Widget _buildProductList() {
-    // Fallback: no products list passed — show old single product card
     if (widget.products.isEmpty) {
       return GestureDetector(
         onTap: _openProductDetail,
@@ -552,7 +516,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Section header ──────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
             child: Row(
@@ -586,7 +549,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
             ),
           ),
           const Divider(height: 1),
-          // ── One row per product ─────────────────────────────────────
           ...widget.products.asMap().entries.map((entry) {
             final isLast = entry.key == widget.products.length - 1;
             final p      = entry.value;
@@ -600,7 +562,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
               ],
             );
           }),
-          // ── Order totals at the bottom ──────────────────────────────
           if ((widget.productDetails ?? {}).containsKey('sub_total') ||
               (widget.productDetails ?? {}).containsKey('grand_total')) ...[
             const Divider(height: 1),
@@ -614,189 +575,35 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     );
   }
 
-  // ── Open edit address sheet ─────────────────────────────────────────────
-  void _openEditSheet(AddressModel addr) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _EditAddressSheet(
-        address: addr,
-        token: widget.token,
-        onSaved: (updated) {
-          setState(() {
-            final idx = _addresses.indexWhere((a) => a.id == updated.id);
-            if (idx != -1) _addresses[idx] = updated;
-            _selectedAddress = updated;
-          });
-        },
-      ),
-    );
-  }
-
-  // ── Open change address sheet ───────────────────────────────────────────
-  void _openChangeSheet() {
-    if (_addresses.isEmpty) return;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _ChangeAddressSheet(
-        addresses: _addresses,
-        selected: _selectedAddress,
-        token: widget.token,
-        onSelected: (addr) => setState(() => _selectedAddress = addr),
-        onEdit: _openEditSheet,
-      ),
-    );
-  }
-
   // ── Build ───────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: _buildAppBar(),
-        body: RefreshIndicator(
-          color: AppColors.primaryBlue,
-          onRefresh: () async {
-            await Future.wait([_fetchTrackOrder(), _fetchAddresses()]);
-          },
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _buildProductList(),          // ✅ NEW — shows all purchased products
-                const SizedBox(height: 16),
-            _buildEtaBanner(),
-            const SizedBox(height: 16),
-
-            // ── Tracking card (API-driven) ──────────────────────────────
-            _buildTrackingCard(),
-
-            const SizedBox(height: 16),
-            _buildCancellationBanner(),
-            if (_isDelivered) ...[
-              const SizedBox(height: 12),
-              _buildReturnOrderBanner(),
+      body: RefreshIndicator(
+        color: AppColors.primaryBlue,
+        onRefresh: () async {
+          await _fetchTrackOrder();
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              _buildProductList(),
+              const SizedBox(height: 16),
+              _buildEtaBanner(),
+              const SizedBox(height: 16),
+              _buildCancellationBanner(),
+              if (_isDelivered) ...[
+                const SizedBox(height: 12),
+                _buildReturnOrderBanner(),
+              ],
+              const SizedBox(height: 24),
             ],
-            const SizedBox(height: 16),
-            _buildDeliveryCard(),
-            const SizedBox(height: 24),
-          ],
-            ),
           ),
-        ),  // closes RefreshIndicator
-    );
-  }
-
-  // ── Tracking card ───────────────────────────────────────────────────────
-  Widget _buildTrackingCard() {
-    if (_trackLoading) {
-      return Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 2))
-          ],
         ),
-        child: const Center(
-          child: CircularProgressIndicator(color: AppColors.primaryOrange),
-        ),
-      );
-    }
-
-    if (_trackError != null) {
-      return Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.red, size: 36),
-            const SizedBox(height: 8),
-            Text(_trackError!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, color: Colors.grey)),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: _fetchTrackOrder,
-              icon: const Icon(Icons.refresh, size: 16),
-              label: const Text('Retry'),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.loader,
-                  foregroundColor: Colors.white),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_trackSteps.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: const Center(
-          child: Text('No tracking information available.',
-              style: TextStyle(color: Colors.grey, fontSize: 13)),
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Order Progress',
-              style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87)),
-          const SizedBox(height: 24),
-
-          // ── Horizontal step indicator ─────────────────────────────────
-          _HorizontalStepper(
-            steps: _trackSteps,
-            activeStep: _activeStep,
-            progressAnim: _progressAnim,
-            stepStatus: _stepStatus,
-            iconForStep: _iconForStep,
-          ),
-
-          const SizedBox(height: 24),
-          const Divider(),
-          const SizedBox(height: 12),
-
-          // ── Vertical timeline ─────────────────────────────────────────
-          ..._trackSteps.asMap().entries.map((e) => _TimelineRow(
-            step: e.value,
-            status: _stepStatus(e.key),
-            isLast: e.key == _trackSteps.length - 1,
-            orderDate: e.key == 0 ? widget.orderDate : '',
-          )),
-        ],
       ),
     );
   }
@@ -816,10 +623,10 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
         TextButton.icon(
           onPressed: _openWhatsApp,
           icon: const Icon(Icons.headset_mic_outlined,
-              color:AppColors.success, size: 18),
+              color: AppColors.success, size: 18),
           label: const Text('HELP',
               style: TextStyle(
-                  color:  AppColors.success,
+                  color: AppColors.success,
                   fontWeight: FontWeight.bold,
                   fontSize: 13)),
         ),
@@ -858,7 +665,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Image ──────────────────────────────────────────────────────
           Builder(builder: (_) {
             final imgUrl = _fetchedImageUrl ?? widget.productImageUrl;
             return ClipRRect(
@@ -907,13 +713,12 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                 ),
                 const SizedBox(height: 4),
                 Text('Order #${widget.orderId}',
-                    style: TextStyle(fontSize: 12, color: Colors.black87)),
+                    style: const TextStyle(fontSize: 12, color: Colors.black87)),
 
                 const SizedBox(height: 12),
                 const Divider(height: 1),
                 const SizedBox(height: 12),
 
-                // Price row
                 Row(
                   children: [
                     Container(
@@ -993,12 +798,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     );
   }
 
-  // ── Single product card (data-driven, used by multi-product list) ───────────
   Widget _buildProductCardForItem(Map<String, dynamic> p) {
     final name       = p['name']?.toString()          ?? widget.productName;
     final productId  = p['product_id']?.toString()    ?? p['id']?.toString() ?? '';
 
-    final rawImage   = (p['product_image'] ?? p['image'])?.toString()?.trim() ?? '';
+    final rawImage   = (p['product_image'] ?? p['image'])?.toString().trim() ?? '';
     final cachedImg  = _productImageCache[productId] ?? '';
     final imgUrl     = cachedImg.isNotEmpty
         ? cachedImg
@@ -1014,12 +818,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     final discount   = hasOffer
         ? (((rawPrice - specPrice) / rawPrice) * 100).round()
         : 0;
-    final qty        = p['quantity']?.toString()        ??
-        p['pos_quentity']?.toString()    ?? '';
-    final unit       = p['piece']?.toString()           ??
-        p['weight']?.toString()          ?? '';
-    final orderedQty = p['ordered_quantity']?.toString() ??
-        p['cart_quantity']?.toString()   ?? '';
+    final unit       = p['piece']?.toString() ?? p['weight']?.toString() ?? '';
+    final orderedQty = p['ordered_quantity']?.toString() ?? p['cart_quantity']?.toString() ?? '';
 
     return Container(
       decoration: BoxDecoration(
@@ -1035,7 +835,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Thumbnail ────────────────────────────────────────────────────
           ClipRRect(
             borderRadius: const BorderRadius.horizontal(left: Radius.circular(14)),
             child: imgUrl.isNotEmpty
@@ -1048,7 +847,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
             )
                 : _productPlaceholder(),
           ),
-          // ── Details ──────────────────────────────────────────────────────
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
@@ -1069,7 +867,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                         TextStyle(fontSize: 12, color: Colors.grey[500])),
                   ],
                   const SizedBox(height: 8),
-                  // Price row
                   Row(
                     children: [
                       Text('₹${sellPrice.toStringAsFixed(0)}',
@@ -1100,7 +897,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                       ],
                     ],
                   ),
-                  // Qty ordered badge
                   if (orderedQty.isNotEmpty && orderedQty != '0') ...[
                     const SizedBox(height: 6),
                     Container(
@@ -1144,9 +940,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     final tax        = double.tryParse(details['total_tax']?.toString()   ?? '0') ?? 0;
     final grandTotal = double.tryParse(details['grand_total']?.toString() ?? '0') ?? 0;
     final coupon     = details['coupon']?.toString() ?? '';
-
-    // delivery = grandTotal - (subTotal + tax - discount)
-    final delivery = double.tryParse(details['takeaway_amount']?.toString() ?? '0') ?? 0.0;
+    final delivery   = double.tryParse(details['takeaway_amount']?.toString() ?? '0') ?? 0.0;
 
     Widget row(String label, String value, {Color? color, IconData? icon}) => Padding(
       padding: const EdgeInsets.only(bottom: 5),
@@ -1267,9 +1061,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
 
   Widget _buildCancellationBanner() {
     final isCancelled = _isCancelled;
-    final isDisabled  = _isShippedOrBeyond; // shipped, delivered, cancelled
+    final isDisabled  = _isShippedOrBeyond;
 
-    // Choose banner color based on status
     final bannerColor  = isCancelled ? Colors.red.shade50   : Colors.orange.shade50;
     final borderColor  = isCancelled ? Colors.red.shade200  : Colors.orange.shade200;
     final iconColor    = isCancelled ? Colors.red           : Colors.orange;
@@ -1312,7 +1105,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                 child: CircularProgressIndicator(
                     strokeWidth: 2, color: Colors.red))
           else if (isCancelled)
-          // ── Greyed-out "Cancelled" badge ──────────────────────────
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
@@ -1394,81 +1186,20 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       ),
     );
   }
-
-  Widget _buildDeliveryCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.location_on_outlined,
-                  color: (AppColors.loader), size: 18),
-              const SizedBox(width: 6),
-              const Text('Delivery Address',
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87)),
-              const Spacer(),
-              GestureDetector(
-                onTap: _openChangeSheet,
-                child: const Text('CHANGE',
-                    style: TextStyle(
-                        color: AppColors.primaryOrange,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (_addressLoading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.primaryOrange,
-                ),
-              ),
-            )
-          else if (_addressError != null)
-            _AddressErrorRow(
-                message: _addressError!, onRetry: _fetchAddresses)
-          else if (_selectedAddress == null)
-              _NoAddressRow()
-            else
-              _AddressDisplay(
-                address: _selectedAddress!,
-                onEdit: () => _openEditSheet(_selectedAddress!),
-              ),
-        ],
-      ),
-    );
-  }
 }
 
 enum TrackStepStatus { done, active, pending }
 
-class _HorizontalStepper extends StatelessWidget {
+// ── PUBLIC: Horizontal Stepper (used by both tracking and detail screens) ─────
+class HorizontalStepper extends StatelessWidget {
   final List<TrackOrderStep> steps;
   final int activeStep;
   final Animation<double> progressAnim;
   final TrackStepStatus Function(int) stepStatus;
   final IconData Function(String) iconForStep;
 
-  const _HorizontalStepper({
+  const HorizontalStepper({
+    super.key,
     required this.steps,
     required this.activeStep,
     required this.progressAnim,
@@ -1522,7 +1253,7 @@ class _HorizontalStepper extends StatelessWidget {
                   width: 36,
                   child: Column(
                     children: [
-                      _StepCircle(
+                      StepCircle(
                           status: status,
                           icon: iconForStep(step.name)),
                       const SizedBox(height: 6),
@@ -1543,7 +1274,7 @@ class _HorizontalStepper extends StatelessWidget {
                   ),
                 ),
               );
-            }).toList(),
+            }),
             // Active tooltip
             if (steps.isNotEmpty)
               Positioned(
@@ -1558,10 +1289,11 @@ class _HorizontalStepper extends StatelessWidget {
   }
 }
 
-class _StepCircle extends StatelessWidget {
+// ── PUBLIC: Step Circle ───────────────────────────────────────────────────────
+class StepCircle extends StatelessWidget {
   final TrackStepStatus status;
   final IconData icon;
-  const _StepCircle({required this.status, required this.icon});
+  const StepCircle({super.key, required this.status, required this.icon});
   static const _blue = AppColors.primaryBlue;
 
   @override
@@ -1658,15 +1390,15 @@ class _TrianglePainter extends CustomPainter {
   bool shouldRepaint(_) => false;
 }
 
-// ── Vertical Timeline Row ─────────────────────────────────────────────────────
-
-class _TimelineRow extends StatelessWidget {
+// ── PUBLIC: Vertical Timeline Row ─────────────────────────────────────────────
+class TimelineRow extends StatelessWidget {
   final TrackOrderStep step;
   final TrackStepStatus status;
   final bool isLast;
-  final String orderDate; // only used for first step
+  final String orderDate;
 
-  const _TimelineRow({
+  const TimelineRow({
+    super.key,
     required this.step,
     required this.status,
     required this.isLast,
@@ -1925,565 +1657,4 @@ class _ProductDetailSheet extends StatelessWidget {
     child: const Icon(Icons.inventory_2_outlined,
         color: AppColors.primaryBlue, size: 64),
   );
-}
-
-// ── Address widgets ───────────────────────────────────────────────────────────
-
-class _AddressDisplay extends StatelessWidget {
-  final AddressModel address;
-  final VoidCallback onEdit;
-  const _AddressDisplay({required this.address, required this.onEdit});
-
-  @override
-  Widget build(BuildContext context) {
-    final parts = [
-      address.addressLine1,
-      if (address.addressLine2.isNotEmpty) address.addressLine2,
-      address.city,
-      address.pinCode,
-    ].where((s) => s.isNotEmpty).join(', ');
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                  color: AppColors.primaryOrange,
-                  borderRadius: BorderRadius.circular(6)),
-              child: Text(address.name,
-                  style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFFFFFFFF),
-                      fontWeight: FontWeight.w600)),
-            ),
-            if (address.isDefault) ...[
-              const SizedBox(width: 6),
-              Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(6)),
-                child: const Text('Default',
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.green,
-                        fontWeight: FontWeight.w600)),
-              ),
-            ],
-            const Spacer(),
-            GestureDetector(
-              onTap: onEdit,
-              child: const Row(
-                children: [
-                  const Icon(Icons.edit_outlined,
-                      size: 14, color: AppColors.primaryOrange),
-                  const SizedBox(width: 4),
-                  const Text('Edit',
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.primaryOrange,
-                          fontWeight: FontWeight.w500)),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(address.fullName,
-            style: const TextStyle(
-                fontSize: 13, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 4),
-        Text(parts,
-            style: TextStyle(
-                fontSize: 12, color: Colors.black87, height: 1.5)),
-        if (address.phone.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Text(address.phone,
-              style: TextStyle(fontSize: 12, color: Colors.black87)),
-        ],
-      ],
-    );
-  }
-}
-
-class _AddressErrorRow extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
-  const _AddressErrorRow({required this.message, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      const Icon(Icons.error_outline, color: Colors.red, size: 18),
-      const SizedBox(width: 8),
-      Expanded(
-          child: Text(message,
-              style:
-              TextStyle(fontSize: 12, color: Colors.grey[600]))),
-      TextButton(
-          onPressed: onRetry,
-          child: const Text('Retry',
-              style: TextStyle(color:  AppColors.buttonPrimary,))),
-    ],
-  );
-}
-
-class _NoAddressRow extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Icon(Icons.location_off_outlined,
-          color: Colors.grey[400], size: 18),
-      const SizedBox(width: 8),
-      Text('No address found',
-          style: TextStyle(fontSize: 12, color: Colors.grey[500])),
-    ],
-  );
-}
-
-// ── Change Address Sheet ──────────────────────────────────────────────────────
-
-class _ChangeAddressSheet extends StatelessWidget {
-  final List<AddressModel> addresses;
-  final AddressModel? selected;
-  final String token;
-  final ValueChanged<AddressModel> onSelected;
-  final ValueChanged<AddressModel> onEdit;
-
-  const _ChangeAddressSheet({
-    required this.addresses,
-    required this.selected,
-    required this.token,
-    required this.onSelected,
-    required this.onEdit,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2)),
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text('Select Delivery Address',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87)),
-          const SizedBox(height: 12),
-          ...addresses.map((addr) {
-            final isSelected = addr.id == selected?.id;
-            return GestureDetector(
-              onTap: () {
-                onSelected(addr);
-                Navigator.pop(context);
-              },
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: isSelected
-                      ? AppColors.primaryBlue
-                      : Colors.grey[200]!,
-                  width: isSelected ? 1.5 : 1,
-                ),
-                borderRadius: BorderRadius.circular(12),
-                color: isSelected
-                    ? AppColors.primaryBlue.withOpacity(0.05)
-                    : Colors.white,
-              ),
-              child: Row(
-                children: [
-                  Radio<String>(
-                    value: addr.id,
-                    groupValue: selected?.id,
-                    activeColor: AppColors.primaryBlue,
-                    onChanged: (_) {
-                      onSelected(addr);
-                      Navigator.pop(context);
-                    },
-                  ),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(children: [
-                            Text(addr.name,
-                                style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600)),
-                            if (addr.isDefault) ...[
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                    color: Colors.green.shade50,
-                                    borderRadius:
-                                    BorderRadius.circular(4)),
-                                child: const Text('Default',
-                                    style: TextStyle(
-                                        fontSize: 10,
-                                        color: Colors.green)),
-                              ),
-                            ],
-                          ]),
-                          const SizedBox(height: 2),
-                          Text(addr.fullName,
-                              style: const TextStyle(fontSize: 12)),
-                          Text(
-                            [
-                              addr.addressLine1,
-                              if (addr.addressLine2.isNotEmpty)
-                                addr.addressLine2,
-                              addr.city,
-                              addr.pinCode,
-                            ].where((s) => s.isNotEmpty).join(', '),
-                            style: TextStyle(
-                                fontSize: 11, color: Colors.grey[500]),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined,
-                          size: 18, color: AppColors.primaryOrange),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        onEdit(addr);
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Edit Address Sheet ────────────────────────────────────────────────────────
-
-class _EditAddressSheet extends StatefulWidget {
-  final AddressModel address;
-  final String token;
-  final ValueChanged<AddressModel> onSaved;
-
-  const _EditAddressSheet({
-    required this.address,
-    required this.token,
-    required this.onSaved,
-  });
-
-  @override
-  State<_EditAddressSheet> createState() => _EditAddressSheetState();
-}
-
-class _EditAddressSheetState extends State<_EditAddressSheet> {
-  final _formKey = GlobalKey<FormState>();
-
-  late TextEditingController _firstCtrl;
-  late TextEditingController _lastCtrl;
-  late TextEditingController _phoneCtrl;
-  late TextEditingController _addr1Ctrl;
-  late TextEditingController _addr2Ctrl;
-  late TextEditingController _cityCtrl;
-  late TextEditingController _pincodeCtrl;
-
-  String _labelChoice = 'Home';
-  bool _saving = false;
-
-  static const _brown = AppColors.headerBanner ;
-
-  @override
-  void initState() {
-    super.initState();
-    final addr = widget.address;
-    final nameParts = addr.fullName.trim().split(' ');
-    final first = nameParts.isNotEmpty ? nameParts.first : '';
-    final last =
-    nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
-
-    _firstCtrl   = TextEditingController(text: first);
-    _lastCtrl    = TextEditingController(text: last);
-    _phoneCtrl   = TextEditingController(text: addr.phone);
-    _addr1Ctrl   = TextEditingController(text: addr.addressLine1);
-    _addr2Ctrl   = TextEditingController(text: addr.addressLine2);
-    _cityCtrl    = TextEditingController(text: addr.city);
-    _pincodeCtrl = TextEditingController(text: addr.pinCode);
-
-    const knownLabels = ['Home', 'Office', 'Other'];
-    _labelChoice =
-    knownLabels.contains(addr.name) ? addr.name : 'Home';
-  }
-
-  @override
-  void dispose() {
-    for (final c in [
-      _firstCtrl, _lastCtrl, _phoneCtrl,
-      _addr1Ctrl, _addr2Ctrl, _cityCtrl, _pincodeCtrl,
-    ]) {
-      c.dispose();
-    }
-    super.dispose();
-  }
-
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _saving = true);
-
-    final result = await EditAddressApi.editAddress(
-      token: widget.token,
-      addressId: widget.address.id,
-      firstname: _firstCtrl.text.trim(),
-      lastname: _lastCtrl.text.trim(),
-      contact: _phoneCtrl.text.trim(),
-      company: _labelChoice,
-      addressLine1: _addr1Ctrl.text.trim(),
-      addressLine2: _addr2Ctrl.text.trim(),
-      city: _cityCtrl.text.trim(),
-      postcode: _pincodeCtrl.text.trim(),
-    );
-
-    if (!mounted) return;
-    setState(() => _saving = false);
-
-    if (result.success) {
-      final updated = AddressModel(
-        id: widget.address.id,
-        name: _labelChoice,
-        fullName:
-        '${_firstCtrl.text.trim()} ${_lastCtrl.text.trim()}'.trim(),
-        phone: _phoneCtrl.text.trim(),
-        addressLine1: _addr1Ctrl.text.trim(),
-        addressLine2: _addr2Ctrl.text.trim(),
-        city: _cityCtrl.text.trim(),
-        state: widget.address.state,
-        pinCode: _pincodeCtrl.text.trim(),
-        isDefault: widget.address.isDefault,
-      );
-      widget.onSaved(updated);
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(result.message.isNotEmpty
-            ? result.message
-            : 'Address updated successfully'),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ));
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(result.message.isNotEmpty
-            ? result.message
-            : 'Failed to update address. Try again.'),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
-      ));
-    }
-  }
-
-  InputDecoration _dec(String label, {IconData? icon}) => InputDecoration(
-    labelText: label,
-    labelStyle: TextStyle(fontSize: 13, color: Colors.grey[600]),
-    prefixIcon: icon != null
-        ? Icon(icon, size: 18, color: _brown)
-        : null,
-    contentPadding:
-    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-    border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.grey[300]!)),
-    enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.grey[300]!)),
-    focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: _brown, width: 1.5)),
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      padding: EdgeInsets.fromLTRB(16, 12, 16, 24 + bottom),
-      child: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(2)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text('Edit Delivery Address',
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87)),
-              const SizedBox(height: 16),
-              Row(
-                children: ['Home', 'Office', 'Other'].map((label) {
-                  final isChosen = _labelChoice == label;
-                  return GestureDetector(
-                    onTap: () => setState(() => _labelChoice = label),
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isChosen ? AppColors.primaryOrange : Colors.grey[100],
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(label,
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: isChosen
-                                  ? Colors.white
-                                  : Colors.black87,
-                              fontWeight: FontWeight.w600)),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 14),
-              Row(children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _firstCtrl,
-                    decoration:
-                    _dec('First Name', icon: Icons.person_outline),
-                    textCapitalization: TextCapitalization.words,
-                    validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Required' : null,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextFormField(
-                    controller: _lastCtrl,
-                    decoration: _dec('Last Name'),
-                    textCapitalization: TextCapitalization.words,
-                    validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Required' : null,
-                  ),
-                ),
-              ]),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _phoneCtrl,
-                decoration:
-                _dec('Phone Number', icon: Icons.phone_outlined),
-                keyboardType: TextInputType.phone,
-                validator: (v) =>
-                (v == null || v.trim().length < 8)
-                    ? 'Enter valid number'
-                    : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _addr1Ctrl,
-                decoration:
-                _dec('Address Line 1', icon: Icons.home_outlined),
-                textCapitalization: TextCapitalization.sentences,
-                validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Required' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _addr2Ctrl,
-                decoration: _dec('Address Line 2 (optional)'),
-                textCapitalization: TextCapitalization.sentences,
-              ),
-              const SizedBox(height: 12),
-              Row(children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _cityCtrl,
-                    decoration: _dec('City',
-                        icon: Icons.location_city_outlined),
-                    textCapitalization: TextCapitalization.words,
-                    validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Required' : null,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextFormField(
-                    controller: _pincodeCtrl,
-                    decoration:
-                    _dec('Pincode', icon: Icons.pin_drop_outlined),
-                    keyboardType: TextInputType.number,
-                    validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Required' : null,
-                  ),
-                ),
-              ]),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _saving ? null : _save,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.buttonPrimary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: _saving
-                      ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white))
-                      : const Text('Save Address',
-                      style: TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

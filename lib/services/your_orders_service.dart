@@ -63,6 +63,7 @@ class OrderInvoice {
   final String dateAdded;
   final String coupon;
   final String takeawayAmount;
+  final String deliveryTime;
 
   const OrderInvoice({
     required this.id,
@@ -81,6 +82,7 @@ class OrderInvoice {
     required this.dateAdded,
     required this.coupon,
     required this.takeawayAmount,
+    required this.deliveryTime,
   });
 
   factory OrderInvoice.fromJson(Map<String, dynamic> json) => OrderInvoice(
@@ -99,7 +101,8 @@ class OrderInvoice {
     totalReceived:     json['total_received']?.toString() ?? '0.00',
     dateAdded:         json['date_added']?.toString() ?? '',
     coupon:            json['coupon']?.toString() ?? '',
-    takeawayAmount:    json['takeaway_amount']?.toString() ?? '0.00',  // ✅ ADD THIS
+    takeawayAmount:    json['takeaway_amount']?.toString() ?? '0.00',
+    deliveryTime:      json['delivary_time']?.toString() ?? '',
   );
 }
 
@@ -127,6 +130,24 @@ class OrderHistory {
     comment:        json['comment']?.toString() ?? '',
     dateAdded:      json['date_added']?.toString() ?? '',
     statusName:     json['status_name']?.toString() ?? '',
+  );
+}
+
+class TrackingStep {
+  final String trackStatusId;
+  final String name;
+  final bool isCompleted;
+
+  const TrackingStep({
+    required this.trackStatusId,
+    required this.name,
+    required this.isCompleted,
+  });
+
+  factory TrackingStep.fromJson(Map<String, dynamic> json) => TrackingStep(
+    trackStatusId: json['track_status_id']?.toString() ?? '',
+    name:          json['name']?.toString() ?? '',
+    isCompleted:   json['status']?.toString() == '1',
   );
 }
 
@@ -207,13 +228,21 @@ class Order {
   final List<OrderProduct> products;
   final OrderInvoice? invoice;
   final List<OrderHistory> history;
+  final List<TrackingStep> tracking;
 
   const Order({
     required this.info,
     required this.products,
     this.invoice,
     required this.history,
+    required this.tracking,
   });
+
+  String get effectiveStatus {
+    final completed = tracking.where((t) => t.isCompleted).toList();
+    if (completed.isEmpty) return info.orderStatus;
+    return completed.last.name;
+  }
 
   factory Order.fromJson(Map<String, dynamic> json) => Order(
     info:     OrderInfo.fromJson(json['order_info'] as Map<String, dynamic>),
@@ -225,6 +254,9 @@ class Order {
         : null,
     history:  (json['history'] as List<dynamic>? ?? [])
         .map((h) => OrderHistory.fromJson(h as Map<String, dynamic>))
+        .toList(),
+    tracking: (json['tracking'] as List<dynamic>? ?? [])
+        .map((t) => TrackingStep.fromJson(t as Map<String, dynamic>))
         .toList(),
   );
 }

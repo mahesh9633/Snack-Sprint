@@ -828,29 +828,12 @@ class _MtlTabBodyState extends State<MtlTabBody> {
               mainAxisSize:       MainAxisSize.min,
               children: [
                 // ── Header row ──────────────────────────────────────
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      _selectedCategory?.name ?? 'Subcategories',
-                      style: const TextStyle(
-                          fontSize:   15,
-                          fontWeight: FontWeight.w700,
-                          color:      _kTextPrimary),
-                    ),
-                    if (hasMore)
-                      GestureDetector(
-                        onTap: () =>
-                            setState(() => _catViewAll = !_catViewAll),
-                        child: Text(
-                          _catViewAll ? 'View Less' : 'View All',
-                          style: const TextStyle(
-                              fontSize:   13,
-                              fontWeight: FontWeight.w600,
-                              color:      _kGreen),
-                        ),
-                      ),
-                  ],
+                Text(
+                  _selectedCategory?.name ?? 'Subcategories',
+                  style: const TextStyle(
+                      fontSize:   15,
+                      fontWeight: FontWeight.w700,
+                      color:      _kTextPrimary),
                 ),
                 const SizedBox(height: 4),
                 // ── 5-column subcategory grid ────────────────────────
@@ -886,6 +869,26 @@ class _MtlTabBodyState extends State<MtlTabBody> {
                     );
                   }).toList(),
                 ),
+                if (hasMore) ...[
+                  const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: GestureDetector(
+                      onTap: () =>
+                          setState(() => _catViewAll = !_catViewAll),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Text(
+                          _catViewAll ? 'View Less' : 'View All',
+                          style: const TextStyle(
+                              fontSize:   13,
+                              fontWeight: FontWeight.w600,
+                              color:      _green),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -1584,9 +1587,9 @@ class _HorizontalProductRow extends StatelessWidget {
   Widget build(BuildContext context) {
     if (products.isEmpty) return const SizedBox.shrink();
     final screenW    = MediaQuery.of(context).size.width;
-    final cardW      = screenW * 0.30;
-    final imgH       = cardW * 0.60;
-    final cardH      = imgH + 134.0;
+    final cardW      = screenW * 0.32;
+    final imgH       = cardW * 0.80;
+    final cardH      = imgH + 113.0;
     final shown      = cap != null ? products.take(cap!).toList() : products;
     final hasSeeMore = onSeeMore != null;
 
@@ -1594,7 +1597,7 @@ class _HorizontalProductRow extends StatelessWidget {
       height: cardH + 30,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding:         const EdgeInsets.fromLTRB(14, 6, 14, 0),
+        padding:         const EdgeInsets.fromLTRB(16, 6, 16, 0),
         itemCount:       shown.length,
         itemBuilder: (_, i) {
           final bool isLastAndHasMore =
@@ -1602,7 +1605,7 @@ class _HorizontalProductRow extends StatelessWidget {
           return SizedBox(
             width: cardW,
             child: Padding(
-              padding: const EdgeInsets.only(right: 10),
+              padding: const EdgeInsets.only(right: 12),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -1812,7 +1815,8 @@ class _SubProduct {
               (j['pos_quentity'] ?? j['quantity'] ?? '0')
                   .toString()) ??
               0;
-          final stock = (productIsCombo && pieceRawStock == 0)
+          // combo → product-level stock; non-combo → piece-level stock
+          final stock = productIsCombo
               ? productLevelQty
               : pieceRawStock;
           return ProductPiece(
@@ -1862,6 +1866,7 @@ class _SubProduct {
     sku:                sku,
     discountPercentage: discountPercent.toDouble(),
     quantity:           qty,
+    posQuantity:        qty,
     pieces:             pieces,
   );
 }
@@ -2402,10 +2407,8 @@ class _CategoryFullPageState extends State<_CategoryFullPage> {
     const sidebarW = 88.0;
     const spacing  = 6.0;
     const int  cols = 2;
-    final cardW = (screenW - sidebarW - 12 - (spacing * (cols - 1))) / cols;
+    final cardW = (screenW - sidebarW - 18 - (spacing * (cols - 1))) / cols;
     final imgH  = cardW * 0.80;
-    final cardH = imgH + 125.0;
-    final ratio = cardW / cardH;
 
     final prods   = _currentProducts;
     final show    = prods.take(_visible).toList();
@@ -2539,33 +2542,56 @@ class _CategoryFullPageState extends State<_CategoryFullPage> {
                     child: RefreshIndicator(
                       color:     _kGreen,
                       onRefresh: _onRefresh,
-                      child: GridView.builder(
+                      child: ListView.builder(
                         controller: _rightScroll,
                         physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(
-                            6,6,6,80),
-                        gridDelegate:
-                        SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount:   cols,
-                          childAspectRatio: ratio,
-                          crossAxisSpacing: 6,
-                          mainAxisSpacing:  6,
-                        ),
-                        itemCount: show.length + (hasMore ? 1 : 0),
-                        itemBuilder: (_, i) {
-                          if (i == show.length) {
-                            return const Center(
+                        padding: const EdgeInsets.fromLTRB(6, 6, 6, 80),
+                        itemCount: (show.length / 2).ceil() + (hasMore ? 1 : 0),
+                          itemBuilder: (_, rowIndex) {
+                            if (rowIndex == (show.length / 2).ceil()) {
+                              return const Center(
                                 child: Padding(
                                   padding: EdgeInsets.all(4),
-                                  child: CircularProgressIndicator(
-                                      color: _kGreen),
-                                ));
-                          }
-                          return RepaintBoundary(
-                              child: ProductCard(
-                                  product: show[i].toProduct(),
-                                  imageHeight: imgH));
-                        },
+                                  child: CircularProgressIndicator(color: _kGreen),
+                                ),
+                              );
+                            }
+                            final left  = rowIndex * 2;
+                            final right = left + 1;
+                            final cardH = imgH + 113.0;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 6),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    width:  cardW,
+                                    height: cardH,
+                                    child: RepaintBoundary(
+                                      child: ProductCard(
+                                        product:     show[left].toProduct(),
+                                        imageHeight: imgH,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  if (right < show.length)
+                                    SizedBox(
+                                      width:  cardW,
+                                      height: cardH,
+                                      child: RepaintBoundary(
+                                        child: ProductCard(
+                                          product:     show[right].toProduct(),
+                                          imageHeight: imgH,
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    SizedBox(width: cardW, height: cardH),
+                                ],
+                              ),
+                            );
+                          },
                       ),
                     ),
                   ),

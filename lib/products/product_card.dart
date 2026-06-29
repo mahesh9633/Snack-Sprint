@@ -1,5 +1,3 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:mtl_groceriesapp/products/product_detail_screen.dart';
 import 'package:provider/provider.dart';
@@ -173,7 +171,7 @@ class ProductCard extends StatelessWidget {
 
                       const SizedBox(height: 2),
 
-// Price row
+                      // Price row
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.baseline,
                         textBaseline: TextBaseline.alphabetic,
@@ -238,23 +236,17 @@ class ProductCard extends StatelessWidget {
 
                       const SizedBox(height: 2),
 
-                      // Weight selector row (green text + chevron)
+                      // Weight selector row (green text)
                       if (product.displayWeight.isNotEmpty)
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              product.displayWeight,
-                              style: const TextStyle(
-                                fontSize:   12,
-                                color:      _kGreen,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            // const SizedBox(width: 3),
-                            // const Icon(Icons.keyboard_arrow_down,
-                            //     color: _kGreen, size: 16),
-                          ],
+                        Text(
+                          product.displayWeight,
+                          style: const TextStyle(
+                            fontSize:   12,
+                            color:      _kGreen,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
 
                       const SizedBox(height: 4),

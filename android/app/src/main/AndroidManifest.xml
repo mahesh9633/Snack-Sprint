@@ -26,6 +26,9 @@
     <!-- Microphone -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
+    <!-- Notifications (required on Android 13+ / API 33+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!-- Hardware features (all optional so app works on devices without them) -->
     <uses-feature android:name="android.hardware.camera"
         android:required="false" />

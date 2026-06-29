@@ -84,6 +84,7 @@ class _OtpScreenState extends State<OtpScreen> {
     if (!mounted) return;
 
     if (result.success) {
+
       await SessionManager.saveSession(
         telephone:  widget.telephone,
         customerId: result.customerId,
@@ -92,6 +93,11 @@ class _OtpScreenState extends State<OtpScreen> {
       await SessionManager.printSession();
 
       if (!mounted) return;
+
+      if (result.token != null) {
+        debugPrint("LOGIN TOKEN = ${result.token}");
+        await AuthService.sendFcmToken(result.token!);
+      }
 
       final favs = context.read<FavoritesModel>();
       final cart = context.read<CartModel>();

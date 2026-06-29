@@ -180,28 +180,38 @@ class _OrderCard extends StatelessWidget {
 
   Color _statusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'complete':   return Colors.green;
+      case 'complete':
+      case 'completed':    return Colors.green;
       case 'canceled':
-      case 'cancelled':  return Colors.red;
-      case 'processing': return Colors.orange;
-      case 'pending':    return Colors.amber;
-      case 'returned':   return Colors.indigo;
-      default:           return Colors.blueGrey;
+      case 'cancelled':    return Colors.red;
+      case 'processing':   return Colors.orange;
+      case 'pending':      return Colors.amber;
+      case 'returned':     return Colors.indigo;
+      case 'order placed': return Colors.blue;
+      case 'packed':       return Colors.teal;
+      case 'shipped':      return Colors.indigo;
+      case 'delivered':    return Colors.green;
+      default:             return Colors.blueGrey;
     }
   }
 
   IconData _statusIcon(String status) {
     switch (status.toLowerCase()) {
-      case 'complete':   return Icons.check_circle;
+      case 'complete':
+      case 'completed':    return Icons.check_circle;
       case 'canceled':
-      case 'cancelled':  return Icons.cancel;
-      case 'processing': return Icons.hourglass_bottom;
-      case 'pending':    return Icons.access_time;
-      case 'returned':   return Icons.assignment_return;
-      default:           return Icons.info_outline;
+      case 'cancelled':    return Icons.cancel;
+      case 'processing':   return Icons.hourglass_bottom;
+      case 'pending':      return Icons.access_time;
+      case 'returned':     return Icons.assignment_return;
+      case 'order placed': return Icons.receipt_outlined;
+      case 'packed':       return Icons.inventory_2_outlined;
+      case 'shipped':      return Icons.local_shipping_outlined;
+      case 'delivered':    return Icons.done_all;
+      default:             return Icons.info_outline;
     }
   }
-  // ✅ Check if this order was returned by inspecting history
+
   bool get _isReturned {
     return order.history.any((h) =>
     h.statusName.toLowerCase().contains('return') ||
@@ -273,10 +283,17 @@ class _OrderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final info    = order.info;
     final invoice = order.invoice;
-    final status  = info.orderStatus;
+    final status  = order.effectiveStatus;
     final color   = _statusColor(status);
 
     final invoiceLabel = 'Order #${info.orderId}';
+
+    final showDeliveryTime =
+        invoice != null &&
+            invoice.deliveryTime.isNotEmpty &&
+            status.toLowerCase() != 'delivered' &&
+            status.toLowerCase() != 'complete' &&
+            status.toLowerCase() != 'completed';
 
     return GestureDetector(
       onTap: () => Navigator.push(context,
@@ -359,11 +376,30 @@ class _OrderCard extends StatelessWidget {
                         TextStyle(fontSize: 11, color: Colors.black87)),
                   ]),
                   const SizedBox(height: 5),
-                  Text(invoiceLabel,
-                      style: const TextStyle(
+                  Row(
+                    children: [
+                      Text(invoiceLabel,
+                        style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87)),
+                          color: Colors.black87
+                        )
+                      ),
+                      if (showDeliveryTime) ...[
+                        const Spacer(),
+                        const Icon(Icons.schedule, size: 12, color: Colors.deepOrange),
+                        const SizedBox(width: 3),
+                        Text(
+                          'Delivery in ${invoice!.deliveryTime}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.deepOrange,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -502,68 +538,34 @@ class _OrderCard extends StatelessWidget {
 
                 const SizedBox(height: 10),
 
-                Row(children: [
-                  // ── Track Order button
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => _openTracking(context, invoiceLabel, token),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 9),
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                              color: AppColors.primaryBlue, width: 1.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.local_shipping_outlined,
-                                size: 14, color: AppColors.primaryBlue),
-                            SizedBox(width: 5),
-                            Text('Track Order',
-                                style: TextStyle(
-                                    color:  AppColors.primaryBlue,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) =>
+                              OrderDetailScreen(orderId: info.orderId))),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 9),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryOrange,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.receipt_long_outlined,
+                            size: 16, color: AppColors.textLight),
+                        SizedBox(width: 5),
+                        Text('View Details',
+                            style: TextStyle(
+                                color: AppColors.textLight,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold)),
+                      ],
                     ),
                   ),
-
-                  const SizedBox(width: 10),
-
-                  // ── View Details button
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) =>
-                                  OrderDetailScreen(orderId: info.orderId))),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 9),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryOrange,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.receipt_long_outlined,
-                                size: 14, color: AppColors.textLight),
-                            SizedBox(width: 5),
-                            Text('View Details',
-                                style: TextStyle(
-                                    color: AppColors.textLight,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ]),
+                ),
               ]),
             ),
           ],

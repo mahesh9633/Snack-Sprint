@@ -557,13 +557,12 @@ class _CartScreenState extends State<CartScreen> {
                                                             .appBarText)),
                                               ],
                                               if (item.product.id.contains('_piece_') &&
-                                                  item.product.pieces.isNotEmpty) ...[
+                                                  item.product.pieces.isNotEmpty &&
+                                                  (item.product.pieces.first.minQuantity ?? 0) > 1) ...[
                                                 SizedBox(height: screenH * 0.003),
                                                 Builder(builder: (_) {
-                                                  final minQty = item.product.pieces.first.minQuantity ?? 0;
-                                                  final totalUnits = minQty > 0
-                                                      ? minQty * item.quantity
-                                                      : item.quantity;
+                                                  final minQty = item.product.pieces.first.minQuantity;
+                                                  final totalUnits = minQty * item.quantity;
                                                   return Text(
                                                     'Qty: $totalUnits units (${item.quantity} × $minQty)',
                                                     style: TextStyle(

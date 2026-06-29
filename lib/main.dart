@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,6 +15,28 @@ import 'model/favorites_model.dart';
 
 
 final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
+final FlutterLocalNotificationsPlugin _localNotifications =
+FlutterLocalNotificationsPlugin();
+
+const AndroidNotificationChannel _androidChannel = AndroidNotificationChannel(
+  'high_importance_channel', // id
+  'High Importance Notifications', // name — shown in Android app settings
+  description: 'Used for important order and app notifications.',
+  importance: Importance.high,
+);
+
+Future<void> _initLocalNotifications() async {
+  const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const initSettings = InitializationSettings(android: androidSettings);
+
+  await _localNotifications.initialize(initSettings);
+
+  await _localNotifications
+      .resolvePlatformSpecificImplementation<
+      AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(_androidChannel);
+}
 
 // Must be a top-level function — handles notifications when app is
 // terminated or in the background.
@@ -45,23 +68,25 @@ Future<void> _setupFCM() async {
   }
 
   // Foreground notifications — app open and in use.
+  // Android suppresses the system banner in foreground by default, so we
+  // manually show a local notification that looks/behaves the same as the
+  // background one.
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     final notification = message.notification;
     if (notification != null) {
-      scaffoldMessengerKey.currentState?.showSnackBar(
-        SnackBar(
-          content: Row(children: [
-            const Icon(Icons.notifications_active, color: Colors.white, size: 18),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(notification.title ?? notification.body ?? ''),
-            ),
-          ]),
-          backgroundColor: AppColors.primaryBlue,
-          duration: const Duration(seconds: 3),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          margin: const EdgeInsets.fromLTRB(12, 0, 12, 80),
+      _localNotifications.show(
+        notification.hashCode,
+        notification.title,
+        notification.body,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            _androidChannel.id,
+            _androidChannel.name,
+            channelDescription: _androidChannel.description,
+            importance: Importance.high,
+            priority: Priority.high,
+            icon: '@mipmap/ic_launcher',
+          ),
         ),
       );
     }
@@ -91,6 +116,10 @@ void main() async {
 
   // Register the background handler as early as possible.
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  // Set up the local notifications plugin + Android channel so foreground
+  // messages can show a native-style banner.
+  await _initLocalNotifications();
 
   // Pre-warm SharedPreferences once so all screens reuse the cache
   final prefs = await SharedPreferences.getInstance();

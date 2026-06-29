@@ -11,10 +11,14 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../config/app_color.dart';
+import '../model/address_model.dart';
 import '../model/product_model.dart' show Product;
 import '../products/product_detail_screen.dart';
+import '../services/get_address_service.dart';
 import '../services/session_manager.dart';
 import '../services/api_config_service.dart';
+import '../services/track_order_service.dart';
+import 'order_tracking_screen.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final String orderId;
@@ -25,18 +29,40 @@ class OrderDetailScreen extends StatefulWidget {
   State<OrderDetailScreen> createState() => _OrderDetailScreenState();
 }
 
-class _OrderDetailScreenState extends State<OrderDetailScreen> {
+class _OrderDetailScreenState extends State<OrderDetailScreen>
+    with SingleTickerProviderStateMixin {
 
   bool _isLoading = true;
   String? _error;
   Map<String, dynamic>? _data;
   pw.ThemeData? _cachedPdfTheme;
 
+  List<TrackOrderStep> _trackSteps = [];
+  bool _trackLoading = true;
+  String? _trackError;
+  List<AddressModel> _addresses = [];
+  AddressModel? _selectedAddress;
+  bool _addressLoading = true;
+
+  late AnimationController _animController;
+  late Animation<double> _progressAnim;
+
   @override
   void initState() {
     super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _progressAnim = const AlwaysStoppedAnimation(0);
     _fetchOrderDetails();
     _preloadPdfFonts();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
   }
 
   Future<void> _preloadPdfFonts() async {
@@ -72,6 +98,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             _data = json['data'];
             _isLoading = false;
           });
+          _fetchTrackOrder(widget.orderId);
+          _fetchAddresses();
         } else {
           setState(() {
             _error = json['message'] ?? 'Failed to load order';
@@ -89,6 +117,74 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         _error = 'Error: $e';
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _fetchTrackOrder(String orderId) async {
+    setState(() { _trackLoading = true; _trackError = null; });
+    final token = await SessionManager.getToken() ?? '';
+    final result = await TrackOrderService.getTrackOrder(token: token, orderId: orderId);
+    if (!mounted) return;
+    if (result.success) {
+      final steps = result.steps;
+      int activeStep = 0;
+      for (int i = 0; i < steps.length; i++) {
+        if (steps[i].isCompleted) activeStep = i;
+      }
+      _animController.reset();
+      _progressAnim = Tween<double>(
+        begin: 0,
+        end: steps.isEmpty ? 0 : activeStep / (steps.length - 1).clamp(1, 9999),
+      ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeInOut));
+      setState(() { _trackSteps = steps; _trackLoading = false; });
+      _animController.forward();
+    } else {
+      setState(() { _trackError = result.message; _trackLoading = false; });
+    }
+  }
+
+  Future<void> _fetchAddresses() async {
+    setState(() { _addressLoading = true; });
+    final token = await SessionManager.getToken() ?? '';
+    try {
+      final list = await GetAddressApi.getAddresses(token: token);
+      if (!mounted) return;
+      setState(() {
+        _addresses = list;
+        _selectedAddress = list.isEmpty ? null
+            : list.firstWhere((a) => a.isDefault, orElse: () => list.first);
+        _addressLoading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _addressLoading = false);
+    }
+  }
+
+  int get _activeStep {
+    int active = 0;
+    for (int i = 0; i < _trackSteps.length; i++) {
+      if (_trackSteps[i].isCompleted) active = i;
+    }
+    return active;
+  }
+
+  TrackStepStatus _stepStatus(int index) {
+    if (_trackSteps[index].isCompleted) return TrackStepStatus.done;
+    if (index == _activeStep + 1 || (index == 0 && !_trackSteps[0].isCompleted)) {
+      return TrackStepStatus.active;
+    }
+    if (index == 0) return TrackStepStatus.active;
+    return TrackStepStatus.pending;
+  }
+
+  IconData _iconForStep(String name) {
+    switch (name.toLowerCase()) {
+      case 'order placed': return Icons.receipt_long_outlined;
+      case 'packed':       return Icons.inventory_2_outlined;
+      case 'shipped':      return Icons.local_shipping_outlined;
+      case 'delivered':
+      case 'completed':    return Icons.check_circle_outline;
+      default:             return Icons.radio_button_unchecked;
     }
   }
 
@@ -669,10 +765,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           const SizedBox(height: 12),
           _buildCustomerCard(orderInfo),
           const SizedBox(height: 12),
-          if (history.isNotEmpty) ...[
-            _buildHistoryCard(history),
-            const SizedBox(height: 12),
-          ],
+          _buildOrderProgressCard(),
+          const SizedBox(height: 12),
+          _buildDeliveryAddressCard(),
+          const SizedBox(height: 12),
           const SizedBox(height: 20),
         ],
       ),
@@ -680,10 +776,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _buildStatusCard(Map<String, dynamic> info) {
-    final status    = info['order_status'] ?? 'Unknown';
-    final dateAdded = info['date_added']   ?? '';
-    final invoiceNo =
-        '${info['invoice_prefix'] ?? ''}${info['invoice_no'] ?? ''}';
+    // ── derive effective status from tracking ──────────────────────────────
+    final trackingList = (_data!['tracking'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final completedSteps = trackingList.where((t) => t['status']?.toString() == '1').toList();
+    final effectiveStatus = completedSteps.isNotEmpty
+        ? completedSteps.last['name']?.toString() ?? info['order_status'] ?? 'Unknown'
+        : info['order_status'] ?? 'Unknown';
+
+    final dateAdded = info['date_added'] ?? '';
+    final invoiceNo = '${info['invoice_prefix'] ?? ''}${info['invoice_no'] ?? ''}';
 
     return Container(
       decoration: BoxDecoration(
@@ -715,11 +816,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           fontSize: 16, fontWeight: FontWeight.bold)),
                   if (invoiceNo.isNotEmpty)
                     Text('Invoice: $invoiceNo',
-                        style: TextStyle(
+                        style: const TextStyle(
                             fontSize: 12, color: Colors.black87)),
                 ]),
           ),
-          _statusChip(status),
+          _statusChip(effectiveStatus),
         ]),
         const SizedBox(height: 12),
         _infoRow(Icons.calendar_today_outlined, 'Date',
@@ -984,56 +1085,71 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
-  Widget _buildHistoryCard(List<Map<String, dynamic>> history) {
+  Widget _buildOrderProgressCard() {
     return _card(
-      title: 'Order Timeline',
-      icon: Icons.history,
-      child: Column(
-        children: history.asMap().entries.map((entry) {
-          final i      = entry.key;
-          final h      = entry.value;
-          final isLast = i == history.length - 1;
-          final status  = h['status_name'] ?? '';
-          final comment = h['comment']?.toString() ?? '';
-          final date    = h['date_added']?.toString() ?? '';
+      title: 'Order Progress',
+      icon: Icons.local_shipping_outlined,
+      child: _trackLoading
+          ? const Center(child: Padding(
+          padding: EdgeInsets.all(16),
+          child: CircularProgressIndicator(color: AppColors.primaryOrange)))
+          : _trackError != null
+          ? Column(children: [
+        const Icon(Icons.error_outline, color: Colors.red, size: 32),
+        const SizedBox(height: 8),
+        Text(_trackError!, textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        const SizedBox(height: 10),
+        TextButton.icon(
+          onPressed: () => _fetchTrackOrder(widget.orderId),
+          icon: const Icon(Icons.refresh, size: 16),
+          label: const Text('Retry'),
+        ),
+      ])
+          : _trackSteps.isEmpty
+          ? const Text('No tracking info available.',
+          style: TextStyle(color: Colors.grey, fontSize: 13))
+          : Column(children: [
+        // ── Horizontal stepper ───────────────────────────────
+        // HorizontalStepper(
+        //   steps: _trackSteps,
+        //   activeStep: _activeStep,
+        //   progressAnim: _progressAnim,
+        //   stepStatus: _stepStatus,
+        //   iconForStep: _iconForStep,
+        // ),
+        // const SizedBox(height: 24),
+        // const Divider(),
+        const SizedBox(height: 12),
+        // ── Vertical timeline ────────────────────────────────
+        ..._trackSteps.asMap().entries.map((e) => TimelineRow(
+          step: e.value,
+          status: _stepStatus(e.key),
+          isLast: e.key == _trackSteps.length - 1,
+          orderDate: e.key == 0
+              ? (_data?['order_info']?['date_added'] ?? '')
+              : '',
+        )),
+      ]),
+    );
+  }
 
-          return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Column(children: [
-              Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: i == 0 ? _statusColor(status) : Colors.grey[400],
-                ),
-              ),
-              if (!isLast)
-                Container(width: 2, height: 44, color: Colors.grey[300]),
-            ]),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _statusChip(status, small: true),
-                      if (comment.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(comment,
-                            style: TextStyle(
-                                fontSize: 12, color: Colors.grey[600])),
-                      ],
-                      const SizedBox(height: 2),
-                      Text(_formatDate(date),
-                          style: TextStyle(
-                              fontSize: 11, color: Colors.grey[500])),
-                    ]),
-              ),
-            ),
-          ]);
-        }).toList(),
-      ),
+  Widget _buildDeliveryAddressCard() {
+    return _card(
+      title: 'Delivery Address',
+      icon: Icons.location_on_outlined,
+      child: _addressLoading
+          ? const Center(child: Padding(
+          padding: EdgeInsets.all(16),
+          child: CircularProgressIndicator(color: AppColors.primaryOrange)))
+          : _selectedAddress == null
+          ? Row(children: [
+        Icon(Icons.location_off_outlined, color: Colors.grey[400], size: 18),
+        const SizedBox(width: 8),
+        Text('No address found',
+            style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+      ])
+          : _AddressDisplayDetail(address: _selectedAddress!),
     );
   }
 
@@ -1127,17 +1243,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Color _statusColor(String status) {
     switch (status.toLowerCase()) {
       case 'complete':
-      case 'completed':
-        return Colors.green;
+      case 'completed':    return Colors.green;
       case 'canceled':
-      case 'cancelled':
-        return Colors.red;
-      case 'pending':
-        return Colors.orange;
-      case 'processing':
-        return Colors.blue;
-      default:
-        return AppColors.primaryBlue;
+      case 'cancelled':    return Colors.red;
+      case 'pending':      return Colors.orange;
+      case 'processing':   return Colors.blue;
+      case 'order placed': return Colors.blue;
+      case 'packed':       return Colors.teal;
+      case 'shipped':      return Colors.indigo;
+      case 'delivered':    return Colors.green;
+      default:             return AppColors.primaryBlue;
     }
   }
 
@@ -1159,5 +1274,57 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     } catch (_) {
       return raw;
     }
+  }
+}
+
+class _AddressDisplayDetail extends StatelessWidget {
+  final AddressModel address;
+  const _AddressDisplayDetail({required this.address});
+
+  @override
+  Widget build(BuildContext context) {
+    final parts = [
+      address.addressLine1,
+      if (address.addressLine2.isNotEmpty) address.addressLine2,
+      address.city,
+      address.pinCode,
+    ].where((s) => s.isNotEmpty).join(', ');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+                color: AppColors.primaryOrange,
+                borderRadius: BorderRadius.circular(6)),
+            child: Text(address.name,
+                style: const TextStyle(
+                    fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600)),
+          ),
+          if (address.isDefault) ...[
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(6)),
+              child: const Text('Default',
+                  style: TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ]),
+        const SizedBox(height: 8),
+        Text(address.fullName,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 4),
+        Text(parts, style: TextStyle(fontSize: 12, color: Colors.black87, height: 1.5)),
+        if (address.phone.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(address.phone, style: const TextStyle(fontSize: 12, color: Colors.black87)),
+        ],
+      ],
+    );
   }
 }
