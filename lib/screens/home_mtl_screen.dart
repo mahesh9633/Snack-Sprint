@@ -1820,8 +1820,8 @@ class _SubProduct {
               ? productLevelQty
               : pieceRawStock;
           return ProductPiece(
-            pieceId:     pm['id']?.toString() ??
-                pm['piece_id']?.toString() ??
+            pieceId:     pm['piece_id']?.toString() ??
+                pm['id']?.toString() ??
                 '',
             label:       (minQty > 1 && pName.isNotEmpty)
                 ? '$pName × $minQty'
