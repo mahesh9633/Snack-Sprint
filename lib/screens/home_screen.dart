@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:mtl_groceriesapp/model/cart_model.dart';
 import '../config/app_color.dart';
@@ -33,6 +34,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   late final List<Widget> _screens;
 
+  DateTime? _lastBackPressTime;
+
   @override
   void initState() {
     super.initState();
@@ -64,14 +67,51 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<bool> _handleBackPress() async {
+    // If not on Home tab, go back to Home tab instead of closing
+    if (_selectedNavIndex != 0) {
+      setState(() => _selectedNavIndex = 0);
+      _homeTabKey.currentState?.resetToHome();
+      return false;
+    }
+
+    // Already on Home tab -> require double back-press to exit
+    final now = DateTime.now();
+    if (_lastBackPressTime == null ||
+        now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+      _lastBackPressTime = now;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Press back again to exit'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      return false;
+    }
+
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _selectedNavIndex,
-        children: _screens,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _handleBackPress();
+        if (shouldPop) {
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
+        body: IndexedStack(
+          index: _selectedNavIndex,
+          children: _screens,
+        ),
+        bottomNavigationBar: _buildBottomNav(),
       ),
-      bottomNavigationBar: _buildBottomNav(),
     );
   }
 

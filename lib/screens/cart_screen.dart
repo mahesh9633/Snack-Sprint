@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:mtl_groceriesapp/model/cart_model.dart';
 
@@ -63,59 +61,43 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   double _minOrderValue = 0;
+  double _storeDeliveryFee = 0; // raw flat fee from db (via profile)
   double _deliveryFee = 0;
   double _finalTotal = 0;
-  double _lastFetchedAmount = -1;
-  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
     _fetchMinOrderValue();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final cart = Provider.of<CartModel>(context, listen: false);
-      if (cart.totalPrice > 0) {
-        _fetchDeliveryFee(cart.totalPrice);
-      }
+  }
+
+  void _recalculateTotals(double cartTotal) {
+    final fee = _storeDeliveryFee;
+    setState(() {
+      _deliveryFee = fee;
+      _finalTotal = cartTotal + fee;
     });
-  }
-
-  @override
-  void dispose() {
-    _debounce?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _fetchDeliveryFee(double amount) async {
-    if (!mounted) return;
-    try {
-      final token = await SessionManager.getString('token') ?? widget.token;
-      final uri = Uri.parse(
-        '${ApiConfig.baseUrl}index.php?route=groceries/categories.getDeliveryFee&token=$token',
-      );
-      final res = await http
-          .post(uri, body: {'amount': amount.toStringAsFixed(0)});
-      if (!mounted) return;
-      final data = jsonDecode(res.body) as Map<String, dynamic>;
-      if (data['status'] == 'success') {
-        setState(() {
-          _deliveryFee = (data['delivery_fee'] as num).toDouble();
-          _finalTotal = (data['final_total'] as num).toDouble();
-        });
-      }
-    } catch (_) {}
   }
 
   Future<void> _fetchMinOrderValue() async {
     try {
       final result = await ProfileGetApiService.getProfile();
+      debugPrint('🟦 PROFILE RESULT: $result');
       if (result['success'] == true) {
         final data = result['data'] as Map<String, dynamic>;
+        debugPrint('🟦 PROFILE DATA KEYS: ${data.keys.toList()}');
+        debugPrint('🟦 delivery_fee raw value: ${data['delivery_fee']} (${data['delivery_fee'].runtimeType})');
         final minStr = data['min_order_value'] as String? ?? '0';
+        final feeStr = data['delivery_fee']?.toString() ?? '0';
+        debugPrint('🟧 min_order_value raw: ${data['min_order_value']}');
         if (mounted) {
           setState(() {
             _minOrderValue = double.tryParse(minStr) ?? 0;
+            _storeDeliveryFee = double.tryParse(feeStr) ?? 0;
           });
+          debugPrint('🟦 Parsed _storeDeliveryFee: $_storeDeliveryFee');
+          final cart = Provider.of<CartModel>(context, listen: false);
+          _recalculateTotals(cart.totalPrice);
         }
       }
     } catch (_) {}
@@ -217,22 +199,10 @@ class _CartScreenState extends State<CartScreen> {
 
     if (token.isEmpty) return;
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(
-        child: CircularProgressIndicator(color: AppColors.loader),
-      ),
-    );
-
-    await _fetchDeliveryFee(totalPrice);
-
-    if (!mounted) return;
-    Navigator.pop(context);
-    if (!mounted) return;
+    _recalculateTotals(totalPrice);
 
     final deliveryFee = _deliveryFee;
-    final finalTotal = _finalTotal > 0 ? _finalTotal : totalPrice + _deliveryFee;
+    final finalTotal = _finalTotal;
 
     Navigator.push(
       context,
@@ -288,11 +258,9 @@ class _CartScreenState extends State<CartScreen> {
       ),
       body: Consumer<CartModel>(
         builder: (context, cart, child) {
-          if (_lastFetchedAmount != cart.totalPrice) {
-            _lastFetchedAmount = cart.totalPrice;
-            _debounce?.cancel();
-            _debounce = Timer(const Duration(milliseconds: 300), () {
-              _fetchDeliveryFee(cart.totalPrice);
+          if (_finalTotal != cart.totalPrice + _deliveryFee) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _recalculateTotals(cart.totalPrice);
             });
           }
 

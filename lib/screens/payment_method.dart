@@ -1082,44 +1082,47 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-          child: Row(children: [
-            Container(
-              padding: const EdgeInsets.all(7),
-              decoration: BoxDecoration(
-                color: AppColors.floatingCartBg.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.local_offer_outlined,
-                  color: AppColors.floatingCartBg, size: 18),
-            ),
-            const SizedBox(width: 10),
-            const Text('Apply Coupon',
-                style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87)),
-            const Spacer(),
-            if (_couponApplied)
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
               Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
-                    color: Colors.green,
-                    borderRadius: BorderRadius.circular(10)),
-                child: const Text('APPLIED',
-                    style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold)),
-              )
-            else if (_couponLoading)
-              const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2,  color: AppColors.floatingCartBg),
-              )
-            else
+                  color: AppColors.floatingCartBg.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.local_offer_outlined,
+                    color: AppColors.floatingCartBg, size: 18),
+              ),
+              const SizedBox(width: 10),
+              const Text('Apply Coupon',
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87)),
+              const Spacer(),
+              if (_couponApplied)
+                Container(
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                      color: Colors.green,
+                      borderRadius: BorderRadius.circular(10)),
+                  child: const Text('APPLIED',
+                      style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold)),
+                )
+              else if (_couponLoading)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2,  color: AppColors.floatingCartBg),
+                ),
+            ]),
+            if (!_couponApplied && !_couponLoading) ...[
+              const SizedBox(height: 8),
               GestureDetector(
                 onTap: () => _openAllCoupons(cartTotal),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -1140,6 +1143,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                   ),
                 ]),
               ),
+            ],
           ]),
         ),
         const Divider(height: 1, color: Color(0xFFF0F0F0)),
