@@ -136,18 +136,21 @@ class _MtlTabBodyState extends State<MtlTabBody> {
             result['data'] as Map<String, dynamic>);
         final currentProductCount = _data?.randomProducts.length ?? 0;
         final newProductCount     = newModel.randomProducts.length;
+        NEW:
         final currentOfferCount   = _data?.offers.length ?? 0;
         final newOfferCount       = newModel.offers.length;
-        bool dataChanged = false;
+        bool dataChanged      = false;
+        bool structuralChange = false;
         if (newProductCount != currentProductCount ||
             newOfferCount   != currentOfferCount) {
-          dataChanged = true;
+          dataChanged      = true;
+          structuralChange = true;
         }
         if (!dataChanged && newProductCount == currentProductCount) {
           for (int i = 0; i < newModel.randomProducts.length; i++) {
             final newP = newModel.randomProducts[i];
             final oldP = _data?.randomProducts[i];
-            if (oldP == null) { dataChanged = true; break; }
+            if (oldP == null) { dataChanged = true; structuralChange = true; break; }
             if (newP.retailPrice    != oldP.retailPrice ||
                 newP.wholesalePrice != oldP.wholesalePrice) {
               dataChanged = true; break;
@@ -158,14 +161,27 @@ class _MtlTabBodyState extends State<MtlTabBody> {
           }
         }
         if (dataChanged && mounted) {
-          setState(() {
-            _pendingData      = newModel;
-            _newDataAvailable = true;
-          });
+          if (structuralChange) {
+            // New/removed products or offers — let user choose when to reload
+            setState(() {
+              _pendingData      = newModel;
+              _newDataAvailable = true;
+            });
+          } else {
+            // Only price/stock changed — apply immediately, no banner
+            setState(() {
+              _data = newModel;
+              _catCache.clear();
+              _subCache.clear();
+            });
+            if (_selectedCatId.isNotEmpty) _fetchCatDetail(_selectedCatId);
+            if (_selectedSubId.isNotEmpty) _fetchSubDetail(_selectedSubId);
+          }
         }
       }
     } catch (_) {}
   }
+
 
   void _applyPendingData() {
     if (_pendingData == null) return;
@@ -179,6 +195,7 @@ class _MtlTabBodyState extends State<MtlTabBody> {
       _subLoading.clear();
     });
   }
+
 
   void _onExternalSearch() {
     final text = _searchController.text;

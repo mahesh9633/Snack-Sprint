@@ -250,8 +250,8 @@ class _TrendingScreenState extends State<TrendingScreen>
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildFavouritesTab(favs, cart),
                   _buildDealsTab(cart, favs),
+                  _buildFavouritesTab(favs, cart),
                   _buildMostBoughtTab(cart, favs),
                 ],
               ),
@@ -283,7 +283,7 @@ class _TrendingScreenState extends State<TrendingScreen>
             ),
             child: IconButton(
               icon: const Icon(Icons.favorite, color: AppColors.primaryBlue, size: 20),
-              onPressed: () => _tabController.animateTo(0),
+              onPressed: () => _tabController.animateTo(1),
             ),
           ),
           if (favs.count > 0)
@@ -320,6 +320,13 @@ class _TrendingScreenState extends State<TrendingScreen>
         const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
         unselectedLabelStyle: const TextStyle(fontSize: 11),
         tabs: [
+          const Tab(
+            height: 44,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text('🔥 Best Deals'),
+            ),
+          ),
           Tab(
             height: 44,
             child: FittedBox(
@@ -331,13 +338,6 @@ class _TrendingScreenState extends State<TrendingScreen>
                     ? 'Favourites (${favs.count})'
                     : 'Favourites'),
               ]),
-            ),
-          ),
-          const Tab(
-            height: 44,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text('🔥 Best Deals'),
             ),
           ),
           const Tab(
