@@ -24,7 +24,7 @@ import '../widgets/home_banner_slider.dart';
 // ─── constants ────────────────────────────────────────────────────────────────
 final String _kImgBase = ApiConfig.imageBase;
 const int _kPreviewMax = 4;
-const Duration _kAutoRefreshInterval = Duration(seconds: 15);
+const Duration _kAutoRefreshInterval = Duration(seconds: 5);
 
 // ─── Blinkit-style colors ─────────────────────────────────────────────────────
 const Color _kGreen       = AppColors.buttonPrimary;
@@ -123,7 +123,6 @@ class _MtlTabBodyState extends State<MtlTabBody> {
       _checkForNewData();
     });
   }
-
   Future<void> _checkForNewData() async {
     if (!mounted || _isRefreshing) return;
     try {
@@ -131,41 +130,24 @@ class _MtlTabBodyState extends State<MtlTabBody> {
       final customerId = await SessionManager.getCustomerId();
       final result     = await getInitialData(customerId: customerId, token: token);
       if (!mounted) return;
-      if (result['success'] == true) {
-        final newModel = InitialDataModel.fromJson(
-            result['data'] as Map<String, dynamic>);
-        final currentProductCount = _data?.randomProducts.length ?? 0;
-        final newProductCount     = newModel.randomProducts.length;
-        final currentOfferCount   = _data?.offers.length ?? 0;
-        final newOfferCount       = newModel.offers.length;
-        bool dataChanged = false;
-        if (newProductCount != currentProductCount ||
-            newOfferCount   != currentOfferCount) {
-          dataChanged = true;
-        }
-        if (!dataChanged && newProductCount == currentProductCount) {
-          for (int i = 0; i < newModel.randomProducts.length; i++) {
-            final newP = newModel.randomProducts[i];
-            final oldP = _data?.randomProducts[i];
-            if (oldP == null) { dataChanged = true; break; }
-            if (newP.retailPrice    != oldP.retailPrice ||
-                newP.wholesalePrice != oldP.wholesalePrice) {
-              dataChanged = true; break;
-            }
-            if (newP.pieces.length != oldP.pieces.length) {
-              dataChanged = true; break;
-            }
-          }
-        }
-        if (dataChanged && mounted) {
-          setState(() {
-            _pendingData      = newModel;
-            _newDataAvailable = true;
-          });
-        }
-      }
+      if (result['success'] != true) return;
+
+      final newModel = InitialDataModel.fromJson(
+          result['data'] as Map<String, dynamic>);
+
+      setState(() {
+        _data             = newModel;
+        _catCache.clear();
+        _subCache.clear();
+        _newDataAvailable = false;
+        _pendingData      = null;
+      });
+
+      if (_selectedCatId.isNotEmpty) await _fetchCatDetail(_selectedCatId);
+      if (_selectedSubId.isNotEmpty) await _fetchSubDetail(_selectedSubId);
     } catch (_) {}
   }
+
 
   void _applyPendingData() {
     if (_pendingData == null) return;
@@ -179,6 +161,7 @@ class _MtlTabBodyState extends State<MtlTabBody> {
       _subLoading.clear();
     });
   }
+
 
   void _onExternalSearch() {
     final text = _searchController.text;
@@ -312,20 +295,12 @@ class _MtlTabBodyState extends State<MtlTabBody> {
           _catLoading[catId] = false;
         });
       } else {
-
-        setState(() {
-          _catCache[catId]   =
-              _CatDetail(childSubs: [], directProducts: []);
-          _catLoading[catId] = false;
-        });
+        // Fetch failed — don't cache, so a retry can actually happen later.
+        setState(() => _catLoading[catId] = false);
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _catCache[catId]   =
-              _CatDetail(childSubs: [], directProducts: []);
-          _catLoading[catId] = false;
-        });
+        setState(() => _catLoading[catId] = false);
       }
     }
   }
@@ -367,19 +342,11 @@ class _MtlTabBodyState extends State<MtlTabBody> {
           _subLoading[subId] = false;
         });
       } else {
-        setState(() {
-          _subCache[subId]   =
-              _CatDetail(childSubs: [], directProducts: []);
-          _subLoading[subId] = false;
-        });
+        setState(() => _subLoading[subId] = false);
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _subCache[subId]   =
-              _CatDetail(childSubs: [], directProducts: []);
-          _subLoading[subId] = false;
-        });
+        setState(() => _subLoading[subId] = false);
       }
     }
   }
@@ -2547,51 +2514,51 @@ class _CategoryFullPageState extends State<_CategoryFullPage> {
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.fromLTRB(6, 6, 6, 80),
                         itemCount: (show.length / 2).ceil() + (hasMore ? 1 : 0),
-                          itemBuilder: (_, rowIndex) {
-                            if (rowIndex == (show.length / 2).ceil()) {
-                              return const Center(
-                                child: Padding(
-                                  padding: EdgeInsets.all(4),
-                                  child: CircularProgressIndicator(color: _kGreen),
+                        itemBuilder: (_, rowIndex) {
+                          if (rowIndex == (show.length / 2).ceil()) {
+                            return const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(4),
+                                child: CircularProgressIndicator(color: _kGreen),
+                              ),
+                            );
+                          }
+                          final left  = rowIndex * 2;
+                          final right = left + 1;
+                          final cardH = imgH + 113.0;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SizedBox(
+                                  width:  cardW,
+                                  height: cardH,
+                                  child: RepaintBoundary(
+                                    child: ProductCard(
+                                      product:     show[left].toProduct(),
+                                      imageHeight: imgH,
+                                    ),
+                                  ),
                                 ),
-                              );
-                            }
-                            final left  = rowIndex * 2;
-                            final right = left + 1;
-                            final cardH = imgH + 113.0;
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 6),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
+                                const SizedBox(width: 6),
+                                if (right < show.length)
                                   SizedBox(
                                     width:  cardW,
                                     height: cardH,
                                     child: RepaintBoundary(
                                       child: ProductCard(
-                                        product:     show[left].toProduct(),
+                                        product:     show[right].toProduct(),
                                         imageHeight: imgH,
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  if (right < show.length)
-                                    SizedBox(
-                                      width:  cardW,
-                                      height: cardH,
-                                      child: RepaintBoundary(
-                                        child: ProductCard(
-                                          product:     show[right].toProduct(),
-                                          imageHeight: imgH,
-                                        ),
-                                      ),
-                                    )
-                                  else
-                                    SizedBox(width: cardW, height: cardH),
-                                ],
-                              ),
-                            );
-                          },
+                                  )
+                                else
+                                  SizedBox(width: cardW, height: cardH),
+                              ],
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ),

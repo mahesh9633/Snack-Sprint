@@ -449,7 +449,7 @@ class HomeTabState extends State<HomeTab> {
             width: tabWidth,
             child: _tabItem(
               tab: QuickTab.cafe,
-              label: 'café',
+              label: 'Fashion',
               selectedColor:       cafeSelectedBg,
               unselectedBg:        cafeUnselectedBg,
               selectedTextColor:   cafeSelectedText,

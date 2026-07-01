@@ -12,16 +12,16 @@ class CafeTabBody extends StatelessWidget {
         _buildSearchBar(),
         _buildFilterChips(),
 
-        // ── CAFE COMING SOON ───────────────────────────────────────────────
+        // ── FASHION COMING SOON ─────────────────────────────────────────────
         const SizedBox(height: 60),
         Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('☕', style: TextStyle(fontSize: 72)),
+              const Text('👗', style: TextStyle(fontSize: 72)),
               const SizedBox(height: 20),
               const Text(
-                'CAFE COMING SOON',
+                'FASHION COMING SOON',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -31,7 +31,7 @@ class CafeTabBody extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                "We're brewing something special for you.",
+                "We're styling something special for you.",
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, color: Colors.grey[500]),
               ),
@@ -49,7 +49,7 @@ class CafeTabBody extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-            colors: [Color(0xFF6366F1), Color(0xFFEC4899)]),
+            colors: [Color(0xFF0F172A), Color(0xFF6366F1)]),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Stack(children: [
@@ -76,9 +76,9 @@ class CafeTabBody extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Row(children: [
-                  Icon(Icons.local_cafe, color: Colors.white, size: 14),
+                  Icon(Icons.checkroom, color: Colors.white, size: 14),
                   SizedBox(width: 4),
-                  Text('CURATED FOR YOU',
+                  Text('STYLED FOR YOU',
                       style: TextStyle(
                           color: Colors.white,
                           fontSize: 11,
@@ -86,7 +86,7 @@ class CafeTabBody extends StatelessWidget {
                 ]),
               ),
               const SizedBox(height: 10),
-              const Text('café',
+              const Text('fashion',
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 42,
@@ -94,15 +94,15 @@ class CafeTabBody extends StatelessWidget {
                       fontStyle: FontStyle.italic,
                       height: 1)),
               const SizedBox(height: 6),
-              Text('Sip, snack & enjoy',
+              Text('Shop the latest trends',
                   style: TextStyle(
                       color: Colors.white.withOpacity(0.85),
                       fontSize: 14)),
               const SizedBox(height: 12),
               Row(children: [
-                _cafeBadge('☕ Beverages'),
+                _fashionBadge('👗 Apparel'),
                 const SizedBox(width: 8),
-                _cafeBadge('🍪 Snacks'),
+                _fashionBadge('👟 Footwear'),
               ]),
             ],
           ),
@@ -111,7 +111,7 @@ class CafeTabBody extends StatelessWidget {
     );
   }
 
-  Widget _cafeBadge(String text) => Container(
+  Widget _fashionBadge(String text) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
     decoration: BoxDecoration(
       color: Colors.white.withOpacity(0.2),
@@ -145,7 +145,7 @@ class CafeTabBody extends StatelessWidget {
           Expanded(
             child: TextField(
               decoration: InputDecoration(
-                hintText: 'Search in café…',
+                hintText: 'Search in fashion…',
                 hintStyle:
                 TextStyle(color: Colors.grey[400], fontSize: 14),
                 border: InputBorder.none,
@@ -161,7 +161,7 @@ class CafeTabBody extends StatelessWidget {
 
   // ── Filter Chips ──────────────────────────────────────────────────────────
   Widget _buildFilterChips() {
-    final filters = ['All', 'Beverages', 'Snacks', 'Hot Drinks', 'Cold Drinks'];
+    final filters = ['All', 'Men', 'Women', 'Kids', 'Footwear', 'Accessories'];
     return SizedBox(
       height: 40,
       child: ListView.builder(

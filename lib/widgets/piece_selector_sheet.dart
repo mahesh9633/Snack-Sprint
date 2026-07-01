@@ -1,3 +1,5 @@
+//
+//
 // import 'package:flutter/material.dart';
 // import 'package:provider/provider.dart';
 //
@@ -18,10 +20,10 @@
 //   final double price;
 //   final double specialPrice;
 //   final String image;
-//   final int    minQuantity;   // <-- new
-//   final bool   isCombo;       // <-- new
+//   final int    minQuantity;
+//   final bool   isCombo;
 //   final int    stock;         // piece-level stock
-//   final double piecePrice;    // <-- new: backend combo per-unit price (raw)
+//   final double piecePrice;
 //
 //   const ProductPiece({
 //     this.rowId = '',
@@ -33,16 +35,15 @@
 //     this.minQuantity = 0,
 //     this.isCombo     = false,
 //     this.stock       = 0,
-//     this.piecePrice  = 0,    // <-- new
+//     this.piecePrice  = 0,
 //   });
 //
 //   factory ProductPiece.fromJson(Map<String, dynamic> j) {
-//
 //     print('PRODUCT PIECE JSON = $j');
 //
 //     final price      = double.tryParse(j['price']?.toString()         ?? '0') ?? 0;
 //     final special    = double.tryParse(j['special_price']?.toString() ?? '0') ?? 0;
-//     final piecePrice = double.tryParse(j['piece_price']?.toString()   ?? '0') ?? 0; // <-- new
+//     final piecePrice = double.tryParse(j['piece_price']?.toString()   ?? '0') ?? 0;
 //     final pieceName  = j['piece']?.toString() ?? '';
 //     final minQtyInt  = int.tryParse(j['min_quantity']?.toString() ?? '0') ?? 0;
 //     final isCombo    = (j['is_combo']?.toString() ?? 'No').toLowerCase() == 'yes';
@@ -56,16 +57,16 @@
 //     print('piece_id = ${j['piece_id']}');
 //
 //     return ProductPiece(
-//       rowId: j['id']?.toString() ?? '',
-//       pieceId: j['piece_id']?.toString() ?? '',
-//       label: label,
+//       rowId:        j['id']?.toString() ?? '',
+//       pieceId:      j['piece_id']?.toString() ?? '',
+//       label:        label,
 //       price:        price,
 //       specialPrice: special,
 //       image:        j['image']?.toString() ?? '',
 //       minQuantity:  minQtyInt,
 //       isCombo:      isCombo,
 //       stock:        stockInt,
-//       piecePrice:   piecePrice,   // <-- new
+//       piecePrice:   piecePrice,
 //     );
 //   }
 //
@@ -73,15 +74,12 @@
 //   bool   get hasDiscount    => specialPrice > 0 && specialPrice < price;
 //   int    get discountPct    => hasDiscount ? ((price - specialPrice) / price * 100).round() : 0;
 //
-//   // <-- new: per-unit price for combo pieces, mirrors backend formula
-//   // $piece_price = $special_price > 0 ? ($special_price / $min_quantity) : ($price / $min_quantity);
 //   double get perUnitPrice {
 //     if (!isCombo || minQuantity <= 0) return effectivePrice;
 //     final qty = minQuantity < 1 ? 1 : minQuantity;
 //     return specialPrice > 0 ? (specialPrice / qty) : (price / qty);
 //   }
 //
-//   // String cartId(String baseProductId) => '${baseProductId}_piece_$pieceId';
 //   String cartId(String baseProductId)
 //   => '${baseProductId}_piece_${rowId.isNotEmpty ? rowId : pieceId}';
 // }
@@ -105,25 +103,29 @@
 // }
 //
 // void _addPiece(BuildContext context, Product base, ProductPiece piece) {
-//
 //   print('ADD PIECE DEBUG');
 //   print('rowId   = ${piece.rowId}');
 //   print('pieceId = ${piece.pieceId}');
 //   print('label   = ${piece.label}');
 //
+//   // ── FIX 3: combo → product-level stock; non-combo → piece-level stock ──
+//   final effectiveStock = piece.isCombo
+//       ? (base.quantity > 0 ? base.quantity : base.posQuantity)
+//       : (piece.stock > 0 ? piece.stock : base.quantity);
+//
 //   final pieceProduct = Product(
 //     id:                 piece.cartId(base.id),
 //     name:               '${base.name} – ${piece.label}',
 //     price:              piece.effectivePrice,
-//     originalPrice:      piece.hasDiscount? piece.price : piece.effectivePrice,
+//     originalPrice:      piece.hasDiscount ? piece.price : piece.effectivePrice,
 //     image:              base.image,
 //     imageUrl:           base.imageUrl,
 //     category:           base.category,
 //     weight:             piece.label,
 //     sku:                base.sku,
 //     discountPercentage: piece.discountPct.toDouble(),
-//     quantity:           base.quantity,
-//     posQuantity:        base.posQuantity,
+//     quantity:           effectiveStock,
+//     posQuantity:        effectiveStock,
 //     isCombo:            piece.isCombo,
 //     pieces:             [piece],
 //   );
@@ -157,89 +159,90 @@
 //       snap:             false,
 //       builder: (_, scrollCtrl) => Container(
 //         decoration: const BoxDecoration(
-//               color:        Colors.white,
-//               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+//           color:        Colors.white,
+//           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+//         ),
+//         child: Column(
+//           children: [
+//             // ── Drag handle ─────────────────────────────────────────────
+//             Padding(
+//               padding: const EdgeInsets.symmetric(vertical: 10),
+//               child: Container(
+//                 width: 40, height: 4,
+//                 decoration: BoxDecoration(
+//                   color:        Colors.grey[300],
+//                   borderRadius: BorderRadius.circular(2),
+//                 ),
+//               ),
 //             ),
-//             child: Column(
-//               children: [
-//                 // ── Drag handle (fixed) ─────────────────────────────
-//                 Padding(
-//                   padding: const EdgeInsets.symmetric(vertical: 10),
-//                   child: Container(
-//                     width: 40, height: 4,
-//                     decoration: BoxDecoration(
-//                       color:        Colors.grey[300],
-//                       borderRadius: BorderRadius.circular(2),
+//
+//             // ── Header ──────────────────────────────────────────────────
+//             Padding(
+//               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+//               child: Column(
+//                 crossAxisAlignment: CrossAxisAlignment.start,
+//                 children: [
+//                   Row(children: [
+//                     Expanded(
+//                       child: Text(
+//                         product.name,
+//                         style: const TextStyle(
+//                             fontSize: 15, fontWeight: FontWeight.w700),
+//                         maxLines: 2,
+//                         overflow: TextOverflow.ellipsis,
+//                       ),
 //                     ),
-//                   ),
-//                 ),
-//
-//                 // ── Header (fixed, never scrolls) ───────────────────
-//                 Padding(
-//                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-//                   child: Column(
-//                     crossAxisAlignment: CrossAxisAlignment.start,
-//                     children: [
-//                       Row(children: [
-//                         Expanded(
-//                           child: Text(
-//                             product.name,
-//                             style: const TextStyle(
-//                                 fontSize: 15, fontWeight: FontWeight.w700),
-//                             maxLines: 2,
-//                             overflow: TextOverflow.ellipsis,
-//                           ),
-//                         ),
-//                         GestureDetector(
-//                           onTap: () => Navigator.pop(context),
-//                           child: const Icon(Icons.close,
-//                               size: 22, color: Colors.black54),
-//                         ),
-//                       ]),
-//                       if (product.isCombo || pieces.any((p) => p.isCombo)) ...[
-//                         const SizedBox(height: 6),
-//                         Container(
-//                           padding: const EdgeInsets.symmetric(
-//                               horizontal: 10, vertical: 4),
-//                           decoration: BoxDecoration(
-//                               color: const Color(0xFFFFF3E0),
-//                               borderRadius: BorderRadius.circular(6)),
-//                           child: Row(
-//                             mainAxisSize: MainAxisSize.min,
-//                             children: const [
-//                               const Icon(Icons.card_giftcard,
-//                                   size: 13, color: AppColors.primaryOrange),
-//                               const SizedBox(width: 4),
-//                               const Text('Combo Deal',
-//                                   style: TextStyle(
-//                                       color: AppColors.primaryOrange,
-//                                       fontSize: 11,
-//                                       fontWeight: FontWeight.bold)),
-//                             ],
-//                           ),
-//                         ),
-//                       ],
-//                     ],
-//                   ),
-//                 ),
-//
-//                 // ── Scrollable piece list ───────────────────────────
-//                 Expanded(
-//                   child: ListView.separated(
-//                     controller:  scrollCtrl,
-//                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-//                     itemCount:   pieces.length,
-//                     separatorBuilder: (_, __) => const SizedBox(height: 10),
-//                     itemBuilder: (_, i) =>
-//                         _PieceRow(product: product, piece: pieces[i]),
-//                   ),
-//                 ),
-//               ],
+//                     GestureDetector(
+//                       onTap: () => Navigator.pop(context),
+//                       child: const Icon(Icons.close,
+//                           size: 22, color: Colors.black54),
+//                     ),
+//                   ]),
+//                   if (product.isCombo || pieces.any((p) => p.isCombo)) ...[
+//                     const SizedBox(height: 6),
+//                     Container(
+//                       padding: const EdgeInsets.symmetric(
+//                           horizontal: 10, vertical: 4),
+//                       decoration: BoxDecoration(
+//                           color: const Color(0xFFFFF3E0),
+//                           borderRadius: BorderRadius.circular(6)),
+//                       child: Row(
+//                         mainAxisSize: MainAxisSize.min,
+//                         children: const [
+//                           Icon(Icons.card_giftcard,
+//                               size: 13, color: AppColors.primaryOrange),
+//                           SizedBox(width: 4),
+//                           Text('Combo Deal',
+//                               style: TextStyle(
+//                                   color: AppColors.primaryOrange,
+//                                   fontSize: 11,
+//                                   fontWeight: FontWeight.bold)),
+//                         ],
+//                       ),
+//                     ),
+//                   ],
+//                 ],
+//               ),
 //             ),
+//
+//             // ── Piece list ───────────────────────────────────────────────
+//             Expanded(
+//               child: ListView.separated(
+//                 controller:      scrollCtrl,
+//                 padding:         const EdgeInsets.fromLTRB(16, 0, 16, 100),
+//                 itemCount:       pieces.length,
+//                 separatorBuilder: (_, __) => const SizedBox(height: 10),
+//                 itemBuilder: (_, i) =>
+//                     _PieceRow(product: product, piece: pieces[i]),
+//               ),
+//             ),
+//           ],
+//         ),
 //       ),
 //     );
 //   }
 // }
+//
 // // ─── Single piece row ─────────────────────────────────────────────────────────
 // class _PieceRow extends StatelessWidget {
 //   final Product      product;
@@ -248,7 +251,6 @@
 //   const _PieceRow({required this.product, required this.piece});
 //
 //   String _imageUrl() {
-//     // Prefer the piece's own image; fall back to the product image
 //     final pieceImg = piece.image;
 //     final img = (pieceImg.isNotEmpty && pieceImg != 'no_image.png')
 //         ? pieceImg
@@ -256,9 +258,16 @@
 //     if (img.isEmpty || img == 'no_image.png') return '';
 //     return img.startsWith('http') ? img : '$_imgBase$img';
 //   }
+//
 //   @override
 //   Widget build(BuildContext context) {
 //     final url = _imageUrl();
+//
+//     // ── FIX 5: correct stock for detail screen ───────────────────────────
+//     final detailStock = piece.isCombo
+//         ? (product.quantity > 0 ? product.quantity : product.posQuantity)
+//         : (piece.stock > 0 ? piece.stock : product.quantity);
+//
 //     return Container(
 //       padding: const EdgeInsets.all(12),
 //       decoration: BoxDecoration(
@@ -278,24 +287,24 @@
 //         ],
 //       ),
 //       child: Row(children: [
-//         // ── Thumbnail ───────────────────────────────────────────────
+//         // ── Thumbnail ────────────────────────────────────────────────────
 //         GestureDetector(
 //           onTap: () {
 //             final pieceProduct = Product(
-//               id:           piece.cartId(product.id),
-//               name:         '${product.name} – ${piece.label}',
-//               price:        piece.effectivePrice,
-//               originalPrice: piece.hasDiscount ? piece.price : piece.effectivePrice,
-//               image:        piece.image.isNotEmpty ? piece.image : product.image,
-//               imageUrl:     url,
-//               category:     product.category,
-//               weight:       piece.label,
-//               sku:          product.sku,
+//               id:                 piece.cartId(product.id),
+//               name:               '${product.name} – ${piece.label}',
+//               price:              piece.effectivePrice,
+//               originalPrice:      piece.hasDiscount ? piece.price : piece.effectivePrice,
+//               image:              piece.image.isNotEmpty ? piece.image : product.image,
+//               imageUrl:           url,
+//               category:           product.category,
+//               weight:             piece.label,
+//               sku:                product.sku,
 //               discountPercentage: piece.discountPct.toDouble(),
-//               quantity:     piece.stock > 0 ? piece.stock : product.quantity,
-//               posQuantity:  product.posQuantity,
-//               isCombo:      piece.isCombo,
-//               pieces:       [piece],
+//               quantity:           detailStock,
+//               posQuantity:        detailStock,
+//               isCombo:            piece.isCombo,
+//               pieces:             [piece],
 //             );
 //             Navigator.push(
 //               context,
@@ -317,46 +326,11 @@
 //         ),
 //         const SizedBox(width: 12),
 //
-//         // ── Label + pricing ──────────────────────────────────────────
+//         // ── Label + pricing ──────────────────────────────────────────────
 //         Expanded(
 //           child: Column(
 //             crossAxisAlignment: CrossAxisAlignment.start,
 //             children: [
-//               // Text(piece.label,
-//               //     style: const TextStyle(
-//               //         fontSize: 14, fontWeight: FontWeight.w600)),
-//               // const SizedBox(height: 4),
-//               // Column(
-//               //   crossAxisAlignment: CrossAxisAlignment.start,
-//               //   children: [
-//               //     if (piece.hasDiscount)
-//               //       Container(
-//               //         margin: const EdgeInsets.only(bottom: 4),
-//               //         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-//               //         decoration: BoxDecoration(
-//               //             color:        const Color(0xFF388E3C),
-//               //             borderRadius: BorderRadius.circular(4)),
-//               //         child: Text('${piece.discountPct}% off',
-//               //             style: const TextStyle(
-//               //                 color:      Colors.white,
-//               //                 fontSize:   9,
-//               //                 fontWeight: FontWeight.bold)),
-//               //       ),
-//               //     Row(children: [
-//               //       Text('₹${piece.effectivePrice.toInt()}',
-//               //           style: const TextStyle(
-//               //               fontSize: 15, fontWeight: FontWeight.bold)),
-//               //       if (piece.hasDiscount) ...[
-//               //         const SizedBox(width: 6),
-//               //         Text('₹${piece.price.toInt()}',
-//               //             style: TextStyle(
-//               //                 fontSize:   12,
-//               //                 color:      Colors.grey[500],
-//               //                 decoration: TextDecoration.lineThrough)),
-//               //       ],
-//               //     ]),
-//               //   ],
-//               // ),
 //               if (piece.hasDiscount)
 //                 Container(
 //                   margin: const EdgeInsets.only(bottom: 4),
@@ -387,7 +361,6 @@
 //                           decoration: TextDecoration.lineThrough)),
 //                 ],
 //               ]),
-//               // <-- new: per-piece price for combo packs
 //               if (piece.isCombo && piece.minQuantity > 1)
 //                 Padding(
 //                   padding: const EdgeInsets.only(top: 2),
@@ -400,7 +373,7 @@
 //           ),
 //         ),
 //
-//         // ── ADD / stepper ────────────────────────────────────────────
+//         // ── ADD / stepper ────────────────────────────────────────────────
 //         _PieceCartBtn(product: product, piece: piece),
 //       ]),
 //     );
@@ -414,15 +387,6 @@
 // }
 //
 // // ─── ADD / stepper for a single piece ────────────────────────────────────────
-// // class _PieceCartBtn extends StatelessWidget {
-// //   final Product      product;
-// //   final ProductPiece piece;
-// //
-// //   const _PieceCartBtn({required this.product, required this.piece});
-// //
-// //   @override
-// //   Widget build(BuildContext context) {
-// //     return Consumer<CartModel>(
 // class _PieceCartBtn extends StatefulWidget {
 //   final Product      product;
 //   final ProductPiece piece;
@@ -452,25 +416,6 @@
 //     super.dispose();
 //   }
 //
-//   // void _startEditing(int currentQty) {
-//   //   _ctrl.text = '$currentQty';
-//   //   setState(() => _editing = true);
-//   //   Future.microtask(() {
-//   //     _focus.requestFocus();
-//   //     _ctrl.selectAll();
-//   //   });
-//   // }
-//   // void _startEditing(int currentQty) {
-//   //   _ctrl.text = '$currentQty';
-//   //   setState(() => _editing = true);
-//   //   Future.microtask(() {
-//   //     _focus.requestFocus();
-//   //     _ctrl.selection = TextSelection(
-//   //       baseOffset:  0,
-//   //       extentOffset: _ctrl.text.length,
-//   //     );
-//   //   });
-//   // }
 //   void _startEditing(int currentQty) {
 //     _ctrl.text = '$currentQty';
 //     setState(() => _editing = true);
@@ -482,147 +427,171 @@
 //       _focus.requestFocus();
 //     });
 //   }
+//
 //   void _commitEdit(CartModel cart, Product tempProduct, int effectiveStock) {
-//     final val = int.tryParse(_ctrl.text.trim()) ?? 0;
+//     final val   = int.tryParse(_ctrl.text.trim()) ?? 0;
 //     final stock = effectiveStock;
 //
 //     if (val <= 0) {
 //       cart.removeItem(tempProduct);
 //     } else if (stock > 0 && val > stock) {
 //       cart.setQuantity(tempProduct, stock);
-//       showDialog(
-//         context: context,
-//         barrierColor: Colors.black26,
-//         builder: (_) => Center(
-//           child: Container(
-//             margin: const EdgeInsets.symmetric(horizontal: 40),
-//             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-//             decoration: BoxDecoration(
-//               color: Colors.white,
-//               borderRadius: BorderRadius.circular(16),
-//               boxShadow: [
-//                 BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 20),
-//               ],
-//             ),
-//             child: Column(
-//               mainAxisSize: MainAxisSize.min,
-//               children: [
-//                 const Icon(Icons.info_outline, color: AppColors.primaryBlue, size: 36),
-//                 const SizedBox(height: 12),
-//                 Text(
-//                   'Only $stock item${stock == 1 ? '' : 's'} available',
-//                   textAlign: TextAlign.center,
-//                   style: const TextStyle(
-//                     fontSize: 15,
-//                     fontWeight: FontWeight.w600,
-//                     color: AppColors.textDark,
-//                   ),
-//                 ),
-//                 const SizedBox(height: 16),
-//                 GestureDetector(
-//                   onTap: () => Navigator.pop(context),
-//                   child: Container(
-//                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
-//                     decoration: BoxDecoration(
-//                       color: AppColors.primaryOrange,
-//                       borderRadius: BorderRadius.circular(8),
-//                     ),
-//                     child: const Text('OK',
-//                         style: TextStyle(
-//                             color: AppColors.textLight,
-//                             fontWeight: FontWeight.bold,
-//                             fontSize: 14)),
-//                   ),
-//                 ),
-//               ],
-//             ),
-//           ),
-//         ),
-//       );
+//       _showStockDialog(stock);
 //     } else {
 //       cart.setQuantity(tempProduct, val);
 //     }
 //     setState(() => _editing = false);
 //   }
 //
+//   void _showStockDialog(int stock) {
+//     showDialog(
+//       context: context,
+//       barrierColor: Colors.black26,
+//       builder: (_) => Center(
+//         child: Container(
+//           margin:  const EdgeInsets.symmetric(horizontal: 40),
+//           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+//           decoration: BoxDecoration(
+//             color:        Colors.white,
+//             borderRadius: BorderRadius.circular(16),
+//             boxShadow: [
+//               BoxShadow(
+//                   color: Colors.black.withOpacity(0.15), blurRadius: 20),
+//             ],
+//           ),
+//           child: Column(
+//             mainAxisSize: MainAxisSize.min,
+//             children: [
+//               const Icon(Icons.info_outline,
+//                   color: AppColors.primaryBlue, size: 36),
+//               const SizedBox(height: 12),
+//               Text(
+//                 'Only $stock item${stock == 1 ? '' : 's'} available',
+//                 textAlign: TextAlign.center,
+//                 style: const TextStyle(
+//                     fontSize: 15, fontWeight: FontWeight.w600,
+//                     color: AppColors.textDark),
+//               ),
+//               const SizedBox(height: 16),
+//               GestureDetector(
+//                 onTap: () => Navigator.pop(context),
+//                 child: Container(
+//                   padding: const EdgeInsets.symmetric(
+//                       horizontal: 32, vertical: 10),
+//                   decoration: BoxDecoration(
+//                       color:        AppColors.primaryOrange,
+//                       borderRadius: BorderRadius.circular(8)),
+//                   child: const Text('OK',
+//                       style: TextStyle(
+//                           color:      AppColors.textLight,
+//                           fontWeight: FontWeight.bold,
+//                           fontSize:   14)),
+//                 ),
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+//
 //   @override
 //   Widget build(BuildContext context) {
 //     return Consumer<CartModel>(
+//       builder: (ctx, cart, _) {
+//         final pieceId    = widget.piece.cartId(widget.product.id);
+//         final pieceStock = widget.piece.stock;
 //
-//       builder: (ctx, cart, _) {;
-//       final pieceId    = widget.piece.cartId(widget.product.id);
-//       final pieceStock = widget.piece.stock;
+//         // ── FIX 4: combo → product-level stock; non-combo → piece-level ──
+//         final bool isComboProduct = widget.product.isCombo ||
+//             widget.product.pieces.any((p) => p.isCombo);
 //
-//       // ── For combo: compute shared remaining stock ──────────────────
-//       final bool isComboProduct = widget.product.isCombo ||
-//           widget.product.pieces.any((p) => p.isCombo);
-//       int effectiveStock = pieceStock;
-//       if (isComboProduct && pieceStock > 0) {
-//         int otherPiecesQty = 0;
-//         for (final otherPiece in widget.product.pieces) {
-//           if (otherPiece.pieceId == widget.piece.pieceId) continue;
-//           final otherId = otherPiece.cartId(widget.product.id);
-//           final otherTemp = Product(
-//             id: otherId, name: '', price: 0, originalPrice: 0,
-//             category: '', quantity: 0, posQuantity: 0,
-//           );
-//           otherPiecesQty += cart.getQuantity(otherTemp);
+//         final productLevelStock = widget.product.quantity > 0
+//             ? widget.product.quantity
+//             : widget.product.posQuantity;
+//
+//         int effectiveStock = isComboProduct ? productLevelStock : pieceStock;
+//
+//         // For combo: subtract what other pieces already consumed
+//         if (isComboProduct && effectiveStock > 0) {
+//           int otherPiecesQty = 0;
+//           for (final otherPiece in widget.product.pieces) {
+//             if (otherPiece.pieceId == widget.piece.pieceId) continue;
+//             final otherId   = otherPiece.cartId(widget.product.id);
+//             final otherTemp = Product(
+//               id: otherId, name: '', price: 0, originalPrice: 0,
+//               category: '', quantity: 0, posQuantity: 0,
+//             );
+//             otherPiecesQty += cart.getQuantity(otherTemp);
+//           }
+//           effectiveStock =
+//               (effectiveStock - otherPiecesQty).clamp(0, effectiveStock);
 //         }
-//         effectiveStock = (pieceStock - otherPiecesQty).clamp(0, pieceStock);
-//       }
 //
-//       final tempProduct = Product(
-//         id:                 pieceId,
-//         name:               '${widget.product.name} – ${widget.piece.label}',
-//         price:              widget.piece.effectivePrice,
-//         originalPrice:      widget.piece.hasDiscount ? widget.piece.price : widget.piece.effectivePrice,
-//         image:              widget.product.image,
-//         imageUrl:           widget.product.imageUrl,
-//         category:           widget.product.category,
-//         weight:             widget.piece.label,
-//         sku:                widget.product.sku,
-//         discountPercentage: widget.piece.discountPct.toDouble(),
-//         quantity:           effectiveStock,
-//         posQuantity:        effectiveStock,
-//         isCombo:            widget.piece.isCombo,
-//         pieces:             [widget.piece],
-//       );
-//       final qty = cart.getQuantity(tempProduct);
+//         final tempProduct = Product(
+//           id:                 pieceId,
+//           name:               '${widget.product.name} – ${widget.piece.label}',
+//           price:              widget.piece.effectivePrice,
+//           originalPrice:      widget.piece.hasDiscount
+//               ? widget.piece.price
+//               : widget.piece.effectivePrice,
+//           image:              widget.product.image,
+//           imageUrl:           widget.product.imageUrl,
+//           category:           widget.product.category,
+//           weight:             widget.piece.label,
+//           sku:                widget.product.sku,
+//           discountPercentage: widget.piece.discountPct.toDouble(),
+//           quantity:           effectiveStock,
+//           posQuantity:        effectiveStock,
+//           isCombo:            widget.piece.isCombo,
+//           pieces:             [widget.piece],
+//         );
 //
-//       if (qty == 0) {
-//         final isOutOfStock = effectiveStock == 0;
-//         return AnimatedSwitcher(
+//         final qty = cart.getQuantity(tempProduct);
+//
+//         // ── Out of stock / ADD button ─────────────────────────────────────
+//         if (qty == 0) {
+//           final isOutOfStock = effectiveStock == 0;
+//           return AnimatedSwitcher(
 //             duration: const Duration(milliseconds: 180),
 //             child: GestureDetector(
 //               key: const ValueKey('add'),
-//               onTap: isOutOfStock ? null : () => _addPiece(ctx, widget.product, widget.piece),
+//               onTap: isOutOfStock
+//                   ? null
+//                   : () => _addPiece(ctx, widget.product, widget.piece),
 //               child: Container(
-//             padding: const EdgeInsets.symmetric(
-//                 horizontal: 18, vertical: 8),
-//             decoration: BoxDecoration(
-//               color:        isOutOfStock ? Colors.grey[100] : Colors.white,
-//               borderRadius: BorderRadius.circular(8),
-//               border: Border.all(
-//                   color: isOutOfStock ? Colors.grey[300]! : Colors.grey[300]!, width: 1.5),
+//                 padding: const EdgeInsets.symmetric(
+//                     horizontal: 18, vertical: 8),
+//                 decoration: BoxDecoration(
+//                   color: isOutOfStock ? Colors.grey[100] : Colors.white,
+//                   borderRadius: BorderRadius.circular(8),
+//                   border: Border.all(
+//                       color: isOutOfStock
+//                           ? Colors.grey[300]!
+//                           : Colors.grey[300]!,
+//                       width: 1.5),
+//                 ),
+//                 child: Text(
+//                     isOutOfStock ? 'Out of Stock' : 'ADD',
+//                     style: TextStyle(
+//                         color:         isOutOfStock
+//                             ? Colors.red
+//                             : AppColors.freshGreen,
+//                         fontSize:      13,
+//                         fontWeight:    FontWeight.bold,
+//                         letterSpacing: 0.5)),
+//               ),
 //             ),
-//             child: Text(
-//                 isOutOfStock ? 'Out of Stock' : 'ADD',
-//                 style: TextStyle(
-//                     color:         isOutOfStock ? Colors.red : AppColors.freshGreen,
-//                     fontSize:      13,
-//                     fontWeight:    FontWeight.bold,
-//                     letterSpacing: 0.5)),
-//           ),
-//         ));
-//       }
+//           );
+//         }
 //
-//       // Live price: updates as user types, before committing
-//       final liveQty   = _editing
-//           ? (int.tryParse(_ctrl.text) ?? qty)
-//           : qty;
-//       final liveTotal = (liveQty * widget.piece.effectivePrice).toInt();
+//         // ── Live total below stepper ──────────────────────────────────────
+//         final liveQty   = _editing
+//             ? (int.tryParse(_ctrl.text) ?? qty)
+//             : qty;
+//         final liveTotal = (liveQty * widget.piece.effectivePrice).toInt();
 //
-//       return AnimatedSwitcher(
+//         return AnimatedSwitcher(
 //           duration: const Duration(milliseconds: 180),
 //           child: Column(
 //             key: const ValueKey('stepper'),
@@ -630,134 +599,90 @@
 //             children: [
 //               Container(
 //                 height: 36,
-//             decoration: BoxDecoration(
-//                 color:        AppColors.freshGreen,
-//                 borderRadius: BorderRadius.circular(8)),
-//             child: Row(mainAxisSize: MainAxisSize.min, children: [
-//               GestureDetector(
-//                 onTap: () => cart.decrementQuantity(pieceId),
-//                 child: const SizedBox(
-//                     width: 34, height: 36,
-//                     child: Icon(Icons.remove,
-//                         color: AppColors.textLight, size: 16)),
-//               ),
-//
-//               // ── Tappable qty / inline editor ──────────────────
-//               if (_editing)
-//                 SizedBox(
-//                   width: 42,
-//                   child: TextField(
-//                     controller:   _ctrl,
-//                     focusNode:    _focus,
-//                     keyboardType: TextInputType.number,
-//                     textAlign:    TextAlign.center,
-//                     style: const TextStyle(
-//                         color:      Colors.white,
-//                         fontSize:   14,
-//                         fontWeight: FontWeight.bold),
-//                     decoration: const InputDecoration(
-//                         border:      InputBorder.none,
-//                         isDense:     true,
-//                         contentPadding: EdgeInsets.zero),
-//                     onChanged: (_) => setState(() {}), // live price refresh
-//                     onSubmitted: (_) =>
-//                         _commitEdit(cart, tempProduct, effectiveStock),
-//                     onTapOutside: (_) =>
-//                         _commitEdit(cart, tempProduct, effectiveStock),
+//                 decoration: BoxDecoration(
+//                     color:        AppColors.freshGreen,
+//                     borderRadius: BorderRadius.circular(8)),
+//                 child: Row(mainAxisSize: MainAxisSize.min, children: [
+//                   // ── Decrement ───────────────────────────────────────
+//                   GestureDetector(
+//                     onTap: () => cart.decrementQuantity(pieceId),
+//                     child: const SizedBox(
+//                         width: 34, height: 36,
+//                         child: Icon(Icons.remove,
+//                             color: AppColors.textLight, size: 16)),
 //                   ),
-//                 )
-//               else
-//                 GestureDetector(
-//                   behavior: HitTestBehavior.opaque,
-//                   onTap: () => _startEditing(qty),
-//                   child: Padding(
-//                     padding: const EdgeInsets.symmetric(horizontal: 6),
-//                     child: Text('$qty',
+//
+//                   // ── Qty / inline editor ─────────────────────────────
+//                   if (_editing)
+//                     SizedBox(
+//                       width: 42,
+//                       child: TextField(
+//                         controller:   _ctrl,
+//                         focusNode:    _focus,
+//                         keyboardType: TextInputType.number,
+//                         textAlign:    TextAlign.center,
 //                         style: const TextStyle(
 //                             color:      Colors.white,
 //                             fontSize:   14,
-//                             fontWeight: FontWeight.bold)),
-//                   ),
-//                 ),
-//
-//               GestureDetector(
-//                 onTap: () {
-//                   final stock = effectiveStock;
-//                   if (stock > 0 && qty >= stock) {
-//                     showDialog(
-//                       context: ctx,
-//                       barrierColor: Colors.black26,
-//                       builder: (_) => Center(
-//                         child: Container(
-//                           margin: const EdgeInsets.symmetric(horizontal: 40),
-//                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-//                           decoration: BoxDecoration(
-//                             color: Colors.white,
-//                             borderRadius: BorderRadius.circular(16),
-//                             boxShadow: [
-//                               BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 20),
-//                             ],
-//                           ),
-//                           child: Column(
-//                             mainAxisSize: MainAxisSize.min,
-//                             children: [
-//                               const Icon(Icons.info_outline, color: AppColors.primaryBlue, size: 36),
-//                               const SizedBox(height: 12),
-//                                Text(
-//                                 'Only $stock item(s) available',
-//                                 textAlign: TextAlign.center,
-//                                 style: TextStyle(
-//                                   fontSize: 15,
-//                                   fontWeight: FontWeight.w600,
-//                                   color: AppColors.textDark,
-//                                 ),
-//                               ),
-//                               const SizedBox(height: 16),
-//                               GestureDetector(
-//                                 onTap: () => Navigator.pop(ctx),
-//                                 child: Container(
-//                                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
-//                                   decoration: BoxDecoration(
-//                                     color: AppColors.primaryOrange,
-//                                     borderRadius: BorderRadius.circular(8),
-//                                   ),
-//                                   child: const Text('OK',
-//                                       style: TextStyle(
-//                                           color: AppColors.textLight,
-//                                           fontWeight: FontWeight.bold,
-//                                           fontSize: 14)),
-//                                 ),
-//                               ),
-//                             ],
-//                           ),
-//                         ),
+//                             fontWeight: FontWeight.bold),
+//                         decoration: const InputDecoration(
+//                             border:         InputBorder.none,
+//                             isDense:        true,
+//                             contentPadding: EdgeInsets.zero),
+//                         onChanged:    (_) => setState(() {}),
+//                         onSubmitted:  (_) =>
+//                             _commitEdit(cart, tempProduct, effectiveStock),
+//                         onTapOutside: (_) =>
+//                             _commitEdit(cart, tempProduct, effectiveStock),
 //                       ),
-//                     );
-//                     return;
-//                   }
-//                   _addPiece(ctx, widget.product, widget.piece);
-//                 },
-//                 child: const SizedBox(
-//                     width: 34, height: 36,
-//                     child: Icon(Icons.add,
-//                         color: Colors.white, size: 16)),
+//                     )
+//                   else
+//                     GestureDetector(
+//                       behavior: HitTestBehavior.opaque,
+//                       onTap: () => _startEditing(qty),
+//                       child: Padding(
+//                         padding: const EdgeInsets.symmetric(horizontal: 6),
+//                         child: Text('$qty',
+//                             style: const TextStyle(
+//                                 color:      Colors.white,
+//                                 fontSize:   14,
+//                                 fontWeight: FontWeight.bold)),
+//                       ),
+//                     ),
+//
+//                   // ── Increment ───────────────────────────────────────
+//                   GestureDetector(
+//                     onTap: () {
+//                       if (effectiveStock > 0 && qty >= effectiveStock) {
+//                         _showStockDialog(effectiveStock);
+//                         return;
+//                       }
+//                       _addPiece(ctx, widget.product, widget.piece);
+//                     },
+//                     child: const SizedBox(
+//                         width: 34, height: 36,
+//                         child: Icon(Icons.add,
+//                             color: Colors.white, size: 16)),
+//                   ),
+//                 ]),
 //               ),
-//             ]),
+//               const SizedBox(height: 4),
+//               Text(
+//                 '₹$liveTotal',
+//                 style: const TextStyle(
+//                     color:      AppColors.freshGreen,
+//                     fontSize:   11,
+//                     fontWeight: FontWeight.bold),
+//               ),
+//             ],
 //           ),
-//           const SizedBox(height: 4),
-//           Text(
-//             '₹$liveTotal',
-//             style: const TextStyle(
-//                 color:      AppColors.freshGreen,
-//                 fontSize:   11,
-//                 fontWeight: FontWeight.bold),
-//           ),
-//         ],
-//       ));
+//         );
 //       },
 //     );
 //   }
 // }
+
+
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
