@@ -16,6 +16,7 @@ class OrderProduct {
   final String gst;
   final String tax;
   final String image;
+  final String comment;
 
   const OrderProduct({
     required this.orderProductId,
@@ -29,6 +30,7 @@ class OrderProduct {
     required this.gst,
     required this.tax,
     required this.image,
+    required this.comment,
   });
 
   factory OrderProduct.fromJson(Map<String, dynamic> json) => OrderProduct(
@@ -43,6 +45,7 @@ class OrderProduct {
     gst:            json['gst']?.toString() ?? '0',
     tax:            json['tax']?.toString() ?? '0.00',
     image:          json['image']?.toString() ?? '',
+    comment: json['comment']?.toString() ?? '',
   );
 }
 
@@ -168,6 +171,7 @@ class OrderInfo {
   final String dateModified;
   final String currencyCode;
   final String takeaway_amount;
+  final String comment;
 
   const OrderInfo({
     required this.orderId,
@@ -186,11 +190,13 @@ class OrderInfo {
     required this.dateModified,
     required this.currencyCode,
     required this.takeaway_amount,
+    required this.comment,
   });
 
   String get fullName => '$firstname $lastname'.trim();
 
   factory OrderInfo.fromJson(Map<String, dynamic> json) {
+    debugPrint('ORDERINFO_FROMJSON raw comment => ${json['comment']}');
     String paymentMethod = '';
     final raw = json['payment_method'];
     if (raw != null) {
@@ -219,6 +225,7 @@ class OrderInfo {
       dateModified:  json['date_modified']?.toString() ?? '',
       currencyCode:  json['currency_code']?.toString() ?? 'INR',
       takeaway_amount:  json['takeaway_amount']?.toString() ?? '0.00',
+      comment:       json['comment']?.toString() ?? '',
     );
   }
 }
@@ -239,6 +246,10 @@ class Order {
   });
 
   String get effectiveStatus {
+    final rawStatus = info.orderStatus.toLowerCase();
+    if (rawStatus.contains('cancel') || rawStatus.contains('return')) {
+      return info.orderStatus;
+    }
     final completed = tracking.where((t) => t.isCompleted).toList();
     if (completed.isEmpty) return info.orderStatus;
     return completed.last.name;

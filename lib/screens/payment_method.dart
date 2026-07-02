@@ -78,11 +78,10 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       final result = await ProfileGetApiService.getProfile();
       if (result['success'] == true) {
         final data      = result['data'] as Map<String, dynamic>;
-        final contact   = data['contact']   as String? ?? '';
-        final telephone = data['telephone'] as String? ?? '';
+        final upiNumber = data['upi_number'] as String? ?? '';
         if (mounted) {
           setState(() {
-            _customerPhone = contact.isNotEmpty ? contact : telephone;
+            _customerPhone = upiNumber;
             _phoneLoading  = false;
           });
         }

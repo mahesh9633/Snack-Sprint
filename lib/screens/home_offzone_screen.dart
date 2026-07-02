@@ -309,32 +309,26 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
           ),
         );
       } else {
-        for (final group in groups) {
-          final catName  = group['categoryName'] as String;
-          final catId    = group['categoryId']   as String;
-          final products = group['products']     as List<Product>;
-
-          children.add(
-              _buildCategorySectionHeader(catName, catId, products.length));
-          children.add(
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount:   2,
-                childAspectRatio: 0.65,
-                crossAxisSpacing: 12,
-                mainAxisSpacing:  12,
-              ),
-              itemCount: products.length,
-              itemBuilder: (_, i) => _ProductCardWithBadge(
-                product:      products[i],
-                categoryName: catName,
-              ),
+        // One continuous grid — same structure/sizing as the 10%-40% zone.
+        // Category name still shows as a small badge on each card.
+        children.add(
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount:   2,
+              childAspectRatio: 0.40,
+              crossAxisSpacing: 12,
+              mainAxisSpacing:  12,
             ),
-          );
-        }
+            itemCount: _displayed.length,
+            itemBuilder: (_, i) => _ProductCardWithBadge(
+              product:      _displayed[i],
+              categoryName: _getCategoryName(_displayed[i].category),
+            ),
+          ),
+        );
       }
 
       children.add(const SizedBox(height: 100));
@@ -513,6 +507,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
               const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
                 color: isSelected
+
                     ? const Color(0xFF6366F1)
                     : const Color(0xFF6366F1).withValues(alpha: 0.07),
                 borderRadius: BorderRadius.circular(20),
@@ -633,8 +628,10 @@ class _ProductCardWithBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        ProductCard(product: product),
+        // ProductCard(product: product),
+        ProductCard(product: product, imageHeight: 100),
         if (categoryName.isNotEmpty)
+
           Positioned(
             top: 6, right: 6,
             child: Container(

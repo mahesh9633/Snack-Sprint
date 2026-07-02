@@ -1,8 +1,8 @@
 enum AppEnv { dev, production }
 
 class ApiConfig {
-  static const AppEnv _env = AppEnv.production;
-  // static const AppEnv _env = AppEnv.dev;
+  // static const AppEnv _env = AppEnv.production;
+  static const AppEnv _env = AppEnv.dev;
 
   // ── Environment base URLs ─────────────────────────────────────────────────
   static const String _productionBase = 'https://dbmarts.com/DBM/';

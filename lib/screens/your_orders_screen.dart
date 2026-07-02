@@ -400,6 +400,27 @@ class _OrderCard extends StatelessWidget {
                       ],
                     ],
                   ),
+                  if (status.toLowerCase().contains('cancel') &&
+                      info.comment.trim().isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(children: [
+                        Icon(Icons.info_outline, size: 13, color: Colors.red.shade400),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            info.comment,
+                            style: TextStyle(fontSize: 11.5, color: Colors.red.shade700),
+                          ),
+                        ),
+                      ]),
+                    ),
+                  ],
                 ],
               ),
             ),
