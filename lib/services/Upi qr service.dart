@@ -28,14 +28,10 @@ class UpiQrService {
     required double amount,
   }) async {
     try {
-      print('Token passed into generateQr: "$token"');
 
       final uri = Uri.parse(
         ApiConfig.route('groceries/home.generateUpiQr', token: token),
       );
-
-      print('Final UPI QR request URL: $uri');
-      print('Amount sent in body: ${amount.toStringAsFixed(0)}');
 
       final response = await http.post(
         uri,
@@ -46,7 +42,6 @@ class UpiQrService {
           'amount': amount.toStringAsFixed(0),
         },
       );
-      print('UPI QR raw response [${response.statusCode}]: ${response.body}');
       final data = jsonDecode(response.body);
 
       if (data['status']?.toString().toLowerCase() == 'success') {

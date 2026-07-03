@@ -47,7 +47,6 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  debugPrint('Background message: ${message.messageId}');
 }
 
 Future<void> _setupFCM() async {
@@ -62,15 +61,8 @@ Future<void> _setupFCM() async {
   if (settings.authorizationStatus == AuthorizationStatus.authorized ||
       settings.authorizationStatus == AuthorizationStatus.provisional) {
     final token = await messaging.getToken();
-    debugPrint('FCM Token: $token');
-    // TODO: send this token to your PHP/OpenCart backend so you can
-    // target this device later (e.g. save to a `device_tokens` table).
   }
 
-  // Foreground notifications — app open and in use.
-  // Android suppresses the system banner in foreground by default, so we
-  // manually show a local notification that looks/behaves the same as the
-  // background one.
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     final notification = message.notification;
     if (notification != null) {
@@ -94,9 +86,6 @@ Future<void> _setupFCM() async {
 
   // Tapped a notification while app was in background and is now opened.
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-    debugPrint('Notification tapped: ${message.data}');
-    // TODO: navigate to a specific screen based on message.data, e.g.
-    // an order details screen or a banner/category page.
   });
 }
 
@@ -154,11 +143,6 @@ void main() async {
     await favoritesModel.loadForUser(savedUserId);
   } else {
     await cart.loadCart();
-  }
-
-  // Disable all print() statements in release mode
-  if (kReleaseMode) {
-    debugPrint = (String? message, {int? wrapWidth}) {};
   }
 
   runApp(

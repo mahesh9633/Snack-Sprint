@@ -51,22 +51,6 @@ class OrderApiService {
         orElse: () => item.product.pieces.first,
       )
           : null;
-      if (kDebugMode) {
-        print('============== ORDER DEBUG ==============');
-        print('Cart Key        : $cartKey');
-        print('Product Name    : ${item.product.name}');
-        print('Base Product ID : $baseProductId');
-        print('Piece Row ID    : $pieceRowId');
-        print('Cart Row ID : $pieceRowId');
-        print('Piece ID    : ${matchedPiece?.pieceId}');
-        print('Model Row ID: ${matchedPiece?.rowId}');
-
-        if (matchedPiece != null) {
-          print('Matched Piece   : $matchedPiece');
-        }
-
-        print('=========================================');
-      }
 
       final minQty = matchedPiece?.minQuantity ?? 0;
       final isCombo     = item.product.isCombo;
@@ -149,15 +133,6 @@ class OrderApiService {
 
     final body     = {'orderDetails': orderDetails};
     final jsonBody = jsonEncode(body);
-
-    if (kDebugMode) {
-      print('=========== ORDER JSON ===========');
-      print(jsonBody);
-      print('=================================');
-    }
-
-    if (kDebugMode) {
-    }
 
     final uri = Uri.parse('$_baseUrl?route=$_route&token=${token ?? ''}');
 

@@ -149,10 +149,7 @@ class AuthService {
     try {
       final fcmToken = await FirebaseMessaging.instance.getToken();
 
-      debugPrint("FCM TOKEN = $fcmToken");
-
       if (fcmToken == null) {
-        debugPrint("FCM token is null");
         return;
       }
 
@@ -166,10 +163,7 @@ class AuthService {
         },
       ).timeout(const Duration(seconds: 15));
 
-      debugPrint("SAVE TOKEN STATUS = ${response.statusCode}");
-      debugPrint("SAVE TOKEN RESPONSE = ${response.body}");
     } catch (e) {
-      debugPrint("FCM token send failed: $e");
     }
   }
 }

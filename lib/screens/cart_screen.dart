@@ -82,20 +82,15 @@ class _CartScreenState extends State<CartScreen> {
   Future<void> _fetchMinOrderValue() async {
     try {
       final result = await ProfileGetApiService.getProfile();
-      debugPrint('🟦 PROFILE RESULT: $result');
       if (result['success'] == true) {
         final data = result['data'] as Map<String, dynamic>;
-        debugPrint('🟦 PROFILE DATA KEYS: ${data.keys.toList()}');
-        debugPrint('🟦 delivery_fee raw value: ${data['delivery_fee']} (${data['delivery_fee'].runtimeType})');
         final minStr = data['min_order_value'] as String? ?? '0';
         final feeStr = data['delivery_fee']?.toString() ?? '0';
-        debugPrint('🟧 min_order_value raw: ${data['min_order_value']}');
         if (mounted) {
           setState(() {
             _minOrderValue = double.tryParse(minStr) ?? 0;
             _storeDeliveryFee = double.tryParse(feeStr) ?? 0;
           });
-          debugPrint('🟦 Parsed _storeDeliveryFee: $_storeDeliveryFee');
           final cart = Provider.of<CartModel>(context, listen: false);
           _recalculateTotals(cart.totalPrice);
         }

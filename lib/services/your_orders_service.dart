@@ -196,7 +196,6 @@ class OrderInfo {
   String get fullName => '$firstname $lastname'.trim();
 
   factory OrderInfo.fromJson(Map<String, dynamic> json) {
-    debugPrint('ORDERINFO_FROMJSON raw comment => ${json['comment']}');
     String paymentMethod = '';
     final raw = json['payment_method'];
     if (raw != null) {

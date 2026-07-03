@@ -248,6 +248,54 @@ class ApiService {
       return {'success': false, 'message': e.toString()};
     }
   }
+
+  // ─── Get Most Bought Products ─────────────────────────────────────────────
+  static Future<Map<String, dynamic>> getMostBoughtProducts({
+    String? token,
+  }) async {
+    final uri = Uri.parse(
+      '$kApiBase?route=groceries/categories.getMostBoughtProducts&token=$token&api_token=$token',
+    );
+
+    final Map<String, String> body = {};
+    if (token != null && token.isNotEmpty) {
+      body['token']      = token;
+      body['api_token']  = token;
+      body['auth_token'] = token;
+    }
+
+    try {
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+          if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+          if (token != null && token.isNotEmpty) 'X-Auth-Token': token,
+        },
+        body: body,
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode != 200 || response.body.isEmpty) {
+        return {'success': false, 'message': 'Server error ${response.statusCode}'};
+      }
+
+      final raw = jsonDecode(response.body);
+      if (raw is! Map<String, dynamic>) {
+        return {'success': false, 'message': 'Invalid response format'};
+      }
+
+      final bool isSuccess = raw['status']?.toString() == 'success';
+      final List<dynamic> data = raw['data'] is List ? raw['data'] as List : [];
+
+      if (isSuccess) {
+        return {'success': true, 'data': data};
+      }
+      return {'success': false, 'message': raw['message']?.toString() ?? 'Unknown error'};
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    }
+  }
 }
 
 // ─── Top-level aliases (used by home_mtl_screen.dart directly) ───────────────

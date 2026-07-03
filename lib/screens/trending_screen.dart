@@ -11,6 +11,7 @@ import '../products/product_card.dart';
 import '../products/product_detail_screen.dart';
 import '../services/api_config_service.dart';
 import '../services/api_server.dart';
+import '../services/most_bought_model.dart';
 import '../services/session_manager.dart';
 import '../widgets/floating_cart.dart';
 import '../widgets/piece_selector_sheet.dart';
@@ -76,12 +77,14 @@ class _TrendingScreenState extends State<TrendingScreen>
   Timer?        _autoRefreshTimer;
   bool          _newDataAvailable = false;
   List<Product> _pendingProducts  = [];
+  List<MostBoughtItem> _mostBoughtData = [];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _loadData();
+    _loadMostBought();
     _startAutoRefresh();
   }
 
@@ -193,30 +196,42 @@ class _TrendingScreenState extends State<TrendingScreen>
     }
   }
 
-  Future<void> _onRefresh() async => _loadData();
+  Future<void> _onRefresh() async {
+    await _loadData();
+    await _loadMostBought();
+  }
+
+  Future<void> _loadMostBought() async {
+    try {
+      final token  = await SessionManager.getToken();
+      final result = await ApiService.getMostBoughtProducts(token: token);
+      if (!mounted) return;
+      if (result['success'] == true) {
+        final raw = result['data'] as List? ?? [];
+        setState(() {
+          _mostBoughtData = raw
+              .map((e) => MostBoughtItem.fromJson(e as Map<String, dynamic>))
+              .toList();
+        });
+      }
+    } catch (_) {}
+  }
 
   List<Product> get _discountedProducts =>
       (_allProducts.where((p) => p.discountPercentage > 0).toList()
         ..sort((a, b) => b.discountPercentage.compareTo(a.discountPercentage)));
 
   List<Product> _getMostBought(CartModel cart) {
-    final withQty = _allProducts
-        .map((p) => MapEntry(p, cart.getQuantity(p)))
-        .where((e) => e.value >= 5)
-        .toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+    final qualifying = _mostBoughtData.where((m) => m.totalQuantity >= 5).toList()
+      ..sort((a, b) => b.totalQuantity.compareTo(a.totalQuantity));
 
-    if (withQty.isNotEmpty) return withQty.map((e) => e.key).toList();
-
-    final fallback = _allProducts
-        .map((p) => MapEntry(p, cart.getQuantity(p)))
-        .where((e) => e.value > 0)
-        .toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-
-    return fallback.map((e) => e.key).toList();
+    final result = <Product>[];
+    for (final m in qualifying) {
+      final match = _allProducts.where((p) => p.id == m.productId);
+      if (match.isNotEmpty) result.add(match.first);
+    }
+    return result;
   }
-
   @override
   Widget build(BuildContext context) {
     return Consumer2<CartModel, FavoritesModel>(
@@ -415,7 +430,7 @@ class _TrendingScreenState extends State<TrendingScreen>
       );
     }
 
-    final hasTrueItems = _allProducts.any((p) => cart.getQuantity(p) >= 5);
+    final hasTrueItems = _mostBoughtData.any((m) => m.totalQuantity >= 5);
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Container(
@@ -467,7 +482,10 @@ class _TrendingScreenState extends State<TrendingScreen>
             itemBuilder: (_, i) => _MostBoughtCard(
               product: items[i],
               rank: i + 1,
-              buyCount: cart.getQuantity(items[i]),
+              buyCount: _mostBoughtData
+                  .firstWhere((m) => m.productId == items[i].id,
+                  orElse: () => MostBoughtItem(productId: items[i].id, totalOrders: 0, totalQuantity: 0))
+                  .totalQuantity,
               cart: cart,
               favs: favs,
               onTap: () => _openDetail(items[i]),

@@ -95,7 +95,6 @@ class _OtpScreenState extends State<OtpScreen> {
       if (!mounted) return;
 
       if (result.token != null) {
-        debugPrint("LOGIN TOKEN = ${result.token}");
         await AuthService.sendFcmToken(result.token!);
       }
 

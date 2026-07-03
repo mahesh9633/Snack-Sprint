@@ -185,9 +185,35 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
   }
 
   // ── Pick screenshot ───────────────────────────────────────────────────────
+// NEW
   Future<void> _pickScreenshot() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined, color: AppColors.buttonPrimary),
+              title: const Text('Choose from Gallery'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined, color: AppColors.buttonPrimary),
+              title: const Text('Take a Photo'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
     final picker = ImagePicker();
-    final XFile? picked = await picker.pickImage(source: ImageSource.gallery);
+    final XFile? picked = await picker.pickImage(source: source, imageQuality: 85);
     if (picked != null) setState(() => _paymentScreenshot = picked);
   }
 
