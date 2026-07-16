@@ -111,64 +111,12 @@ class _YourOrdersScreenState extends State<YourOrdersScreen> {
             : ListView(
           padding: const EdgeInsets.all(12),
           children: [
-            _SummaryBanner(totalOrders: _response!.totalOrders, totals: _response!.totals),
-            const SizedBox(height: 12),
             ..._response!.orders.map((order) => _OrderCard(order: order, token: _token, onCancelled: _retry)),
           ],
         ),
       ),
     );
   }
-}
-
-// ── Summary Banner ──────────────────────────────────────────────────────────
-
-class _SummaryBanner extends StatelessWidget {
-  final int totalOrders;
-  final OrderTotals totals;
-  const _SummaryBanner({required this.totalOrders, required this.totals});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6)
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _stat('Total Orders', '$totalOrders', Icons.receipt_long),
-          _vDivider(),
-          _stat('Total Received', '\u20b9${totals.totalReceived}',
-              Icons.account_balance_wallet_outlined),
-          _vDivider(),
-          _stat('Balance', '\u20b9${totals.balance}', Icons.savings_outlined),
-        ],
-      ),
-    );
-  }
-
-  Widget _stat(String label, String value, IconData icon) => Column(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Icon(icon, color: AppColors.primaryBlue, size: 18),
-      const SizedBox(height: 4),
-      Text(value,
-          style: const TextStyle(
-              color: Colors.black87, fontSize: 15, fontWeight: FontWeight.bold)),
-      const SizedBox(height: 2),
-      Text(label, style: const TextStyle(color: AppColors.textPrimary, fontSize: 10)),
-    ],
-  );
-
-  Widget _vDivider() => Container(width: 1, height: 44, color: AppColors.border);
 }
 
 // ── Order Card ──────────────────────────────────────────────────────────────

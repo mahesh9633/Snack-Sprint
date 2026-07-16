@@ -1201,7 +1201,7 @@ class _MtlTabBodyState extends State<MtlTabBody> {
 
     try {
       final token  = await SessionManager.getToken();
-      final result = await getCategoryData(
+      final result = await getBannerProducts(
           token: token, categoryId: categoryId);
 
       if (!mounted) return;

@@ -9,6 +9,8 @@ class AppColors {
   static const Color primaryYellow = Color(0xFFFFC107);
   static const Color freshGreen = Color(0xFF43A047);
   static const Color lightGreen = Color(0xFFE8F5E9);
+  static const Color gradientTop    = Color(0xFFFFA000);
+  static const Color gradientBottom = Color(0xFFFFC966);
 
   static const Color creamBackground = Color(0xFFFFFDF5);
   static const Color cardWhite = Color(0xFFFFFFFF);

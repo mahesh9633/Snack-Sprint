@@ -6,7 +6,7 @@ class ApiConfig {
 
   // ── Environment base URLs ─────────────────────────────────────────────────
   static const String _productionBase = 'https://dbmarts.com/DBM/';
-  static const String _devBase        = 'http://192.168.100.186:8002';
+  static const String _devBase        = 'http://192.168.100.204:8001';
 
   // ── Active base URL (normalized — always ends with /) ─────────────────────
   static String get baseUrl {

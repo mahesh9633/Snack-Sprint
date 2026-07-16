@@ -321,35 +321,58 @@ class HomeTabState extends State<HomeTab> {
           const SizedBox(width: 10),
 
           // ── WhatsApp support — separate card, matches address card height ──
-          GestureDetector(
-            onTap: _openSupport,
-            child: Container(
-              width:  56,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2))
-                ],
-              ),
-              child: Center(
+              // ── WhatsApp support — separate card, matches address card height ──
+              GestureDetector(
+                onTap: _openSupport,
                 child: Container(
-                  width:  40,
-                  height: 40,
-                  decoration: const BoxDecoration(
-                      color: Color(0xFF25D366),
-                      shape: BoxShape.circle),
-                  child: const Center(
-                    child: FaIcon(FontAwesomeIcons.whatsapp,
-                        color: Colors.white, size: 20),
+                  width: 64,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2))
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width:  36,
+                        height: 36,
+                        decoration: const BoxDecoration(
+                            color: Color(0xFF25D366),
+                            shape: BoxShape.circle),
+                        child: const Center(
+                          child: FaIcon(FontAwesomeIcons.whatsapp,
+                              color: Colors.white, size: 18),
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: const Text(
+                            'Order Here',
+                            maxLines: 1,
+                            softWrap: false,
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF25D366),
+                              height: 1.1,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ),
-          ),
         ],
       ),
     ));

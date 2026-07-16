@@ -249,6 +249,70 @@ class ApiService {
     }
   }
 
+  // ─── Get Banner Products ──────────────────────────────────────────────────
+  static Future<Map<String, dynamic>> getBannerProducts({
+    String? categoryId,
+    String? token,
+  }) async {
+    final uri = Uri.parse(
+      '$kApiBase?route=groceries/categories.getBannerProducts&token=$token&api_token=$token',
+    );
+
+    final Map<String, String> body = {};
+    if (categoryId != null && categoryId.isNotEmpty) {
+      body['category_id'] = categoryId;
+    }
+    if (token != null && token.isNotEmpty) {
+      body['token']      = token;
+      body['api_token']  = token;
+      body['auth_token'] = token;
+    }
+
+    try {
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+          if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+          if (token != null && token.isNotEmpty) 'X-Auth-Token': token,
+        },
+        body: body,
+      ).timeout(const Duration(seconds: 60));
+
+      if (response.statusCode != 200 || response.body.isEmpty) {
+        return {'success': false, 'message': 'Server error ${response.statusCode}'};
+      }
+
+      final raw = jsonDecode(response.body);
+      if (raw is! Map<String, dynamic>) {
+        return {'success': false, 'message': 'Invalid response format'};
+      }
+
+      final bool isSuccess = raw['status']?.toString() == 'success' ||
+          raw['success'] == true ||
+          raw['success'] == 1 ||
+          raw['success'] == '1';
+
+      final List<dynamic> subcategories =
+      raw['subcategories'] is List ? raw['subcategories'] as List : [];
+      final List<dynamic> products =
+      raw['products'] is List ? raw['products'] as List : [];
+
+      if (isSuccess) {
+        return {
+          'success':       true,
+          'data':          raw,
+          'subcategories': subcategories,
+          'products':      products,
+        };
+      }
+      return {'success': false, 'message': raw['message']?.toString() ?? 'Unknown error'};
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
   // ─── Get Most Bought Products ─────────────────────────────────────────────
   static Future<Map<String, dynamic>> getMostBoughtProducts({
     String? token,
@@ -311,3 +375,9 @@ Future<Map<String, dynamic>> getCategoryData({
   String? token,
 }) =>
     ApiService.getCategoryData(categoryId: categoryId, token: token);
+
+Future<Map<String, dynamic>> getBannerProducts({
+  String? categoryId,
+  String? token,
+}) =>
+    ApiService.getBannerProducts(categoryId: categoryId, token: token);

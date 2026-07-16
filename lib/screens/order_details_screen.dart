@@ -1,3 +1,4 @@
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -186,6 +187,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
       'completed', 'cancelled', 'canceled', 'returned'
     ];
     return blocked.contains(_currentOrderStatus);
+  }
+
+  // ── Steps that actually completed before the order was cancelled ────────
+  List<TrackOrderStep> _completedStepsBeforeCancel() {
+    return _trackSteps.where((s) => s.isCompleted).toList();
+  }
+
+  // ── Date/time the order was cancelled, pulled from order history ────────
+  String _cancelledAtDate() {
+    final history = (_data?['history'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final cancelEntry = history.lastWhere(
+          (h) => (h['status_name'] ?? '').toString().toLowerCase().contains('cancel'),
+      orElse: () => {},
+    );
+    return cancelEntry['date_added']?.toString() ?? '';
   }
 
   Future<void> _cancelOrder() async {
@@ -1287,26 +1303,31 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
           ? const Text('No tracking info available.',
           style: TextStyle(color: Colors.grey, fontSize: 13))
           : Column(children: [
-        // ── Horizontal stepper ───────────────────────────────
-        // HorizontalStepper(
-        //   steps: _trackSteps,
-        //   activeStep: _activeStep,
-        //   progressAnim: _progressAnim,
-        //   stepStatus: _stepStatus,
-        //   iconForStep: _iconForStep,
-        // ),
-        // const SizedBox(height: 24),
-        // const Divider(),
         const SizedBox(height: 12),
-        // ── Vertical timeline ────────────────────────────────
-        ..._trackSteps.asMap().entries.map((e) => TimelineRow(
-          step: e.value,
-          status: _stepStatus(e.key),
-          isLast: e.key == _trackSteps.length - 1,
-          orderDate: e.key == 0
-              ? (_data?['order_info']?['date_added'] ?? '')
-              : '',
-        )),
+        // ── Cancelled state: only completed steps + red "Cancelled" node ──
+        if (_isCancelled) ...[
+          ..._completedStepsBeforeCancel().asMap().entries.map((e) => TimelineRow(
+            step: e.value,
+            status: TrackStepStatus.done,
+            isLast: false,
+            orderDate: e.key == 0
+                ? (_data?['order_info']?['date_added'] ?? '')
+                : '',
+          )),
+          _CancelledStepRow(
+            date: _cancelledAtDate(),
+            reason: (_data?['order_info']?['comment'] ?? '').toString(),
+          ),
+        ] else
+        // ── Normal state: full step timeline ──────────────────────────
+          ..._trackSteps.asMap().entries.map((e) => TimelineRow(
+            step: e.value,
+            status: _stepStatus(e.key),
+            isLast: e.key == _trackSteps.length - 1,
+            orderDate: e.key == 0
+                ? (_data?['order_info']?['date_added'] ?? '')
+                : '',
+          )),
       ]),
     );
   }
@@ -1502,6 +1523,67 @@ class _AddressDisplayDetail extends StatelessWidget {
           Text(address.phone, style: const TextStyle(fontSize: 12, color: Colors.black87)),
         ],
       ],
+    );
+  }
+}
+
+// ── NEW: Red "Order Cancelled" terminal row for the vertical timeline ────────
+class _CancelledStepRow extends StatelessWidget {
+  final String date;
+  final String reason;
+  const _CancelledStepRow({required this.date, this.reason = ''});
+
+  String _formattedDate() {
+    if (date.isEmpty) return '';
+    try {
+      final dt = DateTime.parse(date);
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      final hour = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+      final ampm = dt.hour >= 12 ? 'PM' : 'AM';
+      final min  = dt.minute.toString().padLeft(2, '0');
+      return '${dt.day} ${months[dt.month - 1]}  $hour:$min $ampm';
+    } catch (_) {
+      return date;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 32,
+            child: Container(
+              width: 20,
+              height: 20,
+              decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.red),
+              child: const Icon(Icons.close, size: 12, color: Colors.white),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Order Cancelled',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.red)),
+                if (_formattedDate().isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(_formattedDate(),
+                      style: TextStyle(fontSize: 12, color: Colors.red.shade300)),
+                ],
+                if (reason.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(reason,
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
