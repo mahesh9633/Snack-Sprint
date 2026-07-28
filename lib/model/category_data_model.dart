@@ -1,3 +1,7 @@
+
+
+import '../utils/stock_resolver.dart';
+
 class CategoryDataProduct {
   final String productId;
   final String categoryId;
@@ -35,9 +39,12 @@ class CategoryDataProduct {
   String get imageUrl    => image;
   double get retailPrice => price;
 
-  /// In stock when qty != 0
+  /// In stock when qty != 0.
+  /// `quantity` is already fully resolved (via the shared resolver) at
+  /// parse time — it reflects stock_status/subtract/quantity together,
+  /// the same way Home, Product Detail, and every other screen do.
   bool get isInStock {
-    final qty = int.tryParse(quantity.trim()) ?? 1;
+    final qty = int.tryParse(quantity.trim()) ?? 0;
     return qty > 0;
   }
 
@@ -50,18 +57,33 @@ class CategoryDataProduct {
   }
 
   factory CategoryDataProduct.fromJson(Map<String, dynamic> json) {
-    final String resolvedQty = () {
-      for (final key in ['pos_quentity', 'pos_quantity', 'quantity']) {
-        final v = json[key]?.toString().trim() ?? '';
-        if (v.isNotEmpty) return v;
-      }
-      return '0';
-    }();
+    // ── SHARED resolver — same function Home and Product Detail use.
+    //    Checks stock_status → subtract → quantity (both field spellings),
+    //    and defaults to IN STOCK (1) only when data is genuinely ambiguous,
+    //    matching every other screen instead of defaulting to 0 here. ──
+    final int resolvedQtyInt = resolveProductQuantity(json);
+    final String resolvedQty = resolvedQtyInt.toString();
+    final bool   productIsCombo = resolveIsCombo(json);
 
     // ── Find default piece (piece_default == 1, else highest price piece) ──
     final rawPiecesList = (json['pieces'] as List? ?? [])
         .map((e) => Map<String, dynamic>.from(e as Map))
         .toList();
+
+    // ── Resolve and NORMALIZE piece-level stock right here, at parse time.
+    //    We write the resolved value back into a standard 'pos_quantity' key
+    //    on each piece map, so whatever downstream code reads that key
+    //    (e.g. ProductPiece.fromJson) always gets the correctly-resolved
+    //    number — regardless of which spelling the backend originally used,
+    //    and with the same combo fallback rule as every other screen. ──
+    for (final p in rawPiecesList) {
+      final resolvedPieceStock = resolvePieceStock(
+        p,
+        productIsCombo: productIsCombo,
+        productLevelQty: resolvedQtyInt,
+      );
+      p['pos_quantity'] = resolvedPieceStock.toString();
+    }
 
     Map<String, dynamic>? defaultPieceMap;
     for (final p in rawPiecesList) {
@@ -143,7 +165,7 @@ class CategoryDataProduct {
           ? json['piece'].toString()
           : json['barcode_type']?.toString() ?? ''),
       pieces:          rawPiecesList,
-      isCombo:         (json['is_combo']?.toString() ?? 'No').toLowerCase() == 'yes',
+      isCombo:         productIsCombo,
     );
   }
 

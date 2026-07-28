@@ -1,3 +1,6 @@
+
+
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -88,6 +91,10 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   String? _cachedToken;
 
+  // ✅ silently keep prices/stock fresh across every visited category
+  Timer? _autoRefreshTimer;
+  static const Duration _kCategoriesRefreshInterval = Duration(seconds: 5);
+
   // ─── Muted/pale tile palette — subtle multicolor, BigBasket-clean ────────
   static const List<Color> _tileColors = [
     Color(0xFFF3EFEA), // pale warm beige
@@ -104,6 +111,19 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   void initState() {
     super.initState();
     _fetchData();
+    _startAutoRefresh();
+  }
+
+  @override
+  void dispose() {
+    _autoRefreshTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startAutoRefresh() {
+    _autoRefreshTimer = Timer.periodic(_kCategoriesRefreshInterval, (_) {
+      _checkForNewData();
+    });
   }
 
   Future<void> _fetchData() async {
@@ -143,6 +163,48 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     }
   }
 
+  // ✅ Silently refresh the top-level grid and every category the
+  // customer has already opened, so prices/stock stay live without
+  // a manual pull-to-refresh.
+  Future<void> _checkForNewData() async {
+    if (!mounted || _loading) return;
+    try {
+      _cachedToken ??= await SessionManager.getToken();
+      final result = await ApiService.getCategoryData(token: _cachedToken!);
+      if (!mounted) return;
+      if (result['success'] != true) return;
+
+      final rawSubs  = result['subcategories'] as List? ?? [];
+      final rawProds = result['products']      as List? ?? [];
+      final freshSubs  = rawSubs.map((s) =>
+          CategoryDataSubcategory.fromJson(s as Map<String, dynamic>)).toList();
+      final freshProds = rawProds.map((p) =>
+          CategoryDataProduct.fromJson(p as Map<String, dynamic>)).toList();
+
+      setState(() {
+        _subcategories  = freshSubs;
+        _parentProducts = freshProds;
+      });
+      for (final s in freshSubs) {
+        if (s.products.isNotEmpty) _cache[s.categoryId] = s.products;
+      }
+
+      // Refresh every subcategory the customer has already drilled into
+      final catIdsToRefresh = _subCache.keys.toList();
+      for (final catId in catIdsToRefresh) {
+        if (!mounted) return;
+        CategoryDataSubcategory? cat;
+        try {
+          cat = freshSubs.firstWhere((s) => s.categoryId == catId);
+        } catch (_) {
+          cat = null;
+        }
+        if (cat == null) continue;
+        await _doFetch(cat, silent: true);
+      }
+    } catch (_) {}
+  }
+
   Future<void> _fetchCategoryChildren(CategoryDataSubcategory cat) async {
     if (_subCache.containsKey(cat.categoryId)) return;
     if (_inFlight.containsKey(cat.categoryId)) return _inFlight[cat.categoryId]!;
@@ -155,8 +217,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     }
   }
 
-  Future<void> _doFetch(CategoryDataSubcategory cat) async {
-    if (mounted) setState(() => _subLoading[cat.categoryId] = true);
+  // ── UPDATED: supports `silent` background refresh (no loader flag toggled) ──
+  Future<void> _doFetch(CategoryDataSubcategory cat, {bool silent = false}) async {
+    if (mounted && !silent) setState(() => _subLoading[cat.categoryId] = true);
     try {
       _cachedToken ??= await SessionManager.getToken();
       final result = await ApiService.getCategoryData(
@@ -169,18 +232,24 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         final childProds = (result['products'] as List? ?? [])
             .map((p) => CategoryDataProduct.fromJson(p as Map<String, dynamic>))
             .toList();
-        _subCache[cat.categoryId] = childSubs;
-        for (final cs in childSubs) {
-          if (cs.products.isNotEmpty) _cache[cs.categoryId] = cs.products;
-        }
-        if (childProds.isNotEmpty) _cache[cat.categoryId] = childProds;
+        setState(() {
+          _subCache[cat.categoryId] = childSubs;
+          for (final cs in childSubs) {
+            if (cs.products.isNotEmpty) _cache[cs.categoryId] = cs.products;
+          }
+          if (childProds.isNotEmpty) _cache[cat.categoryId] = childProds;
+        });
       } else {
-        _subCache[cat.categoryId] = [];
+        if (!silent) {
+          setState(() => _subCache[cat.categoryId] = []);
+        }
       }
     } catch (e) {
-      if (mounted) _subCache[cat.categoryId] = [];
+      if (!silent && mounted) {
+        setState(() => _subCache[cat.categoryId] = []);
+      }
     }
-    if (mounted) setState(() => _subLoading[cat.categoryId] = false);
+    if (mounted && !silent) setState(() => _subLoading[cat.categoryId] = false);
   }
 
   Future<void> _prefetchBatch(List<CategoryDataSubcategory> cats) async {
@@ -401,6 +470,12 @@ class _CategorySplitScreenState extends State<_CategorySplitScreen> {
   late String            _selectedCatId;
   final ScrollController _rightScroll = ScrollController();
 
+  // ✅ live-refresh while the customer is actively browsing this screen,
+  // since the parent's background timer updates the shared maps by
+  // reference but this State needs its own setState() to repaint.
+  Timer? _autoRefreshTimer;
+  static const Duration _kSplitRefreshInterval = Duration(seconds: 5);
+
   Map<String, List<CategoryDataSubcategory>> get _subCache      => widget.subCache;
   Map<String, List<CategoryDataProduct>>     get _productCache  => widget.productCache;
   Map<String, bool>                          get _subLoadingMap => widget.subLoadingMap;
@@ -409,10 +484,34 @@ class _CategorySplitScreenState extends State<_CategorySplitScreen> {
   void initState() {
     super.initState();
     _selectedCatId = widget.parentCat.categoryId;
+    _startAutoRefresh();
+  }
+
+  void _startAutoRefresh() {
+    _autoRefreshTimer = Timer.periodic(_kSplitRefreshInterval, (_) {
+      _refreshCurrentCategory();
+    });
+  }
+
+  Future<void> _refreshCurrentCategory() async {
+    if (!mounted) return;
+    CategoryDataSubcategory current;
+    if (_selectedCatId == widget.parentCat.categoryId) {
+      current = widget.parentCat;
+    } else {
+      try {
+        current = _sidebarItems.firstWhere((s) => s.categoryId == _selectedCatId);
+      } catch (_) {
+        return;
+      }
+    }
+    await widget.fetchChildren(current);
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _autoRefreshTimer?.cancel();
     _rightScroll.dispose();
     super.dispose();
   }
@@ -467,7 +566,7 @@ class _CategorySplitScreenState extends State<_CategorySplitScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: AppColors.cardWhite,
+      backgroundColor: AppColors.cardWhite,
       // ── Floating cart bar ─────────────────────────────────────────────────
       floatingActionButton: const Padding(
         padding: EdgeInsets.only(bottom: 8),

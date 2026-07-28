@@ -4,6 +4,7 @@ import 'package:mtl_groceriesapp/screens/location_gateway.dart';
 import '../config/app_color.dart';
 import '../services/session_manager.dart';
 import '../services/api_server.dart';
+import '../services/update_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -37,8 +38,14 @@ class _SplashScreenState extends State<SplashScreen>
 
     _animController.forward();
 
-    Future.delayed(const Duration(seconds: 2), () {
-      _checkLoginAndNavigate();
+    Future.delayed(const Duration(seconds: 2), () async {
+      if (!mounted) return;
+
+      await UpdateService.checkForUpdate();
+
+      if (!mounted) return;
+
+      await _checkLoginAndNavigate();
     });
   }
 

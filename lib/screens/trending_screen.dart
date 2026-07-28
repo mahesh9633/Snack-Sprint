@@ -7,6 +7,7 @@ import '../model/cart_model.dart';
 import '../model/favorites_model.dart';
 import '../model/product_model.dart';
 import '../model/category_data_model.dart';
+import '../model/initial_model.dart';
 import '../products/product_card.dart';
 import '../products/product_detail_screen.dart';
 import '../services/api_config_service.dart';
@@ -17,7 +18,7 @@ import '../widgets/floating_cart.dart';
 import '../widgets/piece_selector_sheet.dart';
 
 String get _tImgBase => ApiConfig.imageBase;
-const Duration _kTrendingRefreshInterval = Duration(seconds: 30);
+const Duration _kTrendingRefreshInterval = Duration(seconds: 5);
 
 Product _toProduct(CategoryDataProduct p) {
   final raw    = p.defaultImage;
@@ -29,6 +30,7 @@ Product _toProduct(CategoryDataProduct p) {
   final pieces = p.pieces.map((e) {
     final base       = ProductPiece.fromJson(e);
     final pieceStock = base.stock;
+    // combo → product-level quantity; non-combo → piece's own stock
     final resolvedStock = (isCombo && pieceStock == 0) ? productQty : pieceStock;
     return ProductPiece(
       rowId:        base.rowId,
@@ -79,6 +81,8 @@ class _TrendingScreenState extends State<TrendingScreen>
   List<Product> _pendingProducts  = [];
   List<MostBoughtItem> _mostBoughtData = [];
 
+  static const Duration _kFastRefreshInterval = Duration(seconds: 5);
+
   @override
   void initState() {
     super.initState();
@@ -101,23 +105,149 @@ class _TrendingScreenState extends State<TrendingScreen>
     });
   }
 
+  // ── Parses one getCategoryData response (scoped OR unscoped) into a
+  // Product list, walking products + subcategories + nested subcategories.
+  // No filtering — every piece present in the response is kept as-is. ──
+  List<Product> _parseCategoryDataResult(Map<String, dynamic> result) {
+    final rawSubs  = result['subcategories'] as List? ?? [];
+    final rawProds = result['products']      as List? ?? [];
+    final List<Product> out = [];
+
+    void addProduct(Map<String, dynamic> p) {
+      try {
+        out.add(_toProduct(CategoryDataProduct.fromJson(p)));
+      } catch (_) {}
+    }
+
+    for (final p in rawProds) {
+      addProduct(p as Map<String, dynamic>);
+    }
+    for (final s in rawSubs) {
+      final sub = s as Map<String, dynamic>;
+      for (final p in (sub['products'] as List? ?? [])) {
+        addProduct(p as Map<String, dynamic>);
+      }
+      for (final cs in (sub['subcategories'] as List? ?? [])) {
+        final csMap = cs as Map<String, dynamic>;
+        for (final p in (csMap['products'] as List? ?? [])) {
+          addProduct(p as Map<String, dynamic>);
+        }
+      }
+    }
+    return out;
+  }
+
+  // ── Fetches EVERY product with COMPLETE piece data by calling
+  // getCategoryData once per top-level category (the scoped call, which
+  // returns full pieces — confirmed correct, unlike the unscoped
+  // "everything at once" call which the backend truncates for some
+  // products). Category IDs come from getInitialData's lightweight
+  // category list. Falls back to the single unscoped call only if the
+  // category list itself can't be fetched. ──
+  Future<List<Product>> _fetchAllProductsComplete() async {
+    final token = await SessionManager.getToken();
+
+    // Step 1 — get the list of category IDs to loop through.
+    List<String> categoryIds = [];
+    try {
+      final initialResult = await getInitialData(token: token);
+      if (initialResult['success'] == true) {
+        final model = InitialDataModel.fromJson(
+            initialResult['data'] as Map<String, dynamic>);
+        categoryIds = model.categories
+            .map((c) => c.categoryId)
+            .where((id) => id.isNotEmpty)
+            .toSet() // dedupe
+            .toList();
+      }
+    } catch (_) {}
+
+    // Fallback — if we couldn't get a category list at all, use the old
+    // single unscoped call rather than showing nothing.
+    if (categoryIds.isEmpty) {
+      final result = await ApiService.getCategoryData(token: token);
+      if (result['success'] == true) {
+        return _parseCategoryDataResult(result);
+      }
+      throw Exception(result['message']?.toString() ?? 'Failed to load');
+    }
+
+    // Step 2 — fetch every category's COMPLETE data in parallel.
+    final responses = await Future.wait(
+      categoryIds.map(
+            (catId) => ApiService.getCategoryData(token: token, categoryId: catId),
+      ),
+      eagerError: false,
+    );
+
+    // Step 3 — merge all products by id. Scoped responses are complete,
+    // so later entries simply overwrite earlier ones for the same id
+    // (harmless — same product, same complete data, regardless of which
+    // category call surfaced it, e.g. shared subcategories).
+    final Map<String, Product> merged = {};
+    for (final result in responses) {
+      if (result['success'] == true) {
+        for (final p in _parseCategoryDataResult(result)) {
+          merged[p.id] = p;
+        }
+      }
+    }
+
+    return merged.values.toList();
+  }
+
   Future<void> _checkForNewData() async {
     if (!mounted || _loading) return;
     try {
-      final token  = await SessionManager.getToken();
-      final result = await ApiService.getCategoryData(token: token);
+      final fresh = await _fetchAllProductsComplete();
       if (!mounted) return;
 
-      if (result['success'] == true) {
-        final fresh = _parseProducts(result);
-        if (fresh.length != _allProducts.length) {
-          setState(() {
-            _pendingProducts  = fresh;
-            _newDataAvailable = true;
-          });
-        }
+      if (_hasChanges(_allProducts, fresh)) {
+        // ✅ apply immediately — no banner tap needed, customer sees
+        // updated prices/stock/pieces automatically
+        setState(() {
+          _allProducts       = fresh;
+          _newDataAvailable  = false;
+          _pendingProducts   = [];
+        });
+
+        // keep favourites synced with the fresh product data too
+        final favs = context.read<FavoritesModel>();
+        await favs.syncWithBackend(
+          fresh.map((p) => p.id).toList(),
+          liveProducts: fresh,
+        );
       }
     } catch (_) {}
+  }
+
+  // ✅ detects price/stock/discount changes AND piece-level changes,
+  // not just top-level product fields — so admin edits to a single
+  // piece's price/stock/special_price still trigger a UI refresh.
+  bool _hasChanges(List<Product> oldList, List<Product> newList) {
+    if (oldList.length != newList.length) return true;
+    final oldMap = {for (final p in oldList) p.id: p};
+    for (final np in newList) {
+      final op = oldMap[np.id];
+      if (op == null) return true; // new product appeared
+      if (op.price != np.price ||
+          op.originalPrice != np.originalPrice ||
+          op.discountPercentage != np.discountPercentage ||
+          op.quantity != np.quantity) {
+        return true;
+      }
+      if (op.pieces.length != np.pieces.length) return true;
+      for (var i = 0; i < op.pieces.length; i++) {
+        final a = op.pieces[i];
+        final b = np.pieces[i];
+        if (a.price != b.price ||
+            a.specialPrice != b.specialPrice ||
+            a.stock != b.stock) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   void _applyPendingData() {
@@ -128,69 +258,25 @@ class _TrendingScreenState extends State<TrendingScreen>
     });
   }
 
-  List<Product> _parseProducts(Map<String, dynamic> result) {
-    final rawSubs  = result['subcategories'] as List? ?? [];
-    final rawProds = result['products']      as List? ?? [];
-    final List<Product> allProds = [];
-
-    for (final p in rawProds) {
-      try {
-        allProds.add(_toProduct(
-            CategoryDataProduct.fromJson(p as Map<String, dynamic>)));
-      } catch (_) {}
-    }
-
-    for (final s in rawSubs) {
-      final sub = s as Map<String, dynamic>;
-      for (final p in (sub['products'] as List? ?? [])) {
-        try {
-          allProds.add(_toProduct(
-              CategoryDataProduct.fromJson(p as Map<String, dynamic>)));
-        } catch (_) {}
-      }
-      for (final cs in (sub['subcategories'] as List? ?? [])) {
-        final csMap = cs as Map<String, dynamic>;
-        for (final p in (csMap['products'] as List? ?? [])) {
-          try {
-            allProds.add(_toProduct(
-                CategoryDataProduct.fromJson(p as Map<String, dynamic>)));
-          } catch (_) {}
-        }
-      }
-    }
-
-    final seen = <String>{};
-    return allProds.where((p) => seen.add(p.id)).toList();
-  }
-
   Future<void> _loadData() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final token  = await SessionManager.getToken();
-      final result = await ApiService.getCategoryData(token: token);
+      final products = await _fetchAllProductsComplete();
       if (!mounted) return;
 
-      if (result['success'] == true) {
-        final products = _parseProducts(result);
-        setState(() {
-          _allProducts      = products;
-          _loading          = false;
-          _newDataAvailable = false;
-          _pendingProducts  = [];
-        });
+      setState(() {
+        _allProducts      = products;
+        _loading          = false;
+        _newDataAvailable = false;
+        _pendingProducts  = [];
+      });
 
-        // ✅ Remove favourites deleted from backend
-        final favs = context.read<FavoritesModel>();
-        await favs.syncWithBackend(
-          products.map((p) => p.id).toList(),
-          liveProducts: products,
-        );
-      } else {
-        setState(() {
-          _error   = result['message']?.toString() ?? 'Failed to load';
-          _loading = false;
-        });
-      }
+      // ✅ Remove favourites deleted from backend
+      final favs = context.read<FavoritesModel>();
+      await favs.syncWithBackend(
+        products.map((p) => p.id).toList(),
+        liveProducts: products,
+      );
     } catch (e) {
       if (mounted) setState(() { _error = 'Error: $e'; _loading = false; });
     }
@@ -249,14 +335,6 @@ class _TrendingScreenState extends State<TrendingScreen>
             : _error != null
             ? _buildError()
             : Column(children: [
-          if (_newDataAvailable)
-            _TrendingNewDataBanner(
-              onTap: _applyPendingData,
-              onDismiss: () => setState(() {
-                _newDataAvailable = false;
-                _pendingProducts  = [];
-              }),
-            ),
           _buildTabBar(favs),
           Expanded(
             child: RefreshIndicator(
@@ -387,10 +465,6 @@ class _TrendingScreenState extends State<TrendingScreen>
             crossAxisCount: 2, childAspectRatio: 0.68,
             crossAxisSpacing: 10, mainAxisSpacing: 10),
         itemCount: list.length,
-        // itemBuilder: (_, i) => _ProductCard(
-        //   product: list[i], cart: cart, favs: favs,
-        //   onTap: () => _openDetail(list[i]),
-        // ),
         itemBuilder: (_, i) => ProductCard(product: list[i], imageHeight: 110),
       ),
     );
@@ -412,10 +486,6 @@ class _TrendingScreenState extends State<TrendingScreen>
             crossAxisCount: 2, childAspectRatio: 0.68,
             crossAxisSpacing: 10, mainAxisSpacing: 10),
         itemCount: deals.length,
-        // itemBuilder: (_, i) => _ProductCard(
-        //   product: deals[i], cart: cart, favs: favs,
-        //   onTap: () => _openDetail(deals[i]),
-        // ),
         itemBuilder: (_, i) => ProductCard(product: deals[i], imageHeight: 110),
       ),
     );
@@ -438,12 +508,12 @@ class _TrendingScreenState extends State<TrendingScreen>
         margin: const EdgeInsets.fromLTRB(12, 10, 12, 4),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: AppColors.primaryBlue.withOpacity(0.05),
+          color: AppColors.primaryBlue,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(children: [
           const Icon(Icons.local_fire_department,
-              color: AppColors.primaryOrange, size: 18),
+              color: AppColors.groceryGreen, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -479,17 +549,7 @@ class _TrendingScreenState extends State<TrendingScreen>
                 crossAxisCount: 2, childAspectRatio: 0.68,
                 crossAxisSpacing: 10, mainAxisSpacing: 10),
             itemCount: items.length,
-            itemBuilder: (_, i) => _MostBoughtCard(
-              product: items[i],
-              rank: i + 1,
-              buyCount: _mostBoughtData
-                  .firstWhere((m) => m.productId == items[i].id,
-                  orElse: () => MostBoughtItem(productId: items[i].id, totalOrders: 0, totalQuantity: 0))
-                  .totalQuantity,
-              cart: cart,
-              favs: favs,
-              onTap: () => _openDetail(items[i]),
-            ),
+            itemBuilder: (_, i) => ProductCard(product: items[i], imageHeight: 110),
           ),
         ),
       ),
@@ -644,7 +704,6 @@ class _ProductCard extends StatelessWidget {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-        // ── Image only navigates ──
         GestureDetector(
           onTap: onTap,
           child: Stack(children: [
@@ -693,7 +752,7 @@ class _ProductCard extends StatelessWidget {
                 ),
               ),
           ]),
-        ), // closes image GestureDetector
+        ),
 
         Padding(
           padding: const EdgeInsets.fromLTRB(7, 6, 7, 0),
@@ -734,7 +793,6 @@ class _ProductCard extends StatelessWidget {
                   color: AppColors.textDark),
               maxLines: 2, overflow: TextOverflow.ellipsis),
         ),
-
 
         const Spacer(),
 
@@ -799,7 +857,6 @@ class _MostBoughtCard extends StatelessWidget {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-        // ── Image only navigates ──
         GestureDetector(
           onTap: onTap,
           child: Stack(children: [
@@ -864,7 +921,7 @@ class _MostBoughtCard extends StatelessWidget {
               ),
             ),
           ]),
-        ), // closes image GestureDetector
+        ),
 
         Padding(
           padding: const EdgeInsets.fromLTRB(7, 6, 7, 0),
@@ -1095,8 +1152,6 @@ class _CartControlState extends State<_CartControl> {
     final product = widget.product;
     final cart    = widget.cart;
 
-    // ── Pieces product: never show out-of-stock at product level,
-    //    let the sheet handle per-piece stock ──────────────────────────
     if (product.pieces.isNotEmpty) {
       final totalQty = _totalPieceQty();
       final totalAmt = _totalPieceAmt();
@@ -1134,7 +1189,6 @@ class _CartControlState extends State<_CartControl> {
       );
     }
 
-    // ── No pieces, qty == 0 → plain ADD ──────────────────────────────
     if (!product.isInStock) {
       return Container(
         width: double.infinity, height: 36,
@@ -1149,7 +1203,6 @@ class _CartControlState extends State<_CartControl> {
       );
     }
 
-    // ── No pieces, qty == 0 → plain ADD ──────────────────────────────
     final qty = cart.getQuantity(product);
     if (qty == 0) {
       return GestureDetector(
@@ -1169,7 +1222,6 @@ class _CartControlState extends State<_CartControl> {
       );
     }
 
-    // ── No pieces, qty > 0 → stepper with inline edit ─────────────────
     final liveQty   = _editing ? (int.tryParse(_ctrl.text) ?? qty) : qty;
     final liveTotal = (liveQty * product.price).toInt();
 

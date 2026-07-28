@@ -1,8 +1,11 @@
+
+
 import 'dart:convert';
 
 import '../services/api_config_service.dart';
 import '../services/api_server.dart';
 import '../widgets/piece_selector_sheet.dart';
+import '../utils/stock_resolver.dart';
 
 final String base = ApiConfig.imageBase;
 
@@ -12,7 +15,7 @@ class ApiProduct {
   final String name;
   final String sku;
   final String image;
-  final String defaultImage;   // ← NEW: default piece image or product image
+  final String defaultImage;
   final String category;
   final String unit;
   final double retailPrice;
@@ -59,9 +62,14 @@ class ApiProduct {
         .map((e) => Map<String, dynamic>.from(e as Map))
         .toList();
 
-    // ── Convert to ProductPiece objects (carries minQuantity + isCombo) ──
-    final bool productIsCombo = j['is_combo']?.toString() == 'Yes';
+    // ── SHARED resolver — same functions CategoryDataProduct uses.
+    //    Computed ONCE here, then reused for both product-level quantity
+    //    and every piece's stock, so Home and Trending/Category always agree. ──
+    final int  quantity       = resolveProductQuantity(j);
+    final bool productIsCombo = resolveIsCombo(j) ||
+        rawPieces.any((p) => (p['is_combo']?.toString() ?? 'No').toLowerCase() == 'yes');
 
+    // ── Convert to ProductPiece objects (carries minQuantity + isCombo) ──
     final List<ProductPiece> parsedPieces = rawPieces.map((p) {
       final piecePrice = double.tryParse(p['price']?.toString() ?? '0') ?? 0.0;
       final pieceSp    = double.tryParse(p['special_price']?.toString() ?? '0') ?? 0.0;
@@ -72,11 +80,13 @@ class ApiProduct {
       final label      = (minQtyInt > 1 && pieceName.isNotEmpty)
           ? '$pieceName × $minQtyInt'
           : pieceName;
-      final productQty = int.tryParse(j['pos_quentity']?.toString() ?? j['quantity']?.toString() ?? '0') ?? 0;
-      final pieceRawStock = int.tryParse(
-          (p['pos_quantity'] ?? p['pos_quentity'] ?? p['quantity'] ?? '0').toString()
-      ) ?? 0;
-      final stock = (productIsCombo && pieceRawStock == 0) ? productQty : pieceRawStock;
+
+      final stock = resolvePieceStock(
+        p,
+        productIsCombo:  productIsCombo,
+        productLevelQty: quantity,
+      );
+
       return ProductPiece(
         rowId: p['id']?.toString() ?? '',
         pieceId: p['piece_id']?.toString() ?? '',
@@ -144,14 +154,6 @@ class ApiProduct {
         ? j['piece'].toString()
         : j['barcode_type']?.toString() ?? '');
 
-    // ── Quantity ──────────────────────────────────────────────────────────
-    final int quantity = int.tryParse(
-        (j['pos_quentity']?.toString().isNotEmpty == true
-            ? j['pos_quentity']
-            : j['pos_quantity']?.toString().isNotEmpty == true
-            ? j['pos_quantity']
-            : j['quantity'])?.toString() ?? '') ?? 0;
-
     // Resolve display image: prefer default piece image, fall back to product image
     final String productRawImage = j['image']?.toString() ?? '';
     final String pieceRawImage   = defaultPiece?['image']?.toString() ?? '';
@@ -165,14 +167,14 @@ class ApiProduct {
       name:           j['name']?.toString()        ?? '',
       sku:            j['sku']?.toString()          ?? '',
       image:          productRawImage,              // ← keep original
-      defaultImage:   resolvedImage,                // ← NEW: piece image or product image
+      defaultImage:   resolvedImage,                // ← piece image or product image
       category:       j['category']?.toString()     ?? '',
       unit:           unit,
       specialPrice:   specialPrice,
       retailPrice:    resolvedRetailPrice,
       wholesalePrice: resolvedWholesalePrice,
       quantity:       quantity,
-      isCombo:        j['is_combo']?.toString() == 'Yes' || parsedPieces.any((p) => p.isCombo),
+      isCombo:        productIsCombo,
       pieces:         parsedPieces,
     );
   }

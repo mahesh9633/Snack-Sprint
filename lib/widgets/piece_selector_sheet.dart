@@ -73,8 +73,10 @@ class ProductPiece {
     return specialPrice > 0 ? (specialPrice / qty) : (price / qty);
   }
 
+  // String cartId(String baseProductId)
+  // => '${baseProductId}_piece_${rowId.isNotEmpty ? rowId : pieceId}';
   String cartId(String baseProductId)
-  => '${baseProductId}_piece_${rowId.isNotEmpty ? rowId : pieceId}';
+  => '${baseProductId}_piece_${pieceId.isNotEmpty ? pieceId : rowId}';
 }
 
 // ─── Public entry-point ───────────────────────────────────────────────────────

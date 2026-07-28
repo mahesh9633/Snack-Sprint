@@ -1,3 +1,5 @@
+
+
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -25,14 +27,10 @@ class OrderApiService {
     final customerIdStr = await SessionManager.getCustomerId();
     final customerId    = int.tryParse(customerIdStr ?? '') ?? 0;
 
-    if (kDebugMode) {
-    }
-
     final cartProducts = cart.items.entries.map((entry) {
-      final cartKey = entry.key;   // e.g. "4952_piece_31" or plain "4952"
+      final cartKey = entry.key;
       final item    = entry.value;
 
-      // Extract base product_id and piece row id from cart key
       int baseProductId;
       int pieceRowId;
 
@@ -52,29 +50,30 @@ class OrderApiService {
       )
           : null;
 
-      final minQty = matchedPiece?.minQuantity ?? 0;
-      final isCombo     = item.product.isCombo;
-      // quantity = min_quantity × user quantity (e.g. min=2, user=3 → quantity=6)
-      final comboQty    = minQty > 0 ? minQty * item.quantity : item.quantity;
-      final total       = item.product.price * item.quantity;
+      final minQty   = matchedPiece?.minQuantity ?? 0;
+      final isCombo  = item.product.isCombo;
+      final comboQty = minQty > 0 ? minQty * item.quantity : item.quantity;
+      final total    = item.product.price * item.quantity;
 
+      // Matches PHP: $order_data["products"][] read from CartProducts
       return {
         'product_id':        baseProductId,
         'name':              item.product.name,
-        'quantity':          comboQty,           // min_qty × user_qty
+        'quantity':          comboQty,
         'price':             item.product.price.round(),
         'total':             total.round(),
         'is_combo':          isCombo ? 'Yes' : 'No',
-        'piece_id': int.tryParse(matchedPiece?.pieceId ?? '') ?? pieceRowId,
-        'min_quantity':      minQty,             // e.g. 2 or 4
-        'selected_quantity': item.quantity,      // user tapped qty e.g. 3
+        'piece_id':          int.tryParse(matchedPiece?.pieceId ?? '') ?? pieceRowId,
+        'min_quantity':      minQty,
+        'selected_quantity': item.quantity,
       };
     }).toList();
 
     final subtotal      = cart.totalPrice;
-    final grandTotal = subtotal - couponDiscount + deliveryCharge;
-    final numberOfItems = cart.items.values.fold<int>(0, (s, i) => s + i.quantity);
+    final grandTotal     = subtotal - couponDiscount + deliveryCharge;
+    final numberOfItems  = cart.items.values.fold<int>(0, (s, i) => s + i.quantity);
 
+    // Matches PHP: $invoiceInfo = $get($orderDetails, "InvoiceInfo", []);
     final invoiceInfo = {
       'SUBTotal':            subtotal.round(),
       'TotalBeforeRoundoff': (subtotal - couponDiscount).round(),
@@ -83,36 +82,36 @@ class OrderApiService {
       'TotalTax':            0,
       'RoundOffAmount':      0,
       'DiscountIncluded':    couponDiscount.round(),
-      'GrandTotal':          grandTotal.round(),
       'InvoiceNumber':       '',
       'Coupon':              couponCode,
       'CouponAmount':        couponDiscount.round(),
-      'TakeawayAmount':      deliveryCharge.round(),
     };
 
+    // Matches PHP: $orderDetails = $get($post, "orderDetails", []);
+    // Every key below is read by Home.php addorder() using the exact same name.
     final orderDetails = <String, dynamic>{
-      'customerIdNumber': customerId,
-      'CustomerName':     address.fullName,
-      'Email':            '',
-      'Mobile':           address.phone,
+      'customerIdNumber':  customerId,
+      'CustomerName':      address.fullName,
+      'Email':             '',
+      'Mobile':            address.phone,
+
+      // ── Address fields — read as $payment_address_1, etc. in PHP ──────
       'Payment_address_1': address.addressLine1,
       'Payment_address_2': address.addressLine2,
       'Payment_city':      address.city,
       'Payment_postcode':  address.pinCode,
       'Payment_country':   'India',
       'Payment_zone':      address.state,
-      'PaymentThrough': paymentMethod,
-      // 'CashAmount':          paymentMethod == 'COD' ? (subtotal - couponDiscount).round() : 0,
-      // 'UPIAmount':           paymentMethod == 'UPI' ? (subtotal - couponDiscount).round() : 0,
-      'CashAmount':          paymentMethod == 'COD' ? grandTotal.round() : 0,
-      'UPIAmount':           paymentMethod == 'UPI' ? grandTotal.round() : 0,
-      'TakeawayAmount':      deliveryCharge.round(),
-      if (utrNumber.isNotEmpty) 'UTRNumber': utrNumber,
+
+      'PaymentThrough':    paymentMethod,
+      'CashAmount':        paymentMethod == 'COD' ? grandTotal.round() : 0,
+      'UPIAmount':         paymentMethod == 'UPI' ? grandTotal.round() : 0,
+      'TakeawayAmount':    deliveryCharge.round(),
+
       if (screenshotBase64 != null && screenshotBase64.isNotEmpty)
         'UPIImage': screenshotBase64,
-      'coupon':         couponCode,
-      'CouponDiscount':      couponDiscount.round(),
-      'TotalReceivedAmount': grandTotal.round(),
+
+      'TotalReceivedAmount':     grandTotal.round(),
       'PendingAmount':           0,
       'ReturnableBalance':       0,
       'SaveReturnableAsAdvance': false,
@@ -120,21 +119,31 @@ class OrderApiService {
       'DueAmountValue':          0,
       'CreditPointsUsed':        0,
       'redeem_points_status':    false,
-      'previousOrderId':      0,
-      'activeQuoteId':        0,
-      'previourseditorderid': 0,
-      'SellerId':             0,
-      'Note': '',
+      'previousOrderId':         0,
+      'activeQuoteId':           0,
+      'previourseditorderid':    0,
+      'SellerId':                0,
+      'Note':                    '',
+
+      // ── Tracking (Google Maps URL) — read as $tracking in PHP ─────────
       'tracking': address.tracking ?? '',
+
       'CartProducts': cartProducts,
       'InvoiceInfo':  invoiceInfo,
-      if (address.officeName != null) 'OfficeName': address.officeName,
     };
 
     final body     = {'orderDetails': orderDetails};
     final jsonBody = jsonEncode(body);
 
     final uri = Uri.parse('$_baseUrl?route=$_route&token=${token ?? ''}');
+
+    if (kDebugMode) {
+      // TEMP: verify exactly what's being sent before it leaves the device
+      print('placeOrder → Payment_address_1: ${address.addressLine1}');
+      print('placeOrder → Payment_city: ${address.city}');
+      print('placeOrder → tracking: ${address.tracking}');
+      print('placeOrder → full body: $jsonBody');
+    }
 
     try {
       final response = await http.post(
@@ -146,6 +155,7 @@ class OrderApiService {
       final rawBody = response.body.trim();
 
       if (kDebugMode) {
+
       }
 
       if (response.statusCode == 200) {
@@ -158,6 +168,7 @@ class OrderApiService {
         try {
           return jsonDecode(rawBody) as Map<String, dynamic>;
         } on FormatException catch (e) {
+          if (kDebugMode) print('placeOrder → JSON parse failed: $e');
           return {'status': 'error', 'message': 'Failed to parse server response.'};
         }
       } else {
@@ -167,8 +178,10 @@ class OrderApiService {
         };
       }
     } on http.ClientException catch (e) {
+      if (kDebugMode) print('placeOrder → ClientException: ${e.message}');
       return {'status': 'error', 'message': 'Network error: ${e.message}'};
     } catch (e) {
+      if (kDebugMode) print('placeOrder → Unexpected error: $e');
       return {'status': 'error', 'message': 'Unexpected error: $e'};
     }
   }

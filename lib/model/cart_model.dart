@@ -1,3 +1,5 @@
+
+
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -34,8 +36,17 @@ class CartModel extends ChangeNotifier {
 
   Map<String, CartItem> get items => Map.unmodifiable(_items);
 
-  int get totalQuantity =>
-      _items.values.fold(0, (sum, item) => sum + item.quantity);
+  // ── Only count items that are CURRENTLY in stock. A cart item's stored
+  // stock is a snapshot from whenever it was added/last touched — it can
+  // go stale if that piece goes out of stock while the customer is
+  // browsing elsewhere. Screens that silently poll for fresh stock (e.g.
+  // Product Detail's 5-second refresh) call updateItemStock() below to
+  // keep this current. Until then, this simply reflects the last known
+  // stock for each item. ──
+  int get totalQuantity => _items.values
+      .where((item) =>
+  item.product.quantity > 0 || item.product.posQuantity > 0)
+      .fold(0, (sum, item) => sum + item.quantity);
 
   double get totalPrice => _items.values
       .fold(0.0, (sum, item) => sum + item.product.price * item.quantity);
@@ -50,6 +61,32 @@ class CartModel extends ChangeNotifier {
   }
 
   bool contains(Product product) => _items.containsKey(product.id);
+
+  /// Updates ONLY the stock fields on an item already in the cart, without
+  /// touching the quantity the customer chose. Used by screens that
+  /// silently poll for fresh stock (e.g. Product Detail's 5-second
+  /// refresh) so cart-wide totals — like the floating cart badge via
+  /// totalQuantity above — correctly stop counting an item the moment it
+  /// goes out of stock, instead of staying frozen at whatever stock it
+  /// had the moment it was originally added to the cart.
+  void updateItemStock(String productId, int newStock) {
+    final item = _items[productId];
+    if (item == null) return;
+    if (item.product.quantity == newStock &&
+        item.product.posQuantity == newStock) {
+      return; // no change — skip notifying listeners for nothing
+    }
+    final updatedProduct = item.product.copyWith(
+      quantity:    newStock,
+      posQuantity: newStock,
+    );
+    _items[productId] = CartItem(product: updatedProduct, quantity: item.quantity);
+    notifyListeners();
+    // Intentionally NOT calling _saveCart() here — this is a live stock
+    // sync, not a customer action. Persisting on every 5-second poll
+    // would be wasteful disk I/O. Actual customer actions (add/remove/
+    // set quantity) still save normally, below.
+  }
 
   // ── Load cart for a specific user (call after login & on app start) ─────────
   Future<void> loadForUser(String userId) async {
@@ -112,7 +149,6 @@ class CartModel extends ChangeNotifier {
   }
 
   // ── Cart operations ──────────────────────────────────────────────────────────
-
   void addItem(Product product) {
     final stock = product.quantity > 0 ? product.quantity : product.posQuantity;
     final currentQty = _items[product.id]?.quantity ?? 0;
@@ -130,7 +166,10 @@ class CartModel extends ChangeNotifier {
     }
 
     if (_items.containsKey(product.id)) {
-      _items[product.id]!.quantity++;
+      // ✅ replace stored product too, so price/stock stay fresh
+      // instead of just bumping quantity on the stale cached product
+      final newQty = _items[product.id]!.quantity + 1;
+      _items[product.id] = CartItem(product: product, quantity: newQty);
     } else {
       _items[product.id] = CartItem(product: product);
     }
