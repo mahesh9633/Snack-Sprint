@@ -131,13 +131,13 @@ class _PieceSelectorSheet extends StatelessWidget {
   const _PieceSelectorSheet({required this.product, required this.pieces});
 
   double _initialSize(BuildContext context) {
-    final screenH     = MediaQuery.of(context).size.height;
-    final itemHeight  = pieces.length * 105.0;
+    final screenH = MediaQuery.of(context).size.height;
+    final itemHeight = pieces.length * 105.0;
     final totalHeight = itemHeight + 150.0;
-    final ratio       = totalHeight / screenH;
-    if (ratio < 0.25) return 0.25;
-    if (ratio > 0.60) return 0.60;
-    return ratio;
+    final ratio = totalHeight / screenH;
+
+    // Ensure initialChildSize is always between minChildSize and maxChildSize
+    return ratio.clamp(0.30, 0.60).toDouble();
   }
 
   @override

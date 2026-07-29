@@ -1,12 +1,5 @@
-
-
 import 'get_profile_service.dart';
 
-/// Keeps store-level checkout settings in memory for the current app session.
-///
-/// The profile is loaded during SplashScreen before the logged-in customer
-/// enters the app. CartScreen can therefore read delivery settings
-/// synchronously and show the correct fee on its first frame.
 class StoreProfileCache {
   static double minOrderValue = 0;
   static double deliveryFee = 0;
@@ -14,8 +7,6 @@ class StoreProfileCache {
 
   static bool hasLoaded = false;
 
-  /// Shares one in-progress request between SplashScreen, HomeScreen and
-  /// FloatingCartBar. This prevents duplicate profile API calls.
   static Future<void>? _loadingFuture;
 
   static Future<void> preload({bool forceRefresh = false}) {
@@ -68,11 +59,9 @@ class StoreProfileCache {
 
       hasLoaded = true;
     } catch (_) {
-      // Keep the previously cached values when refresh fails.
     }
   }
 
-  /// Updates the shared cache using values fetched directly by CartScreen.
   static void update({
     required double minOrderValueValue,
     required double deliveryFeeValue,
@@ -84,7 +73,6 @@ class StoreProfileCache {
     hasLoaded = true;
   }
 
-  /// Call this on logout or when a saved login session is invalid.
   static void clear() {
     minOrderValue = 0;
     deliveryFee = 0;

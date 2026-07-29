@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -20,8 +19,8 @@ final FlutterLocalNotificationsPlugin _localNotifications =
 FlutterLocalNotificationsPlugin();
 
 const AndroidNotificationChannel _androidChannel = AndroidNotificationChannel(
-  'high_importance_channel', // id
-  'High Importance Notifications', // name — shown in Android app settings
+  'high_importance_channel',
+  'High Importance Notifications',
   description: 'Used for important order and app notifications.',
   importance: Importance.high,
 );
@@ -38,12 +37,8 @@ Future<void> _initLocalNotifications() async {
       ?.createNotificationChannel(_androidChannel);
 }
 
-// Must be a top-level function — handles notifications when app is
-// terminated or in the background.
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Avoid heavy work here. Firebase.initializeApp() is required if you
-  // touch any other Firebase service inside this handler.
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -98,25 +93,18 @@ void main() async {
     statusBarColor: Colors.transparent,
   ));
 
-  // Initialize Firebase before anything else that depends on it.
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Register the background handler as early as possible.
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // Set up the local notifications plugin + Android channel so foreground
-  // messages can show a native-style banner.
   await _initLocalNotifications();
 
-  // Pre-warm SharedPreferences once so all screens reuse the cache
   final prefs = await SharedPreferences.getInstance();
 
   final cart           = CartModel();
   final favoritesModel = FavoritesModel();
-
-  // Show snackbar when stock limit is reached
 
   cart.onStockLimitReached = (message) {
     scaffoldMessengerKey.currentState

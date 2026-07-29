@@ -1,5 +1,3 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:mtl_groceriesapp/login/login_screen.dart';
 import 'package:mtl_groceriesapp/screens/location_gateway.dart';
@@ -77,8 +75,6 @@ class _SplashScreenState extends State<SplashScreen>
       return;
     }
 
-    // Start profile loading and token validation together.
-    // ProfileGetApiService reads the saved token from SessionManager.
     final profileFuture = StoreProfileCache.preload();
 
     final isValid = await ApiService.validateToken(
@@ -97,9 +93,6 @@ class _SplashScreenState extends State<SplashScreen>
       return;
     }
 
-    // Permanent fix:
-    // Do not enter the app until delivery settings are cached.
-    // CartScreen can then show the correct delivery fee on its first frame.
     await profileFuture;
 
     if (!mounted) return;

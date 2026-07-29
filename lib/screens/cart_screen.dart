@@ -31,19 +31,8 @@ Widget _safeProductImage(String image, String imageUrl) {
     return Image.network(
       url,
       fit: BoxFit.cover,
-      loadingBuilder: (context, child, progress) {
-        if (progress == null) return child;
-
-        return Container(
-          color: AppColors.sidebarBg,
-          alignment: Alignment.center,
-          child: const SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        );
-      },
+      loadingBuilder: (_, child, prog) =>
+      prog == null ? child : Container(color: AppColors.sidebarBg),
       errorBuilder: (_, __, ___) => _imgPlaceholder(),
     );
   }
@@ -58,22 +47,6 @@ Widget _imgPlaceholder() => Container(
   ),
 );
 
-// ── REPLACED: the previous version of this refresh built its "fresh"
-// data from getCategoryData(), called with NO category_id. Cart items
-// span many categories, and the cart doesn't reliably know each item's
-// category, so omitting it meant most products were never found in the
-// response — every comparison in _refreshCartItemPrices() silently
-// skipped via `if (freshRaw == null) continue`, which is why prices
-// looked frozen even after a backend change on ANY screen using this
-// cart flow.
-//
-// Fix: fetch each product directly by id via getProductDetails — the
-// SAME endpoint product_detail_screen.dart already uses successfully
-// (unambiguous, no category guessing needed). One request per unique
-// base product id in the cart, not per category. ──
-
-/// Fetches the raw `product` JSON object for a single product id from
-/// the getProductDetails endpoint. Returns null on any failure.
 Future<Map<String, dynamic>?> _fetchProductDetailsRaw(
     String productId, String? token) async {
   try {
@@ -103,14 +76,6 @@ Future<Map<String, dynamic>?> _fetchProductDetailsRaw(
   }
 }
 
-/// Builds a fresh Product (whole product, or one specific piece if
-/// [pieceId] is given) from a getProductDetails raw JSON map — mirrors
-/// the parsing product_detail_screen.dart already does successfully.
-///
-/// ── Mirrors the same safeguards the previous category-data version had:
-/// if a specific piece can't be matched at all in the fresh data (removed
-/// by admin, id changed), it's treated as unavailable (stock forced to 0)
-/// instead of silently falling through to the product's default piece. ──
 Product _freshProductFromApiMap(
     Map<String, dynamic> apiProduct, {
       required String overrideId,
@@ -122,16 +87,10 @@ Product _freshProductFromApiMap(
   final double rawPrice     = double.tryParse(apiProduct['price']?.toString() ?? '0') ?? 0;
   final double specialPrice = double.tryParse(apiProduct['special_price']?.toString() ?? '0') ?? 0;
 
-  double displayPrice  =
-  (specialPrice > 0 && specialPrice < rawPrice)
-      ? specialPrice
-      : rawPrice;
+  double displayPrice  = (specialPrice > 0 && specialPrice < rawPrice) ? specialPrice : rawPrice;
   double originalPrice = rawPrice;
-  String weight = apiProduct['piece']?.toString() ?? '';
-  int stock = productLevelQty;
-
-  final productImage = apiProduct['image']?.toString() ?? '';
-  String selectedImage = productImage;
+  String weight        = apiProduct['piece']?.toString() ?? '';
+  int    stock         = productLevelQty;
 
   List<ProductPiece> pieces = [];
   final rawPieces = apiProduct['pieces'];
@@ -163,25 +122,16 @@ Product _freshProductFromApiMap(
     }
   }
 
-  // If this cart entry represents a specific piece, use THAT piece's
-  // own price/label/stock — never the product's default piece.
   if (pieceId != null && pieceId.isNotEmpty) {
     final matches = pieces.where((pc) => pc.pieceId == pieceId);
     if (matches.isNotEmpty) {
       final m       = matches.first;
       displayPrice  = m.effectivePrice;
       originalPrice = m.hasDiscount ? m.price : m.effectivePrice;
-      weight = m.label;
-      stock = m.stock;
-      selectedImage =
-      m.image.isNotEmpty && m.image != 'no_image.png'
-          ? m.image
-          : productImage;
-      pieces = [m];
+      weight        = m.label;
+      stock         = m.stock;
+      pieces        = [m];
     } else {
-      // This exact piece no longer exists in the fresh data (removed by
-      // admin) — treat as unavailable rather than silently falling back
-      // to the product's default piece.
       stock = 0;
     }
   }
@@ -191,12 +141,6 @@ Product _freshProductFromApiMap(
     name:               apiProduct['name']?.toString() ?? '',
     price:              displayPrice,
     originalPrice:      originalPrice,
-    image:              selectedImage,
-    imageUrl:           selectedImage.isEmpty
-        ? ''
-        : (selectedImage.startsWith('http')
-        ? selectedImage
-        : '$_kImgBase$selectedImage'),
     category:           apiProduct['category']?.toString() ?? '',
     weight:             weight,
     discountPercentage: 0,
@@ -226,54 +170,31 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  // ── Initialize from the cache SYNCHRONOUSLY, not from 0. If Home (or
-  // wherever) already called StoreProfileCache.preload() before the user
-  // reached this screen, these fields start with correct real values —
-  // zero flash of 0, zero visible delay. _fetchMinOrderValue() below
-  // still runs afterward to refresh in the background and keep the
-  // cache current for next time. ──
   double _minOrderValue = StoreProfileCache.minOrderValue;
   double _storeDeliveryFee = StoreProfileCache.deliveryFee;
   double _deliveryOrderValue = StoreProfileCache.deliveryOrderValue;
+  double _deliveryFee = 0;
+  double _finalTotal = 0;
 
-  late double _deliveryFee;
-  late double _finalTotal;
-
-  // ✅ silently keep prices/stock fresh for items already in the cart
   Timer? _autoRefreshTimer;
   static const Duration _kCartRefreshInterval = Duration(seconds: 5);
 
   @override
   void initState() {
     super.initState();
-
-    // Calculate delivery fee before CartScreen builds its first frame.
-    // SplashScreen has already populated StoreProfileCache.
-    final cart = context.read<CartModel>();
-    final cartTotal = cart.totalPrice;
-
-    final qualifiesForFreeDelivery =
-        _deliveryOrderValue > 0 &&
-            cartTotal >= _deliveryOrderValue;
-
-    _deliveryFee =
-    qualifiesForFreeDelivery ? 0.0 : _storeDeliveryFee;
-    _finalTotal = cartTotal + _deliveryFee;
-
-    // Refresh silently after the screen is already showing correct
-    // cached values.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final cart = Provider.of<CartModel>(context, listen: false);
+      _recalculateTotals(cart.totalPrice);
+    });
     _fetchMinOrderValue();
-
-    // Refresh old saved cart entries immediately when CartScreen opens.
-    // This migrates any old item that was saved without image/imageUrl.
-    _refreshCartItemPrices();
-
     _startAutoRefresh();
   }
 
   void _startAutoRefresh() {
     _autoRefreshTimer = Timer.periodic(_kCartRefreshInterval, (_) {
       _refreshCartItemPrices();
+      _fetchMinOrderValue();
     });
   }
 
@@ -283,15 +204,6 @@ class _CartScreenState extends State<CartScreen> {
     super.dispose();
   }
 
-  // ✅ Re-fetches current product data and updates any cart item whose
-  // price/stock/discount has changed — quantity is preserved, only the
-  // stored Product snapshot is refreshed (mirrors what setQuantity does).
-  //
-  // ── FIX: previously this called getCategoryData(token: token) with NO
-  // category_id. Since each unique base product id in the cart is now
-  // fetched directly via getProductDetails&product_id=X, there is no
-  // category ambiguity — this is the same endpoint product_detail_
-  // screen.dart already uses successfully. ──
   Future<void> _refreshCartItemPrices() async {
     if (!mounted) return;
     final cart = Provider.of<CartModel>(context, listen: false);
@@ -300,8 +212,6 @@ class _CartScreenState extends State<CartScreen> {
     try {
       final token = await SessionManager.getString('token') ?? widget.token;
 
-      // Group cart entries by base product id, so a product with several
-      // pieces in the cart is only fetched once, not once per piece.
       final Map<String, List<String>> baseIdToCartIds = {};
       for (final cartId in cart.items.keys) {
         final baseId = cartId.contains('_piece_')
@@ -314,7 +224,7 @@ class _CartScreenState extends State<CartScreen> {
         if (!mounted) return;
 
         final apiProduct = await _fetchProductDetailsRaw(baseId, token);
-        if (apiProduct == null) continue; // couldn't refresh this tick — try again next tick
+        if (apiProduct == null) continue;
 
         for (final cartId in baseIdToCartIds[baseId]!) {
           final isPieceVariant = cartId.contains('_piece_');
@@ -327,12 +237,9 @@ class _CartScreenState extends State<CartScreen> {
           );
 
           final entryNow = cart.items[cartId];
-          if (entryNow == null) continue; // removed from cart mid-loop
+          if (entryNow == null) continue;
           final stored = entryNow.product;
 
-          // ── If this piece is now fully out of stock, remove it from the
-          // cart automatically instead of leaving a stale item the user
-          // can't actually check out with. ──
           if (freshProduct.quantity <= 0) {
             cart.removeItem(stored);
             if (mounted) {
@@ -351,11 +258,6 @@ class _CartScreenState extends State<CartScreen> {
             continue;
           }
 
-          // ── If the backend's stock for this piece has dropped below
-          // what's currently in the cart, clamp the cart quantity down
-          // automatically — previously this only happened when the user
-          // manually tapped + or -, so a stale over-limit quantity could
-          // sit in the cart silently until checkout. ──
           int newQty = entryNow.quantity;
           bool qtyClamped = false;
           if (newQty > freshProduct.quantity) {
@@ -363,27 +265,13 @@ class _CartScreenState extends State<CartScreen> {
             qtyClamped = true;
           }
 
-          final changed =
-              stored.price != freshProduct.price ||
-                  stored.originalPrice != freshProduct.originalPrice ||
-                  stored.quantity != freshProduct.quantity ||
-                  stored.posQuantity != freshProduct.posQuantity ||
-                  stored.image != freshProduct.image ||
-                  stored.imageUrl != freshProduct.imageUrl ||
-                  qtyClamped;
+          final changed = stored.price != freshProduct.price ||
+              stored.originalPrice != freshProduct.originalPrice ||
+              stored.quantity != freshProduct.quantity ||
+              qtyClamped;
 
           if (changed) {
-            // preserve the cart id (handles piece-variant ids); quantity is
-            // preserved UNLESS it had to be clamped down to available stock.
-            // This is the "silent backend update" behaviour: if the admin
-            // changes the price/stock/quantity on the backend, the next
-            // refresh tick (every 5s) picks it up and updates the cart line
-            // automatically, without resetting which piece the user picked.
-            cart.updateItemProduct(
-              cartId,
-              freshProduct,
-              quantity: newQty,
-            );
+            cart.setQuantity(freshProduct, newQty);
             if (qtyClamped && mounted) {
               ScaffoldMessenger.of(context)
                 ..clearSnackBars()
@@ -404,24 +292,12 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   void _recalculateTotals(double cartTotal) {
-    final qualifiesForFreeDelivery =
-        _deliveryOrderValue > 0 &&
-            cartTotal >= _deliveryOrderValue;
-
-    final newDeliveryFee =
-    qualifiesForFreeDelivery ? 0.0 : _storeDeliveryFee;
-    final newFinalTotal = cartTotal + newDeliveryFee;
-
-    if (!mounted) return;
-
-    if (_deliveryFee == newDeliveryFee &&
-        _finalTotal == newFinalTotal) {
-      return;
-    }
-
+    final bool qualifiesForFreeDelivery = _deliveryOrderValue > 0 &&
+        cartTotal >= _deliveryOrderValue;
+    final fee = qualifiesForFreeDelivery ? 0.0 : _storeDeliveryFee;
     setState(() {
-      _deliveryFee = newDeliveryFee;
-      _finalTotal = newFinalTotal;
+      _deliveryFee = fee;
+      _finalTotal = cartTotal + fee;
     });
   }
 
@@ -429,10 +305,6 @@ class _CartScreenState extends State<CartScreen> {
     try {
       final result = await ProfileGetApiService.getProfile();
       if (result['success'] == true) {
-        // ── The store profile API can return `data` as either a single
-        // Map (one store) or a List (as in getStores()) — handle both
-        // instead of assuming a Map, which would crash/silently fail
-        // for the List shape. ──
         final rawData = result['data'];
         Map<String, dynamic>? data;
         if (rawData is List && rawData.isNotEmpty) {
@@ -450,14 +322,10 @@ class _CartScreenState extends State<CartScreen> {
         final freshDeliveryFee   = double.tryParse(feeStr) ?? 0;
         final freshDeliveryOrder = double.tryParse(deliveryOrderStr) ?? 0;
 
-        // Keep the shared cache current, so the NEXT time the cart (or
-        // any other screen) reads StoreProfileCache, it gets this
-        // latest data instantly too.
-        StoreProfileCache.update(
-          minOrderValueValue: freshMinOrder,
-          deliveryFeeValue: freshDeliveryFee,
-          deliveryOrderValueValue: freshDeliveryOrder,
-        );
+        StoreProfileCache.minOrderValue      = freshMinOrder;
+        StoreProfileCache.deliveryFee        = freshDeliveryFee;
+        StoreProfileCache.deliveryOrderValue = freshDeliveryOrder;
+        StoreProfileCache.hasLoaded          = true;
 
         if (mounted) {
           setState(() {
