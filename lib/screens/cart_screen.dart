@@ -1,17 +1,18 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:mtl_groceriesapp/model/cart_model.dart';
 
 import '../config/app_color.dart';
-import '../model/category_data_model.dart';
 import '../model/product_model.dart';
 import '../products/product_detail_screen.dart';
 import '../services/api_config_service.dart';
-import '../services/api_server.dart';
 import '../services/get_profile_service.dart';
 import '../services/session_manager.dart';
+import '../services/store_profile_cache.dart';
 import '../utils/stock_resolver.dart';
 import '../widgets/piece_selector_sheet.dart';
 import 'address_selection_page.dart';
@@ -46,130 +47,136 @@ Widget _imgPlaceholder() => Container(
   ),
 );
 
-// ✅ Rebuilds a Product from fresh category-data JSON, mirroring the
-// converter used on Home/Trending/Categories screens, so cart prices
-// stay consistent with what those screens show.
+// ── REPLACED: the previous version of this refresh built its "fresh"
+// data from getCategoryData(), called with NO category_id. Cart items
+// span many categories, and the cart doesn't reliably know each item's
+// category, so omitting it meant most products were never found in the
+// response — every comparison in _refreshCartItemPrices() silently
+// skipped via `if (freshRaw == null) continue`, which is why prices
+// looked frozen even after a backend change on ANY screen using this
+// cart flow.
 //
-// ── FIX #1: this now accepts an optional `pieceRowId`. If the cart
-// entry represents a specific piece (e.g. "30KG BAG" out of 5 available
-// pieces), we look up THAT piece's price/label in the fresh data instead
-// of always defaulting to the base product / first piece. Without this,
-// the background refresh below would keep overwriting your selected
-// piece's price with the default piece's price, which is what made the
-// cart appear to "snap back" to the first piece a few seconds after you
-// picked a different one.
-//
-// ── FIX #2: stock (quantity/posQuantity) is now resolved PER PIECE too,
-// via the same `resolvePieceStock` helper product_detail_screen.dart
-// uses — not the product's overall stock. Each piece (500g, 10KG,
-// 30KG BAG...) has its own independent stock on the backend. Previously
-// this always returned the product-level quantity no matter which piece
-// was selected, so the cart's "+" button could let you exceed a piece's
-// real stock (e.g. incrementing past 1 when only 1 unit of the 30KG BAG
-// was actually available). ──
-//
-// ── FIX #3: if a cart item's specific piece can't be matched at all in
-// the fresh data (removed by admin, or its id changed), it is now
-// treated as unavailable (stock forced to 0) instead of silently
-// falling through to the product's DEFAULT piece's price/label. Without
-// this, a genuinely out-of-stock/removed piece would get quietly
-// overwritten to look like the first piece — misleading the customer
-// into thinking they're still buying what they originally picked —
-// instead of correctly triggering the "out of stock, removed from
-// cart" flow in _refreshCartItemPrices() below. ──
-Product _freshProductFromCategoryData(
-    CategoryDataProduct p, {
-      String? overrideId,
-      String? pieceRowId, // ← the piece's rowId, which is what's embedded in cart item ids
+// Fix: fetch each product directly by id via getProductDetails — the
+// SAME endpoint product_detail_screen.dart already uses successfully
+// (unambiguous, no category guessing needed). One request per unique
+// base product id in the cart, not per category. ──
+
+/// Fetches the raw `product` JSON object for a single product id from
+/// the getProductDetails endpoint. Returns null on any failure.
+Future<Map<String, dynamic>?> _fetchProductDetailsRaw(
+    String productId, String? token) async {
+  try {
+    final uri = Uri.parse(
+      '${ApiConfig.route('groceries/categories.getProductDetails', token: token)}&product_id=$productId',
+    );
+    final response = await http.get(uri).timeout(const Duration(seconds: 15));
+    if (response.statusCode != 200 || response.body.isEmpty) return null;
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic>) return null;
+    if (decoded['status']?.toString() != 'success' || decoded['product'] == null) {
+      return null;
+    }
+
+    final rawProduct = decoded['product'];
+    if (rawProduct is List) {
+      return rawProduct.isNotEmpty
+          ? Map<String, dynamic>.from(rawProduct.first as Map)
+          : null;
+    } else if (rawProduct is Map) {
+      return Map<String, dynamic>.from(rawProduct);
+    }
+    return null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Builds a fresh Product (whole product, or one specific piece if
+/// [pieceId] is given) from a getProductDetails raw JSON map — mirrors
+/// the parsing product_detail_screen.dart already does successfully.
+///
+/// ── Mirrors the same safeguards the previous category-data version had:
+/// if a specific piece can't be matched at all in the fresh data (removed
+/// by admin, id changed), it's treated as unavailable (stock forced to 0)
+/// instead of silently falling through to the product's default piece. ──
+Product _freshProductFromApiMap(
+    Map<String, dynamic> apiProduct, {
+      required String overrideId,
+      String? pieceId,
     }) {
-  final raw    = p.defaultImage;
-  final imgUrl = (raw.isNotEmpty && raw != 'no_image.png')
-      ? '$_kImgBase$raw' : '';
-  final int productQty = int.tryParse(p.quantity) ?? 0;
+  final int productLevelQty = resolveProductQuantity(apiProduct);
+  final bool productIsCombo = resolveIsCombo(apiProduct);
 
-  final pieces = p.pieces.map((e) => ProductPiece.fromJson(e)).toList();
+  final double rawPrice     = double.tryParse(apiProduct['price']?.toString() ?? '0') ?? 0;
+  final double specialPrice = double.tryParse(apiProduct['special_price']?.toString() ?? '0') ?? 0;
 
-  double price          = p.price;
-  double originalPrice  = p.wholesalePrice > 0 ? p.wholesalePrice : p.price;
-  String weight         = p.piece.isNotEmpty ? p.piece : '';
-  List<ProductPiece> effectivePieces = pieces;
+  double displayPrice  = (specialPrice > 0 && specialPrice < rawPrice) ? specialPrice : rawPrice;
+  double originalPrice = rawPrice;
+  String weight        = apiProduct['piece']?.toString() ?? '';
+  int    stock         = productLevelQty;
 
-  // Defaults to product-level stock; overridden below when a specific
-  // piece is matched (or forced to 0 when a piece was expected but not
-  // found at all — see FIX #3 above).
-  int stock = productQty;
-
-  // ── IMPORTANT: cart item ids are built in product_detail_screen.dart
-  // using the piece's ROW id ("${product.id}_piece_${piece.rowId}"),
-  // NOT piece_id. Matching against pieceId here was silently failing
-  // every time, which fell back to the default/first piece — that's
-  // what caused the cart to "snap back" to 500g after a few seconds. ──
-  if (pieceRowId != null && pieceRowId.isNotEmpty) {
-    // final matches = pieces.where((pc) => pc.rowId == pieceRowId);
-    final matches = pieces.where((pc) => pc.pieceId == pieceRowId);
-    if (matches.isNotEmpty) {
-      final m = matches.first;
-      price          = m.effectivePrice;
-      originalPrice  = m.hasDiscount ? m.price : m.effectivePrice;
-      weight         = m.label;
-      effectivePieces = [m];
-
-      // Resolve THIS piece's own stock from the raw JSON, the same way
-      // product_detail_screen.dart does for every piece — checks both
-      // pos_quantity and the misspelled pos_quentity key, and handles
-      // combo products correctly.
-      //
-      // NOTE: using a manual loop instead of firstWhere(orElse: () => null)
-      // — firstWhere's orElse must return the same type as the list's
-      // elements (Map<String, dynamic>), and `null` doesn't satisfy that,
-      // which is what caused the "Null isn't returnable" compile error.
-      try {
-        Map<String, dynamic>? rawMatch;
-        // for (final e in p.pieces) {
-        //   if (e is Map && e['id']?.toString() == pieceRowId) {
-        for (final e in p.pieces) {
-          if (e is Map && e['piece_id']?.toString() == pieceRowId) {
-            rawMatch = Map<String, dynamic>.from(e);
-            break;
-          }
-        }
-        if (rawMatch != null) {
-          stock = resolvePieceStock(
-            rawMatch,
-            productIsCombo: p.isCombo,
-            productLevelQty: productQty,
-          );
-        }
-      } catch (_) {
-        // fall back to product-level stock already set above
+  List<ProductPiece> pieces = [];
+  final rawPieces = apiProduct['pieces'];
+  if (rawPieces is List) {
+    for (final p in rawPieces) {
+      if (p is Map<String, dynamic>) {
+        final pp     = double.tryParse(p['price']?.toString() ?? '0') ?? 0;
+        final ps     = double.tryParse(p['special_price']?.toString() ?? '0') ?? 0;
+        final minQty = int.tryParse(p['min_quantity']?.toString() ?? '0') ?? 0;
+        final pName  = p['piece']?.toString() ?? '';
+        final label  = (minQty > 1 && pName.isNotEmpty) ? '$pName × $minQty' : pName;
+        final pStock = resolvePieceStock(
+          p,
+          productIsCombo: productIsCombo,
+          productLevelQty: productLevelQty,
+        );
+        pieces.add(ProductPiece(
+          rowId:        p['id']?.toString() ?? '',
+          pieceId:      p['piece_id']?.toString() ?? '',
+          label:        label,
+          price:        pp,
+          specialPrice: ps,
+          image:        p['image']?.toString() ?? '',
+          minQuantity:  minQty,
+          isCombo:      productIsCombo,
+          stock:        pStock,
+        ));
       }
-    } else {
-      // ── This exact piece no longer appears in the fresh data (e.g.
-      // removed by admin, or its row id changed) — treat it as
-      // unavailable rather than silently falling through to the
-      // product's default piece. Without this, a genuinely-gone piece
-      // got overwritten with the FIRST piece's price/label on the next
-      // refresh tick, making the cart look like the customer picked
-      // something they never actually chose, instead of correctly
+    }
+  }
 
+  // If this cart entry represents a specific piece, use THAT piece's
+  // own price/label/stock — never the product's default piece.
+  if (pieceId != null && pieceId.isNotEmpty) {
+    final matches = pieces.where((pc) => pc.pieceId == pieceId);
+    if (matches.isNotEmpty) {
+      final m       = matches.first;
+      displayPrice  = m.effectivePrice;
+      originalPrice = m.hasDiscount ? m.price : m.effectivePrice;
+      weight        = m.label;
+      stock         = m.stock;
+      pieces        = [m];
+    } else {
+      // This exact piece no longer exists in the fresh data (removed by
+      // admin) — treat as unavailable rather than silently falling back
+      // to the product's default piece.
       stock = 0;
     }
   }
 
   return Product(
-    id:                 overrideId ?? p.productId,
-    name:               p.name,
-    price:              price,
+    id:                 overrideId,
+    name:               apiProduct['name']?.toString() ?? '',
+    price:              displayPrice,
     originalPrice:      originalPrice,
-    image:              raw,
-    imageUrl:           imgUrl,
-    category:           p.categoryId,
+    category:           apiProduct['category']?.toString() ?? '',
     weight:             weight,
-    discountPercentage: p.discountPercent.toDouble(),
+    discountPercentage: 0,
     quantity:           stock,
     posQuantity:        stock,
-    pieces:             effectivePieces,
-    isCombo:            p.isCombo,
+    pieces:             pieces,
+    isCombo:            productIsCombo,
   );
 }
 
@@ -192,11 +199,17 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  double _minOrderValue = 0;
-  double _storeDeliveryFee = 0; // raw flat fee from db (via profile)
+  // ── Initialize from the cache SYNCHRONOUSLY, not from 0. If Home (or
+  // wherever) already called StoreProfileCache.preload() before the user
+  // reached this screen, these fields start with correct real values —
+  // zero flash of 0, zero visible delay. _fetchMinOrderValue() below
+  // still runs afterward to refresh in the background and keep the
+  // cache current for next time. ──
+  double _minOrderValue = StoreProfileCache.minOrderValue;
+  double _storeDeliveryFee = StoreProfileCache.deliveryFee; // raw flat fee from db (via profile)
   // ── Free-delivery threshold: cart total >= this value → delivery fee
   // becomes 0. Separate from _minOrderValue, which only blocks checkout. ──
-  double _deliveryOrderValue = 0;
+  double _deliveryOrderValue = StoreProfileCache.deliveryOrderValue;
   double _deliveryFee = 0;
   double _finalTotal = 0;
 
@@ -207,6 +220,20 @@ class _CartScreenState extends State<CartScreen> {
   @override
   void initState() {
     super.initState();
+    // ── Compute the delivery fee / final total RIGHT NOW using whatever
+    // is already cached (from StoreProfileCache.preload(), called earlier
+    // e.g. on Home load) plus the cart's current total. This is what
+    // eliminates the flash of 0 / visible delay — the customer sees
+    // correct numbers on the very first frame, not after a network
+    // round-trip. If the cache was never populated (e.g. very first
+    // launch before preload() had a chance to run), this just computes
+    // with 0s as before, and _fetchMinOrderValue() below corrects it
+    // moments later exactly like the old behaviour. ──
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final cart = Provider.of<CartModel>(context, listen: false);
+      _recalculateTotals(cart.totalPrice);
+    });
     _fetchMinOrderValue();
     _startAutoRefresh();
   }
@@ -214,6 +241,14 @@ class _CartScreenState extends State<CartScreen> {
   void _startAutoRefresh() {
     _autoRefreshTimer = Timer.periodic(_kCartRefreshInterval, (_) {
       _refreshCartItemPrices();
+      // ── Previously only item prices/stock were refreshed on this
+      // timer. min_order_value / delivery_fee / delivery_order_value
+      // only ever updated on screen open or pull-to-refresh — if the
+      // admin changed them WHILE the customer was sitting on the cart
+      // screen, nothing picked it up until they left and came back.
+      // Now it rides the same 5-second tick, so it updates silently
+      // just like item prices do. ──
+      _fetchMinOrderValue();
     });
   }
 
@@ -227,128 +262,108 @@ class _CartScreenState extends State<CartScreen> {
   // price/stock/discount has changed — quantity is preserved, only the
   // stored Product snapshot is refreshed (mirrors what setQuantity does).
   //
-  // ── FIX: cart ids that represent a specific piece look like
-  // "<productId>_piece_<pieceId>". Previously only the base product id
-  // was extracted and the base product's default price was used to
-  // rebuild every cart entry — including piece-variant entries — so a
-  // selected piece's price/label kept getting silently replaced by the
-  // default piece's price on every refresh tick. Now we also extract
-  // the `pieceId` and pass it through so the correct piece is matched. ──
+  // ── FIX: previously this called getCategoryData(token: token) with NO
+  // category_id. Since each unique base product id in the cart is now
+  // fetched directly via getProductDetails&product_id=X, there is no
+  // category ambiguity — this is the same endpoint product_detail_
+  // screen.dart already uses successfully. ──
   Future<void> _refreshCartItemPrices() async {
     if (!mounted) return;
     final cart = Provider.of<CartModel>(context, listen: false);
     if (cart.items.isEmpty) return;
 
     try {
-      final token  = await SessionManager.getString('token') ?? widget.token;
-      final result = await ApiService.getCategoryData(token: token);
-      if (!mounted || result['success'] != true) return;
+      final token = await SessionManager.getString('token') ?? widget.token;
 
-      final rawSubs  = result['subcategories'] as List? ?? [];
-      final rawProds = result['products']      as List? ?? [];
-      final List<CategoryDataProduct> allProds = [];
-
-      for (final p in rawProds) {
-        try {
-          allProds.add(CategoryDataProduct.fromJson(p as Map<String, dynamic>));
-        } catch (_) {}
-      }
-      for (final s in rawSubs) {
-        final sub = s as Map<String, dynamic>;
-        for (final p in (sub['products'] as List? ?? [])) {
-          try {
-            allProds.add(CategoryDataProduct.fromJson(p as Map<String, dynamic>));
-          } catch (_) {}
-        }
-        for (final cs in (sub['subcategories'] as List? ?? [])) {
-          final csMap = cs as Map<String, dynamic>;
-          for (final p in (csMap['products'] as List? ?? [])) {
-            try {
-              allProds.add(CategoryDataProduct.fromJson(p as Map<String, dynamic>));
-            } catch (_) {}
-          }
-        }
+      // Group cart entries by base product id, so a product with several
+      // pieces in the cart is only fetched once, not once per piece.
+      final Map<String, List<String>> baseIdToCartIds = {};
+      for (final cartId in cart.items.keys) {
+        final baseId = cartId.contains('_piece_')
+            ? cartId.split('_piece_').first
+            : cartId;
+        baseIdToCartIds.putIfAbsent(baseId, () => []).add(cartId);
       }
 
-      final freshById = {for (final p in allProds) p.productId: p};
+      for (final baseId in baseIdToCartIds.keys) {
+        if (!mounted) return;
 
-      // Match cart items back to their base product id AND, if it's a
-      // piece-variant entry, the specific pieceId it represents.
-      for (final entry in cart.items.entries.toList()) {
-        final cartId = entry.key;
-        final isPieceVariant = cartId.contains('_piece_');
-        final baseId     = isPieceVariant ? cartId.split('_piece_').first : cartId;
-        final pieceRowId = isPieceVariant ? cartId.split('_piece_').last : null;
+        final apiProduct = await _fetchProductDetailsRaw(baseId, token);
+        if (apiProduct == null) continue; // couldn't refresh this tick — try again next tick
 
-        final freshRaw = freshById[baseId];
-        if (freshRaw == null) continue;
+        for (final cartId in baseIdToCartIds[baseId]!) {
+          final isPieceVariant = cartId.contains('_piece_');
+          final pieceId = isPieceVariant ? cartId.split('_piece_').last : null;
 
-        final freshProduct = _freshProductFromCategoryData(
-          freshRaw,
-          overrideId: cartId,
-          pieceRowId: pieceRowId,
-        );
-        final stored = entry.value.product;
+          final freshProduct = _freshProductFromApiMap(
+            apiProduct,
+            overrideId: cartId,
+            pieceId: pieceId,
+          );
 
-        // ── If this piece is now fully out of stock, remove it from the
-        // cart automatically instead of leaving a stale item the user
-        // can't actually check out with. ──
-        if (freshProduct.quantity <= 0) {
-          cart.removeItem(stored);
-          if (mounted) {
-            ScaffoldMessenger.of(context)
-              ..clearSnackBars()
-              ..showSnackBar(SnackBar(
-                content: Text(
-                    '${freshProduct.name} is out of stock and was removed from your cart'),
-                duration: const Duration(seconds: 3),
-                backgroundColor: Colors.red.shade400,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-              ));
+          final entryNow = cart.items[cartId];
+          if (entryNow == null) continue; // removed from cart mid-loop
+          final stored = entryNow.product;
+
+          // ── If this piece is now fully out of stock, remove it from the
+          // cart automatically instead of leaving a stale item the user
+          // can't actually check out with. ──
+          if (freshProduct.quantity <= 0) {
+            cart.removeItem(stored);
+            if (mounted) {
+              ScaffoldMessenger.of(context)
+                ..clearSnackBars()
+                ..showSnackBar(SnackBar(
+                  content: Text(
+                      '${freshProduct.name} is out of stock and was removed from your cart'),
+                  duration: const Duration(seconds: 3),
+                  backgroundColor: Colors.red.shade400,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ));
+            }
+            continue;
           }
-          continue;
-        }
 
-        // ── If the backend's stock for this piece has dropped below
-        // what's currently in the cart, clamp the cart quantity down
-        // automatically — previously this only happened when the user
-        // manually tapped + or -, so a stale over-limit quantity could
-        // sit in the cart silently until checkout. ──
-        int newQty = entry.value.quantity;
-        bool qtyClamped = false;
-        if (newQty > freshProduct.quantity) {
-          newQty = freshProduct.quantity;
-          qtyClamped = true;
-        }
+          // ── If the backend's stock for this piece has dropped below
+          // what's currently in the cart, clamp the cart quantity down
+          // automatically — previously this only happened when the user
+          // manually tapped + or -, so a stale over-limit quantity could
+          // sit in the cart silently until checkout. ──
+          int newQty = entryNow.quantity;
+          bool qtyClamped = false;
+          if (newQty > freshProduct.quantity) {
+            newQty = freshProduct.quantity;
+            qtyClamped = true;
+          }
 
-        final changed = stored.price != freshProduct.price ||
-            stored.originalPrice != freshProduct.originalPrice ||
-            stored.discountPercentage != freshProduct.discountPercentage ||
-            stored.quantity != freshProduct.quantity ||
-            qtyClamped;
+          final changed = stored.price != freshProduct.price ||
+              stored.originalPrice != freshProduct.originalPrice ||
+              stored.quantity != freshProduct.quantity ||
+              qtyClamped;
 
-        if (changed) {
-          // preserve the cart id (handles piece-variant ids); quantity is
-          // preserved UNLESS it had to be clamped down to available stock.
-          // This is the "silent backend update" behaviour: if the admin
-          // changes the price/stock/quantity on the backend, the next
-          // refresh tick (every 5s) picks it up and updates the cart line
-          // automatically, without resetting which piece the user picked.
-          cart.setQuantity(freshProduct, newQty);
-          if (qtyClamped && mounted) {
-            ScaffoldMessenger.of(context)
-              ..clearSnackBars()
-              ..showSnackBar(SnackBar(
-                content: Text(
-                    'Only $newQty ${freshProduct.name} available — quantity updated'),
-                duration: const Duration(seconds: 3),
-                backgroundColor: AppColors.error,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-              ));
+          if (changed) {
+            // preserve the cart id (handles piece-variant ids); quantity is
+            // preserved UNLESS it had to be clamped down to available stock.
+            // This is the "silent backend update" behaviour: if the admin
+            // changes the price/stock/quantity on the backend, the next
+            // refresh tick (every 5s) picks it up and updates the cart line
+            // automatically, without resetting which piece the user picked.
+            cart.setQuantity(freshProduct, newQty);
+            if (qtyClamped && mounted) {
+              ScaffoldMessenger.of(context)
+                ..clearSnackBars()
+                ..showSnackBar(SnackBar(
+                  content: Text(
+                      'Only $newQty ${freshProduct.name} available — quantity updated'),
+                  duration: const Duration(seconds: 3),
+                  backgroundColor: AppColors.error,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ));
+            }
           }
         }
       }
@@ -390,11 +405,24 @@ class _CartScreenState extends State<CartScreen> {
         final minStr          = data['min_order_value']?.toString() ?? '0';
         final feeStr          = data['delivery_fee']?.toString() ?? '0';
         final deliveryOrderStr = data['delivery_order_value']?.toString() ?? '0';
+
+        final freshMinOrder      = double.tryParse(minStr) ?? 0;
+        final freshDeliveryFee   = double.tryParse(feeStr) ?? 0;
+        final freshDeliveryOrder = double.tryParse(deliveryOrderStr) ?? 0;
+
+        // Keep the shared cache current, so the NEXT time the cart (or
+        // any other screen) reads StoreProfileCache, it gets this
+        // latest data instantly too.
+        StoreProfileCache.minOrderValue      = freshMinOrder;
+        StoreProfileCache.deliveryFee        = freshDeliveryFee;
+        StoreProfileCache.deliveryOrderValue = freshDeliveryOrder;
+        StoreProfileCache.hasLoaded          = true;
+
         if (mounted) {
           setState(() {
-            _minOrderValue      = double.tryParse(minStr) ?? 0;
-            _storeDeliveryFee   = double.tryParse(feeStr) ?? 0;
-            _deliveryOrderValue = double.tryParse(deliveryOrderStr) ?? 0;
+            _minOrderValue      = freshMinOrder;
+            _storeDeliveryFee   = freshDeliveryFee;
+            _deliveryOrderValue = freshDeliveryOrder;
           });
           final cart = Provider.of<CartModel>(context, listen: false);
           _recalculateTotals(cart.totalPrice);

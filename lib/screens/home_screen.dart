@@ -1,8 +1,11 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:mtl_groceriesapp/model/cart_model.dart';
 import '../config/app_color.dart';
+import '../services/store_profile_cache.dart';
 import 'home_tab.dart';
 import 'categories_screen.dart';
 import 'trending_screen.dart';
@@ -55,6 +58,16 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<CartModel>().loadCart();
     });
+
+    // ── Preload store profile settings (min order value, delivery fee,
+    // free-delivery threshold) as early as possible — right after login,
+    // before the customer has browsed anything. By the time they add
+    // items and open the cart, StoreProfileCache is already populated,
+    // so CartScreen opens with correct numbers instantly instead of
+    // flashing 0 while it waits on its own network call. Fire-and-forget
+    // — intentionally not awaited, this must never block Home's own
+    // load. ──
+    StoreProfileCache.preload();
   }
 
   void _onNavItemTapped(int index) {
