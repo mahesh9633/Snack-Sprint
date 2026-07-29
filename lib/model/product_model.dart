@@ -1,3 +1,5 @@
+
+
   import '../widgets/piece_selector_sheet.dart';
 
   class Product {
@@ -127,31 +129,93 @@
       }).toList(),
     };
 
-    factory Product.fromJson(Map<String, dynamic> json) => Product(
-      id:                  json['id']?.toString()                            ?? '',
-      name:                json['name']?.toString()                          ?? '',
-      price:               (json['price']              as num?)?.toDouble()  ?? 0.0,
-      originalPrice:       (json['originalPrice']      as num?)?.toDouble()  ?? 0.0,
-      image:               json['image']?.toString()                         ?? '',
-      imageUrl:            json['imageUrl']?.toString()                      ?? '',
-      category:            json['category']?.toString()                      ?? '',
-      subCategory:         json['subCategory']?.toString()                   ?? '',
-      weight:              json['weight']?.toString()                        ?? '',
-      sku:                 json['sku']?.toString()                           ?? '',
-      deliveryTime:        json['deliveryTime']?.toString()                  ?? '',
-      discountPercentage:  (json['discountPercentage'] as num?)?.toDouble()  ?? 0.0,
-      isVeg:               json['isVeg'] as bool?                            ?? true,
-      tag:                 json['tag']?.toString()                           ?? '',
-      description:         json['description']?.toString()                   ?? '',
-      highlights:          (json['highlights'] as List<dynamic>?)
-          ?.map((e) => e.toString()).toList()            ?? [],
-      quantity:            (json['quantity'] as num?)?.toInt()               ?? 0,
-      posQuantity:         (json['posQuantity'] as num?)?.toInt()            ?? 0,
-      isCombo:             json['isCombo'] as bool?                          ?? false,
-      pieces:              (json['pieces'] as List<dynamic>?)
-          ?.map((p) => ProductPiece.fromJson(p as Map<String, dynamic>))
-          .toList()                                                          ?? [],
-    );
+    factory Product.fromJson(Map<String, dynamic> json) {
+      double parseDouble(dynamic value) {
+        if (value is num) return value.toDouble();
+        return double.tryParse(value?.toString() ?? '0') ?? 0.0;
+      }
+
+      int parseInt(dynamic value) {
+        if (value is num) return value.toInt();
+        return int.tryParse(value?.toString() ?? '0') ?? 0;
+      }
+
+      bool parseBool(dynamic value, {bool defaultValue = false}) {
+        if (value is bool) return value;
+
+        final text = value?.toString().trim().toLowerCase();
+
+        if (text == 'true' || text == '1' || text == 'yes') {
+          return true;
+        }
+
+        if (text == 'false' || text == '0' || text == 'no') {
+          return false;
+        }
+
+        return defaultValue;
+      }
+
+      return Product(
+        id: json['id']?.toString() ??
+            json['product_id']?.toString() ??
+            '',
+        name: json['name']?.toString() ?? '',
+        price: parseDouble(json['price']),
+        originalPrice: parseDouble(
+          json['originalPrice'] ?? json['original_price'],
+        ),
+        image: json['image']?.toString() ??
+            json['product_image']?.toString() ??
+            '',
+        imageUrl: json['imageUrl']?.toString() ??
+            json['image_url']?.toString() ??
+            json['productImageUrl']?.toString() ??
+            '',
+        category: json['category']?.toString() ??
+            json['category_id']?.toString() ??
+            '',
+        subCategory: json['subCategory']?.toString() ??
+            json['sub_category']?.toString() ??
+            '',
+        weight: json['weight']?.toString() ?? '',
+        sku: json['sku']?.toString() ?? '',
+        deliveryTime: json['deliveryTime']?.toString() ??
+            json['delivery_time']?.toString() ??
+            '',
+        discountPercentage: parseDouble(
+          json['discountPercentage'] ?? json['discount_percentage'],
+        ),
+        isVeg: parseBool(
+          json['isVeg'] ?? json['is_veg'],
+          defaultValue: true,
+        ),
+        tag: json['tag']?.toString() ?? '',
+        description: json['description']?.toString() ?? '',
+        highlights: (json['highlights'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList() ??
+            [],
+        quantity: parseInt(json['quantity']),
+        posQuantity: parseInt(
+          json['posQuantity'] ??
+              json['pos_quantity'] ??
+              json['pos_quentity'],
+        ),
+        isCombo: parseBool(
+          json['isCombo'] ?? json['is_combo'],
+        ),
+        pieces: (json['pieces'] as List<dynamic>?)
+            ?.whereType<Map>()
+            .map(
+              (piece) => ProductPiece.fromJson(
+            Map<String, dynamic>.from(piece),
+          ),
+        )
+            .toList() ??
+            [],
+      );
+    }
 
     factory Product.fromCategoryJson(
         Map<String, dynamic> json, {
@@ -396,4 +460,5 @@
       return '';
     }
   }
+
 

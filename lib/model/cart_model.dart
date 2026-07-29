@@ -2,8 +2,10 @@
 
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../model/address_model.dart';
 import '../model/product_model.dart';
 
@@ -11,84 +13,144 @@ class CartItem {
   final Product product;
   int quantity;
 
-  CartItem({required this.product, this.quantity = 1});
+  CartItem({
+    required this.product,
+    this.quantity = 1,
+  });
 
   Map<String, dynamic> toJson() => {
-    'product':  product.toJson(),
+    'product': product.toJson(),
     'quantity': quantity,
   };
 
-  factory CartItem.fromJson(Map<String, dynamic> json) => CartItem(
-    product:  Product.fromJson(json['product'] as Map<String, dynamic>),
-    quantity: (json['quantity'] as num?)?.toInt() ?? 1,
-  );
+  factory CartItem.fromJson(Map<String, dynamic> json) {
+    final rawProduct = json['product'];
+
+    return CartItem(
+      product: Product.fromJson(
+        rawProduct is Map
+            ? Map<String, dynamic>.from(rawProduct)
+            : <String, dynamic>{},
+      ),
+      quantity: (json['quantity'] as num?)?.toInt() ?? 1,
+    );
+  }
 }
 
 class CartModel extends ChangeNotifier {
-
-  // callback to notify UI when stock limit is reached
   void Function(String message)? onStockLimitReached;
 
-  // ── Per-user key (set on login, reset on logout) ───────────────────────────
   String _cartKey = 'mtl_cart_items_guest';
 
   final Map<String, CartItem> _items = {};
 
   Map<String, CartItem> get items => Map.unmodifiable(_items);
 
-  // ── Only count items that are CURRENTLY in stock. A cart item's stored
-  // stock is a snapshot from whenever it was added/last touched — it can
-  // go stale if that piece goes out of stock while the customer is
-  // browsing elsewhere. Screens that silently poll for fresh stock (e.g.
-  // Product Detail's 5-second refresh) call updateItemStock() below to
-  // keep this current. Until then, this simply reflects the last known
-  // stock for each item. ──
   int get totalQuantity => _items.values
-      .where((item) =>
-  item.product.quantity > 0 || item.product.posQuantity > 0)
+      .where(
+        (item) =>
+    item.product.quantity > 0 ||
+        item.product.posQuantity > 0,
+  )
       .fold(0, (sum, item) => sum + item.quantity);
 
-  double get totalPrice => _items.values
-      .fold(0.0, (sum, item) => sum + item.product.price * item.quantity);
+  double get totalPrice => _items.values.fold(
+    0.0,
+        (sum, item) => sum + item.product.price * item.quantity,
+  );
 
   int getQuantity(Product product) => _items[product.id]?.quantity ?? 0;
 
-  /// Total quantity across all piece variants for a base product id
   int getPieceQuantity(String productId) {
     return _items.entries
-        .where((e) => e.key == productId || e.key.startsWith('${productId}_piece_'))
-        .fold(0, (sum, e) => sum + e.value.quantity);
+        .where(
+          (entry) =>
+      entry.key == productId ||
+          entry.key.startsWith('${productId}_piece_'),
+    )
+        .fold(0, (sum, entry) => sum + entry.value.quantity);
   }
 
   bool contains(Product product) => _items.containsKey(product.id);
 
-  /// Updates ONLY the stock fields on an item already in the cart, without
-  /// touching the quantity the customer chose. Used by screens that
-  /// silently poll for fresh stock (e.g. Product Detail's 5-second
-  /// refresh) so cart-wide totals — like the floating cart badge via
-  /// totalQuantity above — correctly stop counting an item the moment it
-  /// goes out of stock, instead of staying frozen at whatever stock it
-  /// had the moment it was originally added to the cart.
-  void updateItemStock(String productId, int newStock) {
-    final item = _items[productId];
-    if (item == null) return;
-    if (item.product.quantity == newStock &&
-        item.product.posQuantity == newStock) {
-      return; // no change — skip notifying listeners for nothing
-    }
-    final updatedProduct = item.product.copyWith(
-      quantity:    newStock,
-      posQuantity: newStock,
-    );
-    _items[productId] = CartItem(product: updatedProduct, quantity: item.quantity);
-    notifyListeners();
-    // Intentionally NOT calling _saveCart() here — this is a live stock
-    // sync, not a customer action. Persisting on every 5-second poll
-    // would be wasteful disk I/O. Actual customer actions (add/remove/
-    // set quantity) still save normally, below.
+  bool _hasValidImage(String value) {
+    final image = value.trim();
+
+    return image.isNotEmpty &&
+        image.toLowerCase() != 'no_image.png' &&
+        image.toLowerCase() != 'null';
   }
 
-  // ── Load cart for a specific user (call after login & on app start) ─────────
+  Product _mergeProductImage(
+      Product freshProduct,
+      Product oldProduct,
+      ) {
+    return freshProduct.copyWith(
+      image: _hasValidImage(freshProduct.image)
+          ? freshProduct.image
+          : oldProduct.image,
+      imageUrl: _hasValidImage(freshProduct.imageUrl)
+          ? freshProduct.imageUrl
+          : oldProduct.imageUrl,
+    );
+  }
+
+  void updateItemStock(String productId, int newStock) {
+    final item = _items[productId];
+
+    if (item == null) return;
+
+    if (item.product.quantity == newStock &&
+        item.product.posQuantity == newStock) {
+      return;
+    }
+
+    final updatedProduct = item.product.copyWith(
+      quantity: newStock,
+      posQuantity: newStock,
+    );
+
+    _items[productId] = CartItem(
+      product: updatedProduct,
+      quantity: item.quantity,
+    );
+
+    notifyListeners();
+  }
+
+  /// Replaces the stored product data while preserving the customer's
+  /// cart quantity and preserving an existing valid image when the fresh
+  /// API response has no image.
+  ///
+  /// The refreshed product is saved to SharedPreferences so the next time
+  /// CartScreen opens, the image is already available immediately.
+  void updateItemProduct(
+      String productId,
+      Product freshProduct, {
+        int? quantity,
+        bool saveToStorage = true,
+      }) {
+    final existingItem = _items[productId];
+
+    if (existingItem == null) return;
+
+    final safeProduct = _mergeProductImage(
+      freshProduct,
+      existingItem.product,
+    );
+
+    _items[productId] = CartItem(
+      product: safeProduct,
+      quantity: quantity ?? existingItem.quantity,
+    );
+
+    notifyListeners();
+
+    if (saveToStorage) {
+      _saveCart();
+    }
+  }
+
   Future<void> loadForUser(String userId) async {
     _cartKey = 'mtl_cart_items_$userId';
     _items.clear();
@@ -96,50 +158,72 @@ class CartModel extends ChangeNotifier {
     await loadCart();
   }
 
-  // ── Clear in-memory cart on logout (prefs data stays intact) ────────────────
   void clearForLogout() {
     _items.clear();
     _cartKey = 'mtl_cart_items_guest';
     notifyListeners();
   }
 
-  // ── Persistence ─────────────────────────────────────────────────────────────
-
   Future<void> loadCart() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw   = prefs.getString(_cartKey);
+      final raw = prefs.getString(_cartKey);
+
       if (raw == null || raw.isEmpty) {
         return;
       }
 
-      final List<dynamic> decoded = jsonDecode(raw) as List<dynamic>;
+      final decoded = jsonDecode(raw);
+
+      if (decoded is! List) {
+        return;
+      }
+
       _items.clear();
-      for (final e in decoded) {
-        final item = CartItem.fromJson(e as Map<String, dynamic>);
+
+      for (final rawItem in decoded) {
+        if (rawItem is! Map) continue;
+
+        final item = CartItem.fromJson(
+          Map<String, dynamic>.from(rawItem),
+        );
+
+        if (item.product.id.isEmpty) continue;
+
         _items[item.product.id] = item;
       }
+
       notifyListeners();
-    } catch (e, stack) {
+    } catch (_) {
+      // Do not crash the app for damaged old cart data.
     }
   }
 
   void refreshCart() {
     notifyListeners();
   }
+
   Timer? _saveDebounce;
 
   Future<void> _saveCart() async {
     _saveDebounce?.cancel();
-    _saveDebounce = Timer(const Duration(milliseconds: 350), () async {
-      try {
-        final prefs   = await SharedPreferences.getInstance();
-        final encoded = jsonEncode(
-            _items.values.map((i) => i.toJson()).toList());
-        await prefs.setString(_cartKey, encoded);
-      } catch (e) {
-      }
-    });
+
+    _saveDebounce = Timer(
+      const Duration(milliseconds: 350),
+          () async {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+
+          final encoded = jsonEncode(
+            _items.values.map((item) => item.toJson()).toList(),
+          );
+
+          await prefs.setString(_cartKey, encoded);
+        } catch (_) {
+          // Ignore storage failures without crashing cart operations.
+        }
+      },
+    );
   }
 
   @override
@@ -148,13 +232,16 @@ class CartModel extends ChangeNotifier {
     super.dispose();
   }
 
-  // ── Cart operations ──────────────────────────────────────────────────────────
   void addItem(Product product) {
-    final stock = product.quantity > 0 ? product.quantity : product.posQuantity;
+    final stock =
+    product.quantity > 0 ? product.quantity : product.posQuantity;
+
     final currentQty = _items[product.id]?.quantity ?? 0;
 
     if (stock <= 0) {
-      onStockLimitReached?.call('Product is currently out of stock');
+      onStockLimitReached?.call(
+        'Product is currently out of stock',
+      );
       return;
     }
 
@@ -165,14 +252,22 @@ class CartModel extends ChangeNotifier {
       return;
     }
 
-    if (_items.containsKey(product.id)) {
-      // ✅ replace stored product too, so price/stock stay fresh
-      // instead of just bumping quantity on the stale cached product
-      final newQty = _items[product.id]!.quantity + 1;
-      _items[product.id] = CartItem(product: product, quantity: newQty);
+    final existingItem = _items[product.id];
+
+    if (existingItem != null) {
+      final safeProduct = _mergeProductImage(
+        product,
+        existingItem.product,
+      );
+
+      _items[product.id] = CartItem(
+        product: safeProduct,
+        quantity: existingItem.quantity + 1,
+      );
     } else {
       _items[product.id] = CartItem(product: product);
     }
+
     notifyListeners();
     _saveCart();
   }
@@ -184,42 +279,48 @@ class CartModel extends ChangeNotifier {
   }
 
   void incrementQuantity(String productId) {
-    if (_items.containsKey(productId)) {
-      final item  = _items[productId]!;
-      final stock = item.product.quantity > 0
-          ? item.product.quantity
-          : item.product.posQuantity;
+    final item = _items[productId];
 
-      if (stock <= 0) {
-        onStockLimitReached?.call('Product is currently out of stock');
-        return;
-      }
+    if (item == null) return;
 
-      if (item.quantity >= stock) {
-        onStockLimitReached?.call(
-          'Only $stock item${stock == 1 ? '' : 's'} available in stock',
-        );
-        return;
-      }
+    final stock = item.product.quantity > 0
+        ? item.product.quantity
+        : item.product.posQuantity;
 
-      item.quantity++;
-      notifyListeners();
-      _saveCart();
+    if (stock <= 0) {
+      onStockLimitReached?.call(
+        'Product is currently out of stock',
+      );
+      return;
     }
-  }
 
-  void decrementQuantity(String productId) {
-    if (!_items.containsKey(productId)) return;
-    if (_items[productId]!.quantity <= 1) {
-      _items.remove(productId);
-    } else {
-      _items[productId]!.quantity--;
+    if (item.quantity >= stock) {
+      onStockLimitReached?.call(
+        'Only $stock item${stock == 1 ? '' : 's'} available in stock',
+      );
+      return;
     }
+
+    item.quantity++;
     notifyListeners();
     _saveCart();
   }
 
-  // void clearCart() {
+  void decrementQuantity(String productId) {
+    final item = _items[productId];
+
+    if (item == null) return;
+
+    if (item.quantity <= 1) {
+      _items.remove(productId);
+    } else {
+      item.quantity--;
+    }
+
+    notifyListeners();
+    _saveCart();
+  }
+
   void setQuantity(Product product, int qty) {
     if (qty <= 0) {
       _items.remove(product.id);
@@ -227,16 +328,32 @@ class CartModel extends ChangeNotifier {
       _saveCart();
       return;
     }
-    // Always use the freshly-passed product's stock (not the stale stored one)
-    final stock = product.quantity > 0 ? product.quantity : product.posQuantity;
+
+    final stock =
+    product.quantity > 0 ? product.quantity : product.posQuantity;
+
     if (stock > 0 && qty > stock) {
       onStockLimitReached?.call(
         'Only $stock item${stock == 1 ? '' : 's'} available in stock',
       );
-      qty = stock; // clamp to max stock
+
+      qty = stock;
     }
-    // Replace the entire CartItem so stored product stock is always fresh
-    _items[product.id] = CartItem(product: product, quantity: qty);
+
+    final existingItem = _items[product.id];
+
+    final safeProduct = existingItem == null
+        ? product
+        : _mergeProductImage(
+      product,
+      existingItem.product,
+    );
+
+    _items[product.id] = CartItem(
+      product: safeProduct,
+      quantity: qty,
+    );
+
     notifyListeners();
     _saveCart();
   }
@@ -250,12 +367,13 @@ class CartModel extends ChangeNotifier {
   void clearCartMemoryOnly() {
     _items.clear();
     notifyListeners();
-    // intentionally NOT calling _saveCart() — prefs data stays intact
   }
 
-  // ── Address helpers ──────────────────────────────────────────────────────────
+  Future<AddressModel?> getDefaultAddress() {
+    return AddressStorage.getDefault();
+  }
 
-  Future<AddressModel?> getDefaultAddress() => AddressStorage.getDefault();
-
-  Future<List<AddressModel>> getSavedAddresses() => AddressStorage.load();
+  Future<List<AddressModel>> getSavedAddresses() {
+    return AddressStorage.load();
+  }
 }
