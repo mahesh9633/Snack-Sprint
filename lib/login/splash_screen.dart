@@ -1,9 +1,13 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:mtl_groceriesapp/login/login_screen.dart';
 import 'package:mtl_groceriesapp/screens/location_gateway.dart';
+
 import '../config/app_color.dart';
-import '../services/session_manager.dart';
 import '../services/api_server.dart';
+import '../services/session_manager.dart';
+import '../services/store_profile_cache.dart';
 import '../services/update_service.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -29,29 +33,37 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _scaleAnim = Tween<double>(begin: 0.6, end: 1.0).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
+      CurvedAnimation(
+        parent: _animController,
+        curve: Curves.easeInOut,
+      ),
     );
 
     _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeIn),
+      CurvedAnimation(
+        parent: _animController,
+        curve: Curves.easeIn,
+      ),
     );
 
     _animController.forward();
+    _startSplashFlow();
+  }
 
-    Future.delayed(const Duration(seconds: 2), () async {
-      if (!mounted) return;
+  Future<void> _startSplashFlow() async {
+    // Keep the logo visible for the intended splash duration.
+    await Future.delayed(const Duration(seconds: 2));
 
-      await UpdateService.checkForUpdate();
+    if (!mounted) return;
 
-      if (!mounted) return;
+    await UpdateService.checkForUpdate();
 
-      await _checkLoginAndNavigate();
-    });
+    if (!mounted) return;
+
+    await _checkLoginAndNavigate();
   }
 
   Future<void> _checkLoginAndNavigate() async {
-    if (!mounted) return;
-
     final isLoggedIn = await SessionManager.isLoggedIn();
     final token = await SessionManager.getToken();
     final telephone = await SessionManager.getTelephone();
@@ -59,44 +71,70 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (!mounted) return;
 
-    if (isLoggedIn && token != null && token.isNotEmpty) {
-      final isValid = await ApiService.validateToken(
-        token: token,
-        customerId: customerId ?? '',
-      );
+    if (!isLoggedIn || token == null || token.isEmpty) {
+      StoreProfileCache.clear();
+      _goToLogin();
+      return;
+    }
+
+    // Start profile loading and token validation together.
+    // ProfileGetApiService reads the saved token from SessionManager.
+    final profileFuture = StoreProfileCache.preload();
+
+    final isValid = await ApiService.validateToken(
+      token: token,
+      customerId: customerId ?? '',
+    );
+
+    if (!mounted) return;
+
+    if (!isValid) {
+      await SessionManager.clearSession();
+      StoreProfileCache.clear();
 
       if (!mounted) return;
-
-      if (!isValid) {
-        await SessionManager.clearSession();
-        _goToLogin();
-        return;
-      }
-
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (_, __, ___) => LocationGateway(
-            telephone: telephone ?? '',
-            customerId: customerId ?? '',
-            authToken: token,
-            isNewCustomer: false,
-          ),
-          transitionsBuilder: (_, animation, __, child) =>
-              FadeTransition(opacity: animation, child: child),
-          transitionDuration: const Duration(milliseconds: 500),
-        ),
-      );
-    } else {
       _goToLogin();
+      return;
     }
+
+    // Permanent fix:
+    // Do not enter the app until delivery settings are cached.
+    // CartScreen can then show the correct delivery fee on its first frame.
+    await profileFuture;
+
+    if (!mounted) return;
+
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => LocationGateway(
+          telephone: telephone ?? '',
+          customerId: customerId ?? '',
+          authToken: token,
+          isNewCustomer: false,
+        ),
+        transitionsBuilder: (_, animation, __, child) {
+          return FadeTransition(
+            opacity: animation,
+            child: child,
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 500),
+      ),
+    );
   }
 
   void _goToLogin() {
+    if (!mounted) return;
+
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (_, __, ___) => const LoginScreen(),
-        transitionsBuilder: (_, animation, __, child) =>
-            FadeTransition(opacity: animation, child: child),
+        transitionsBuilder: (_, animation, __, child) {
+          return FadeTransition(
+            opacity: animation,
+            child: child,
+          );
+        },
         transitionDuration: const Duration(milliseconds: 500),
       ),
     );

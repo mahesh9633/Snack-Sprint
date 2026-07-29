@@ -31,8 +31,19 @@ Widget _safeProductImage(String image, String imageUrl) {
     return Image.network(
       url,
       fit: BoxFit.cover,
-      loadingBuilder: (_, child, prog) =>
-      prog == null ? child : Container(color: AppColors.sidebarBg),
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) return child;
+
+        return Container(
+          color: AppColors.sidebarBg,
+          alignment: Alignment.center,
+          child: const SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        );
+      },
       errorBuilder: (_, __, ___) => _imgPlaceholder(),
     );
   }
@@ -111,10 +122,16 @@ Product _freshProductFromApiMap(
   final double rawPrice     = double.tryParse(apiProduct['price']?.toString() ?? '0') ?? 0;
   final double specialPrice = double.tryParse(apiProduct['special_price']?.toString() ?? '0') ?? 0;
 
-  double displayPrice  = (specialPrice > 0 && specialPrice < rawPrice) ? specialPrice : rawPrice;
+  double displayPrice  =
+  (specialPrice > 0 && specialPrice < rawPrice)
+      ? specialPrice
+      : rawPrice;
   double originalPrice = rawPrice;
-  String weight        = apiProduct['piece']?.toString() ?? '';
-  int    stock         = productLevelQty;
+  String weight = apiProduct['piece']?.toString() ?? '';
+  int stock = productLevelQty;
+
+  final productImage = apiProduct['image']?.toString() ?? '';
+  String selectedImage = productImage;
 
   List<ProductPiece> pieces = [];
   final rawPieces = apiProduct['pieces'];
@@ -154,9 +171,13 @@ Product _freshProductFromApiMap(
       final m       = matches.first;
       displayPrice  = m.effectivePrice;
       originalPrice = m.hasDiscount ? m.price : m.effectivePrice;
-      weight        = m.label;
-      stock         = m.stock;
-      pieces        = [m];
+      weight = m.label;
+      stock = m.stock;
+      selectedImage =
+      m.image.isNotEmpty && m.image != 'no_image.png'
+          ? m.image
+          : productImage;
+      pieces = [m];
     } else {
       // This exact piece no longer exists in the fresh data (removed by
       // admin) — treat as unavailable rather than silently falling back
@@ -170,6 +191,12 @@ Product _freshProductFromApiMap(
     name:               apiProduct['name']?.toString() ?? '',
     price:              displayPrice,
     originalPrice:      originalPrice,
+    image:              selectedImage,
+    imageUrl:           selectedImage.isEmpty
+        ? ''
+        : (selectedImage.startsWith('http')
+        ? selectedImage
+        : '$_kImgBase$selectedImage'),
     category:           apiProduct['category']?.toString() ?? '',
     weight:             weight,
     discountPercentage: 0,
@@ -206,12 +233,11 @@ class _CartScreenState extends State<CartScreen> {
   // still runs afterward to refresh in the background and keep the
   // cache current for next time. ──
   double _minOrderValue = StoreProfileCache.minOrderValue;
-  double _storeDeliveryFee = StoreProfileCache.deliveryFee; // raw flat fee from db (via profile)
-  // ── Free-delivery threshold: cart total >= this value → delivery fee
-  // becomes 0. Separate from _minOrderValue, which only blocks checkout. ──
+  double _storeDeliveryFee = StoreProfileCache.deliveryFee;
   double _deliveryOrderValue = StoreProfileCache.deliveryOrderValue;
-  double _deliveryFee = 0;
-  double _finalTotal = 0;
+
+  late double _deliveryFee;
+  late double _finalTotal;
 
   // ✅ silently keep prices/stock fresh for items already in the cart
   Timer? _autoRefreshTimer;
@@ -220,35 +246,34 @@ class _CartScreenState extends State<CartScreen> {
   @override
   void initState() {
     super.initState();
-    // ── Compute the delivery fee / final total RIGHT NOW using whatever
-    // is already cached (from StoreProfileCache.preload(), called earlier
-    // e.g. on Home load) plus the cart's current total. This is what
-    // eliminates the flash of 0 / visible delay — the customer sees
-    // correct numbers on the very first frame, not after a network
-    // round-trip. If the cache was never populated (e.g. very first
-    // launch before preload() had a chance to run), this just computes
-    // with 0s as before, and _fetchMinOrderValue() below corrects it
-    // moments later exactly like the old behaviour. ──
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final cart = Provider.of<CartModel>(context, listen: false);
-      _recalculateTotals(cart.totalPrice);
-    });
+
+    // Calculate delivery fee before CartScreen builds its first frame.
+    // SplashScreen has already populated StoreProfileCache.
+    final cart = context.read<CartModel>();
+    final cartTotal = cart.totalPrice;
+
+    final qualifiesForFreeDelivery =
+        _deliveryOrderValue > 0 &&
+            cartTotal >= _deliveryOrderValue;
+
+    _deliveryFee =
+    qualifiesForFreeDelivery ? 0.0 : _storeDeliveryFee;
+    _finalTotal = cartTotal + _deliveryFee;
+
+    // Refresh silently after the screen is already showing correct
+    // cached values.
     _fetchMinOrderValue();
+
+    // Refresh old saved cart entries immediately when CartScreen opens.
+    // This migrates any old item that was saved without image/imageUrl.
+    _refreshCartItemPrices();
+
     _startAutoRefresh();
   }
 
   void _startAutoRefresh() {
     _autoRefreshTimer = Timer.periodic(_kCartRefreshInterval, (_) {
       _refreshCartItemPrices();
-      // ── Previously only item prices/stock were refreshed on this
-      // timer. min_order_value / delivery_fee / delivery_order_value
-      // only ever updated on screen open or pull-to-refresh — if the
-      // admin changed them WHILE the customer was sitting on the cart
-      // screen, nothing picked it up until they left and came back.
-      // Now it rides the same 5-second tick, so it updates silently
-      // just like item prices do. ──
-      _fetchMinOrderValue();
     });
   }
 
@@ -338,10 +363,14 @@ class _CartScreenState extends State<CartScreen> {
             qtyClamped = true;
           }
 
-          final changed = stored.price != freshProduct.price ||
-              stored.originalPrice != freshProduct.originalPrice ||
-              stored.quantity != freshProduct.quantity ||
-              qtyClamped;
+          final changed =
+              stored.price != freshProduct.price ||
+                  stored.originalPrice != freshProduct.originalPrice ||
+                  stored.quantity != freshProduct.quantity ||
+                  stored.posQuantity != freshProduct.posQuantity ||
+                  stored.image != freshProduct.image ||
+                  stored.imageUrl != freshProduct.imageUrl ||
+                  qtyClamped;
 
           if (changed) {
             // preserve the cart id (handles piece-variant ids); quantity is
@@ -350,7 +379,11 @@ class _CartScreenState extends State<CartScreen> {
             // changes the price/stock/quantity on the backend, the next
             // refresh tick (every 5s) picks it up and updates the cart line
             // automatically, without resetting which piece the user picked.
-            cart.setQuantity(freshProduct, newQty);
+            cart.updateItemProduct(
+              cartId,
+              freshProduct,
+              quantity: newQty,
+            );
             if (qtyClamped && mounted) {
               ScaffoldMessenger.of(context)
                 ..clearSnackBars()
@@ -371,17 +404,24 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   void _recalculateTotals(double cartTotal) {
-    // ── Free-delivery rule: if the cart total meets/exceeds
-    // _deliveryOrderValue (admin-configured threshold), delivery is
-    // free (₹0). Otherwise the normal flat _storeDeliveryFee applies.
-    // A threshold of 0 means the store hasn't set one, so we fall back
-    // to always charging the flat fee (previous behaviour). ──
-    final bool qualifiesForFreeDelivery = _deliveryOrderValue > 0 &&
-        cartTotal >= _deliveryOrderValue;
-    final fee = qualifiesForFreeDelivery ? 0.0 : _storeDeliveryFee;
+    final qualifiesForFreeDelivery =
+        _deliveryOrderValue > 0 &&
+            cartTotal >= _deliveryOrderValue;
+
+    final newDeliveryFee =
+    qualifiesForFreeDelivery ? 0.0 : _storeDeliveryFee;
+    final newFinalTotal = cartTotal + newDeliveryFee;
+
+    if (!mounted) return;
+
+    if (_deliveryFee == newDeliveryFee &&
+        _finalTotal == newFinalTotal) {
+      return;
+    }
+
     setState(() {
-      _deliveryFee = fee;
-      _finalTotal = cartTotal + fee;
+      _deliveryFee = newDeliveryFee;
+      _finalTotal = newFinalTotal;
     });
   }
 
@@ -413,10 +453,11 @@ class _CartScreenState extends State<CartScreen> {
         // Keep the shared cache current, so the NEXT time the cart (or
         // any other screen) reads StoreProfileCache, it gets this
         // latest data instantly too.
-        StoreProfileCache.minOrderValue      = freshMinOrder;
-        StoreProfileCache.deliveryFee        = freshDeliveryFee;
-        StoreProfileCache.deliveryOrderValue = freshDeliveryOrder;
-        StoreProfileCache.hasLoaded          = true;
+        StoreProfileCache.update(
+          minOrderValueValue: freshMinOrder,
+          deliveryFeeValue: freshDeliveryFee,
+          deliveryOrderValueValue: freshDeliveryOrder,
+        );
 
         if (mounted) {
           setState(() {
