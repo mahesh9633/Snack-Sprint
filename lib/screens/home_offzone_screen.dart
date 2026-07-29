@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mtl_groceriesapp/screens/see_all.dart';
 import '../config/app_color.dart';
@@ -7,6 +8,39 @@ import '../services/api_config_service.dart';
 import '../services/api_server.dart';
 import '../services/session_manager.dart';
 import '../widgets/piece_selector_sheet.dart';
+
+// ── Resolve the correct piece/unit label for a raw product JSON map ────────
+// Mirrors the logic used in home_mtl_screen.dart's _SubProduct.fromJson so
+// every screen shows the same unit text instead of falling back to SKU.
+String _resolvePieceUnit(Map<String, dynamic> p) {
+  final piecesList = (p['pieces'] as List? ?? [])
+      .map((e) => e as Map<String, dynamic>)
+      .toList();
+
+  Map<String, dynamic>? defaultPieceMap;
+  for (final pc in piecesList) {
+    if (pc['piece_default']?.toString() == '1') {
+      defaultPieceMap = pc;
+      break;
+    }
+  }
+  if (defaultPieceMap == null && piecesList.isNotEmpty) {
+    defaultPieceMap = piecesList.reduce((a, b) {
+      final aP = double.tryParse(a['price']?.toString() ?? '0') ?? 0;
+      final bP = double.tryParse(b['price']?.toString() ?? '0') ?? 0;
+      return aP >= bP ? a : b;
+    });
+  }
+
+  final String rawUnit =
+  defaultPieceMap?['piece']?.toString().isNotEmpty == true
+      ? defaultPieceMap!['piece'].toString()
+      : (p['piece']?.toString() ?? '').isNotEmpty
+      ? p['piece'].toString()
+      : (p['barcode_type']?.toString() ?? '');
+
+  return rawUnit;
+}
 
 class OffZoneTabBody extends StatefulWidget {
   const OffZoneTabBody({super.key});
@@ -24,14 +58,22 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
 
   final Map<String, String> _catNames = {};
 
+  // ── Silent background refresh, same pattern as the MTL home tab ──────────
+  Timer? _autoRefreshTimer;
+  static const Duration _kAutoRefreshInterval = Duration(seconds: 5);
+
   @override
   void initState() {
     super.initState();
     _load();
+    _autoRefreshTimer = Timer.periodic(_kAutoRefreshInterval, (_) {
+      _load(silent: true);
+    });
   }
 
   @override
   void dispose() {
+    _autoRefreshTimer?.cancel();
     _searchCtrl.dispose();
     super.dispose();
   }
@@ -43,8 +85,9 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
     return '$base$clean';
   }
 
-  Future<void> _load() async {
-    setState(() => _loading = true);
+  // ── UPDATED: supports `silent` background refresh (no spinner flicker) ───
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) setState(() => _loading = true);
     try {
       final token = await SessionManager.getToken();
 
@@ -72,17 +115,18 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
         final prods = raw['random_products'] as List? ?? [];
 
         for (final p in prods) {
-          final mrp     = double.tryParse(p['price']?.toString()           ?? '0') ?? 0;
-          final selling = double.tryParse(p['wholesale_price']?.toString() ?? '0') ?? 0;
-          final special = double.tryParse(p['special_price']?.toString()   ?? '0') ?? 0;
-          final img     = p['image']?.toString() ?? '';
+          final pMap    = p as Map<String, dynamic>;
+          final mrp     = double.tryParse(pMap['price']?.toString()           ?? '0') ?? 0;
+          final selling = double.tryParse(pMap['wholesale_price']?.toString() ?? '0') ?? 0;
+          final special = double.tryParse(pMap['special_price']?.toString()   ?? '0') ?? 0;
+          final img     = pMap['image']?.toString() ?? '';
           final url     = _buildImageUrl(img, base);
 
           // ── Parse quantity correctly ──────────────────────────────────
-          final stockStatus = p['stock_status']?.toString().toLowerCase() ?? '';
-          final subtract    = p['subtract']?.toString() ?? '';
-          final rawQty      = p['pos_quentity']?.toString()
-              ?? p['quantity']?.toString()
+          final stockStatus = pMap['stock_status']?.toString().toLowerCase() ?? '';
+          final subtract    = pMap['subtract']?.toString() ?? '';
+          final rawQty      = pMap['pos_quentity']?.toString()
+              ?? pMap['quantity']?.toString()
               ?? '';
           int qty;
           if (stockStatus == 'out of stock' || stockStatus == '0' || stockStatus == 'outofstock') {
@@ -111,8 +155,8 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
           // Only show products with 50% or more discount
           if (disc < 50) continue;
 
-          final pid   = p['product_id']?.toString() ?? '';
-          final pname = p['name']?.toString() ?? '';
+          final pid   = pMap['product_id']?.toString() ?? '';
+          final pname = pMap['name']?.toString() ?? '';
 
           // ── Dedup check ───────────────────────────────────────────────
           if (pid.isNotEmpty && addedIds.contains(pid)) continue;
@@ -125,11 +169,12 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
             originalPrice:      mrp,
             image:              url,
             imageUrl:           url,
-            category:           p['category_id']?.toString() ?? '',
-            weight:             p['sku']?.toString()          ?? '',
+            category:           pMap['category_id']?.toString() ?? '',
+            // ✅ FIXED: use the resolved piece/unit label, not SKU
+            weight:             _resolvePieceUnit(pMap),
             discountPercentage: disc,
             quantity:           qty,
-            pieces: (p['pieces'] as List? ?? [])
+            pieces: (pMap['pieces'] as List? ?? [])
                 .map((e) => ProductPiece.fromJson(e as Map<String, dynamic>))
                 .toList(),
           ));
@@ -154,12 +199,13 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
 
           final subProds = sub['products'] as List? ?? [];
           for (final p in subProds) {
-            final mrp     = double.tryParse(p['price']?.toString()         ?? '0') ?? 0;
-            final special = double.tryParse(p['special_price']?.toString() ?? '0') ?? 0;
-            final img     = p['image']?.toString() ?? '';
+            final pMap    = p as Map<String, dynamic>;
+            final mrp     = double.tryParse(pMap['price']?.toString()         ?? '0') ?? 0;
+            final special = double.tryParse(pMap['special_price']?.toString() ?? '0') ?? 0;
+            final img     = pMap['image']?.toString() ?? '';
             final url     = _buildImageUrl(img, base);
-            final pCatId  = p['category_id']?.toString() ?? catId;
-            final qty     = int.tryParse(p['pos_quentity']?.toString() ?? '0') ?? 0;
+            final pCatId  = pMap['category_id']?.toString() ?? catId;
+            final qty     = int.tryParse(pMap['pos_quentity']?.toString() ?? '0') ?? 0;
 
             double disc = 0;
             if (special > 0 && special < mrp) {
@@ -169,8 +215,8 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
             // Only show products with 50% or more discount
             if (disc < 50) continue;
 
-            final pid   = p['product_id']?.toString() ?? '';
-            final pname = p['name']?.toString() ?? '';
+            final pid   = pMap['product_id']?.toString() ?? '';
+            final pname = pMap['name']?.toString() ?? '';
 
             // ── Dedup check (by ID or by name as fallback) ────────────
             if (pid.isNotEmpty && addedIds.contains(pid)) continue;
@@ -184,10 +230,13 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
               image:              url,
               imageUrl:           url,
               category:           pCatId,
-              weight:             p['piece']?.toString() ?? '',
+              // ✅ FIXED: same resolution helper as Source 1, instead of
+              // reading p['piece'] directly (which skipped the default-piece
+              // lookup and was the reason some cards had no unit text)
+              weight:             _resolvePieceUnit(pMap),
               discountPercentage: disc,
               quantity:           qty,
-              pieces: (p['pieces'] as List? ?? [])
+              pieces: (pMap['pieces'] as List? ?? [])
                   .map((e) => ProductPiece.fromJson(e as Map<String, dynamic>))
                   .toList(),
             ));
@@ -199,10 +248,15 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
       }
 
       all.sort((a, b) => b.discountPercentage.compareTo(a.discountPercentage));
-      setState(() { _products = all; _loading = false; });
+
+      if (!mounted) return;
+      setState(() {
+        _products = all;
+        if (!silent) _loading = false;
+      });
 
     } catch (e, st) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && !silent) setState(() => _loading = false);
     }
   }
 
@@ -311,6 +365,10 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
       } else {
         // One continuous grid — same structure/sizing as the 10%-40% zone.
         // Category name still shows as a small badge on each card.
+        //
+        // mainAxisExtent (not childAspectRatio) pins each cell to a fixed
+        // pixel height tuned to the real ProductCard content height, so
+        // there's no leftover gap under the price/button.
         children.add(
           GridView.builder(
             shrinkWrap: true,
@@ -318,7 +376,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount:   2,
-              childAspectRatio: 0.40,
+              mainAxisExtent:   215,
               crossAxisSpacing: 12,
               mainAxisSpacing:  12,
             ),
@@ -628,10 +686,8 @@ class _ProductCardWithBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // ProductCard(product: product),
         ProductCard(product: product, imageHeight: 100),
         if (categoryName.isNotEmpty)
-
           Positioned(
             top: 6, right: 6,
             child: Container(

@@ -1,3 +1,6 @@
+
+
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mtl_groceriesapp/screens/see_all.dart';
 import '../model/product_model.dart';
@@ -6,6 +9,40 @@ import '../services/api_config_service.dart';
 import '../services/api_server.dart';
 import '../services/session_manager.dart';
 import '../widgets/piece_selector_sheet.dart';
+
+// ── Resolve the correct piece/unit label for a raw product JSON map ────────
+// Same helper as off_zone_tab_body.dart / home_mtl_screen.dart's
+// _SubProduct.fromJson, so every screen shows the same unit text instead of
+// falling back to SKU.
+String _resolvePieceUnit(Map<String, dynamic> p) {
+  final piecesList = (p['pieces'] as List? ?? [])
+      .map((e) => e as Map<String, dynamic>)
+      .toList();
+
+  Map<String, dynamic>? defaultPieceMap;
+  for (final pc in piecesList) {
+    if (pc['piece_default']?.toString() == '1') {
+      defaultPieceMap = pc;
+      break;
+    }
+  }
+  if (defaultPieceMap == null && piecesList.isNotEmpty) {
+    defaultPieceMap = piecesList.reduce((a, b) {
+      final aP = double.tryParse(a['price']?.toString() ?? '0') ?? 0;
+      final bP = double.tryParse(b['price']?.toString() ?? '0') ?? 0;
+      return aP >= bP ? a : b;
+    });
+  }
+
+  final String rawUnit =
+  defaultPieceMap?['piece']?.toString().isNotEmpty == true
+      ? defaultPieceMap!['piece'].toString()
+      : (p['piece']?.toString() ?? '').isNotEmpty
+      ? p['piece'].toString()
+      : (p['barcode_type']?.toString() ?? '');
+
+  return rawUnit;
+}
 
 class SuperMallTabBody extends StatefulWidget {
   const SuperMallTabBody({super.key});
@@ -20,20 +57,32 @@ class _SuperMallTabBodyState extends State<SuperMallTabBody> {
   final TextEditingController _searchCtrl = TextEditingController();
   String        _searchText = '';
 
+  // ── Category names, so cards can show the same badge as the 50% zone ────
+  final Map<String, String> _catNames = {};
+
+  // ── Silent background refresh, same pattern as the MTL home tab ──────────
+  Timer? _autoRefreshTimer;
+  static const Duration _kAutoRefreshInterval = Duration(seconds: 5);
+
   @override
   void initState() {
     super.initState();
     _load();
+    _autoRefreshTimer = Timer.periodic(_kAutoRefreshInterval, (_) {
+      _load(silent: true);
+    });
   }
 
   @override
   void dispose() {
+    _autoRefreshTimer?.cancel();
     _searchCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
-    setState(() => _loading = true);
+  // ── UPDATED: supports `silent` background refresh (no spinner flicker) ───
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) setState(() => _loading = true);
     try {
       final token = await SessionManager.getToken();
 
@@ -42,22 +91,35 @@ class _SuperMallTabBodyState extends State<SuperMallTabBody> {
       if (!mounted) return;
 
       List<Map<String, dynamic>> allRawProducts = [];
+      // productId -> categoryId, so we can attach a category badge/filter
+      final Map<String, String> productCatId = {};
 
       if (catResult['success'] == true) {
         final data = catResult['data'] as Map<String, dynamic>? ?? {};
 
-        // collect parent products
+        // collect parent products (no subcategory of their own)
         final parentProds = (data['products'] as List? ?? []);
         for (final p in parentProds) {
-          allRawProducts.add(Map<String, dynamic>.from(p));
+          final pm = Map<String, dynamic>.from(p);
+          allRawProducts.add(pm);
         }
 
-        // collect subcategory products
+        // collect subcategory products + names
         final subs = (data['subcategories'] as List? ?? []);
         for (final sub in subs) {
-          final subProds = (sub['products'] as List? ?? []);
+          final subMap = sub as Map<String, dynamic>;
+          final catId  = subMap['category_id']?.toString() ?? '';
+          final catNm  = subMap['name']?.toString()        ?? '';
+          if (catId.isNotEmpty && catNm.isNotEmpty) {
+            _catNames[catId] = catNm;
+          }
+
+          final subProds = (subMap['products'] as List? ?? []);
           for (final p in subProds) {
-            allRawProducts.add(Map<String, dynamic>.from(p));
+            final pm = Map<String, dynamic>.from(p);
+            final pid = pm['product_id']?.toString() ?? '';
+            if (pid.isNotEmpty) productCatId[pid] = catId;
+            allRawProducts.add(pm);
           }
         }
       }
@@ -76,15 +138,19 @@ class _SuperMallTabBodyState extends State<SuperMallTabBody> {
             : 0.0;
         final qty = int.tryParse(p['pos_quentity']?.toString() ?? '0') ?? 0;
 
+        final pid = p['product_id']?.toString() ?? '';
+        final resolvedCatId = productCatId[pid] ?? p['category_id']?.toString() ?? '';
+
         return Product(
-          id:                 p['product_id']?.toString() ?? '',
+          id:                 pid,
           name:               p['name']?.toString() ?? '',
           price:              actualPrice,
           originalPrice:      rp,
           image:              url,
           imageUrl:           url,
-          category:           p['category_id']?.toString() ?? '',
-          weight:             p['sku']?.toString() ?? '',
+          category:           resolvedCatId,
+          // ✅ FIXED: use the resolved piece/unit label, not SKU
+          weight:             _resolvePieceUnit(p),
           discountPercentage: disc,
           quantity:           qty,
           pieces: (p['pieces'] as List? ?? [])
@@ -94,10 +160,18 @@ class _SuperMallTabBodyState extends State<SuperMallTabBody> {
       }).toList();
 
       if (!mounted) return;
-      setState(() { _products = all; _loading = false; });
+      setState(() {
+        _products = all;
+        if (!silent) _loading = false;
+      });
     } catch (e) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && !silent) setState(() => _loading = false);
     }
+  }
+
+  String _getCategoryName(String catId) {
+    if (catId.isEmpty) return '';
+    return _catNames[catId] ?? '';
   }
 
   List<Product> get _displayed {
@@ -122,17 +196,24 @@ class _SuperMallTabBodyState extends State<SuperMallTabBody> {
           )
         else ...[
           _buildAllProductsHeader(context, featured),
+          // mainAxisExtent (not childAspectRatio) pins each cell to a fixed
+          // pixel height matching the real ProductCard content height —
+          // same fix as the 50% OFF Zone grid, so both screens look
+          // identical with no leftover gap under the price/button.
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.65,
+                crossAxisCount:   2,
+                mainAxisExtent:   215,
                 crossAxisSpacing: 12,
-                mainAxisSpacing: 12),
+                mainAxisSpacing:  12),
             itemCount: featured.length > 20 ? 20 : featured.length,
-            itemBuilder: (_, i) => ProductCard(product: featured[i]),
+            itemBuilder: (_, i) => _ProductCardWithBadge(
+              product:      featured[i],
+              categoryName: _getCategoryName(featured[i].category),
+            ),
           ),
         ],
         const SizedBox(height: 100),
@@ -270,6 +351,49 @@ class _SuperMallTabBodyState extends State<SuperMallTabBody> {
           ]),
         ),
       ]),
+    );
+  }
+}
+
+// ── Same badge overlay pattern as the 50% OFF Zone screen, so cards match ──
+class _ProductCardWithBadge extends StatelessWidget {
+  final Product product;
+  final String  categoryName;
+
+  const _ProductCardWithBadge({
+    required this.product,
+    required this.categoryName,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        ProductCard(product: product, imageHeight: 100),
+        if (categoryName.isNotEmpty)
+          Positioned(
+            top: 6, right: 6,
+            child: Container(
+              padding:
+              const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1B5E20).withValues(alpha: 0.90),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              constraints: const BoxConstraints(maxWidth: 90),
+              child: Text(
+                categoryName,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.2),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
