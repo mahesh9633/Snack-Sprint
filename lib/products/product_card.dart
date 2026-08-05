@@ -1,3 +1,5 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:mtl_groceriesapp/products/product_detail_screen.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +9,7 @@ import '../model/cart_model.dart';
 import '../model/favorites_model.dart';
 import '../model/product_model.dart';
 import '../services/api_config_service.dart';
+import '../utils/cart_add_helper.dart';
 import '../widgets/piece_selector_sheet.dart';
 
 final String _kImgBase = ApiConfig.imageBase;
@@ -306,8 +309,8 @@ class ProductCard extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryYellow,
-                          borderRadius: BorderRadius.circular(4)),
+                            color: AppColors.primaryYellow,
+                            borderRadius: BorderRadius.circular(4)),
                         child: Text('${product.computedDiscount}% OFF',
                             style: const TextStyle(
                                 color:      AppColors.textDark,
@@ -318,10 +321,22 @@ class ProductCard extends StatelessWidget {
                   Positioned(
                     bottom: 6, right: 6,
                     child: quantity == 0
-                        ? _AddButton(onTap: () => cart.addItem(product))
+                        ? _AddButton(
+                      onTap: () async {
+                        await addProductWithCategoryCheck(
+                          context: context,
+                          product: product,
+                        );
+                      },
+                    )
                         : _StepperWidget(
                       quantity:    quantity,
-                      onIncrement: () => cart.addItem(product),
+                      onIncrement: () async {
+                        await addProductWithCategoryCheck(
+                          context: context,
+                          product: product,
+                        );
+                      },
                       onDecrement: () => cart.decrementQuantity(product.id),
                     ),
                   ),
@@ -482,20 +497,23 @@ class _OverlayCartButtonState extends State<_OverlayCartButton> {
         builder: (_, cart, __) {
           final qty = cart.getPieceQuantity(widget.product.id);
           return GestureDetector(
-            onTap: () => handleAddToCart(
+            onTap: () async {
+              await addPieceProductWithCategoryCheck(
                 context: context,
                 product: widget.product,
-                pieces:  widget.product.pieces),
+                pieces: widget.product.pieces,
+              );
+            },
             child: qty > 0
                 ? _greenStepper(
               qty: qty,
               onDecrement: () => cart.getPieceQuantity(widget.product.id) > 0
-                  ? handleAddToCart(
+                  ? addPieceProductWithCategoryCheck(
                   context: context,
                   product: widget.product,
                   pieces:  widget.product.pieces)
                   : null,
-              onIncrement: () => handleAddToCart(
+              onIncrement: () => addPieceProductWithCategoryCheck(
                   context: context,
                   product: widget.product,
                   pieces:  widget.product.pieces),
@@ -505,16 +523,18 @@ class _OverlayCartButtonState extends State<_OverlayCartButton> {
         },
       );
     }
-
     // Standard product
     return Consumer<CartModel>(
       builder: (_, cart, __) {
         final qty = cart.getQuantity(widget.product);
         if (qty == 0) {
           return GestureDetector(
-            onTap: () {
+            onTap: () async {
               if (!widget.product.isInStock) return;
-              cart.addItem(widget.product);
+              await addProductWithCategoryCheck(
+                context: context,
+                product: widget.product,
+              );
             },
             child: _addBox(),
           );
@@ -522,12 +542,15 @@ class _OverlayCartButtonState extends State<_OverlayCartButton> {
         return _greenStepper(
           qty: qty,
           onDecrement: () => cart.decrementQuantity(widget.product.id),
-          onIncrement: () {
+          onIncrement: () async {
             final stock = widget.product.quantity > 0
                 ? widget.product.quantity
                 : widget.product.posQuantity;
             if (stock > 0 && qty >= stock) return;
-            cart.addItem(widget.product);
+            await addProductWithCategoryCheck(
+              context: context,
+              product: widget.product,
+            );
           },
           editing:     _editing,
           ctrl:        _ctrl,

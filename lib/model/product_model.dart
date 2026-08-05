@@ -408,26 +408,38 @@
           : rawImage;
 
       return Product(
-        id:            json['product_id']?.toString()    ?? '',
-        name:          json['name']?.toString()          ?? '',
-        price:         displayPrice,
+        id: json['product_id']?.toString() ?? '',
+        name: json['name']?.toString() ?? '',
+        price: displayPrice,
         originalPrice: originalPrice,
-        image:         defaultPieceImage,                // ← CHANGED
-        imageUrl:      buildUrl(defaultPieceImage),      // ← CHANGED
-        category:      json['category']?.toString()      ?? '',
-        subCategory:   json['sub_category']?.toString()  ?? '',
-        weight:        weightLabel,
-        sku:           json['sku']?.toString()            ?? '',
-        deliveryTime:  json['delivery_time']?.toString()  ?? '15 mins',
-        isVeg:         (json['is_veg']?.toString()        ?? '1') == '1',
-        tag:           tag,
-        description:   json['description']?.toString()   ?? '',
-        highlights:    (json['highlights'] as List<dynamic>?)
-            ?.map((e) => e.toString()).toList() ?? [],
-        quantity:    qty    < 0 ? 0 : qty,
+        image: defaultPieceImage,
+        imageUrl: buildUrl(defaultPieceImage),
+
+        // UPDATED
+        category: json['category']?.toString() ??
+            json['category_id']?.toString() ??
+            '',
+
+        subCategory: json['subCategory']?.toString() ??
+            json['sub_category']?.toString() ??
+            json['subcategory_id']?.toString() ??
+            json['sub_category_id']?.toString() ??
+            '',
+
+        weight: weightLabel,
+        sku: json['sku']?.toString() ?? '',
+        deliveryTime: json['delivery_time']?.toString() ?? '15 mins',
+        isVeg: (json['is_veg']?.toString() ?? '1') == '1',
+        tag: tag,
+        description: json['description']?.toString() ?? '',
+        highlights: (json['highlights'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList() ??
+            [],
+        quantity: qty < 0 ? 0 : qty,
         posQuantity: posQty < 0 ? 0 : posQty,
-        pieces:      parsedPieces,
-        isCombo:     (json['is_combo']?.toString() ?? 'No').toLowerCase() == 'yes',
+        pieces: parsedPieces,
+        isCombo: (json['is_combo']?.toString() ?? 'No').toLowerCase() == 'yes',
       );
     }
 

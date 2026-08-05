@@ -1,3 +1,5 @@
+//
+//
 // import 'dart:async';
 //
 // import 'package:flutter/material.dart';
@@ -16,6 +18,7 @@
 // import '../services/banner_service.dart';
 // import '../services/home_banner_service.dart';
 // import '../services/session_manager.dart';
+// import '../utils/cart_add_helper.dart';
 // import '../widgets/floating_cart.dart';
 // import '../widgets/piece_selector_sheet.dart';
 // import 'offer_products_screen.dart';
@@ -98,6 +101,7 @@
 //   late FocusNode             _searchFocus;
 //   List<_SearchResult>        _searchResults  = [];
 //   bool                       _ownsController = false;
+//   Timer?                     _searchDebounce;
 //
 //   @override
 //   void initState() {
@@ -143,11 +147,18 @@
 //         _pendingData      = null;
 //       });
 //
-//       if (_selectedCatId.isNotEmpty) {
-//         await _fetchCatDetail(_selectedCatId, silent: true);
+//       // ✅ Silently refresh EVERY cached category, not just the currently
+//       // open one, so prices/stock update everywhere in the background.
+//       final catIdsToRefresh = _catCache.keys.toList();
+//       for (final catId in catIdsToRefresh) {
+//         if (!mounted) return;
+//         await _fetchCatDetail(catId, silent: true);
 //       }
-//       if (_selectedSubId.isNotEmpty) {
-//         await _fetchSubDetail(_selectedSubId, silent: true);
+//
+//       final subIdsToRefresh = _subCache.keys.toList();
+//       for (final subId in subIdsToRefresh) {
+//         if (!mounted) return;
+//         await _fetchSubDetail(subId, silent: true);
 //       }
 //     } catch (_) {}
 //   }
@@ -170,13 +181,17 @@
 //   void _onExternalSearch() {
 //     final text = _searchController.text;
 //     setState(() {});
+//     _searchDebounce?.cancel();
 //     if (text.trim().isEmpty) { _closeOverlay(); return; }
-//     _runSearch(text);
+//     _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+//       unawaited(_runSearch(text));
+//     });
 //   }
 //
 //   @override
 //   void dispose() {
 //     _autoRefreshTimer?.cancel();
+//     _searchDebounce?.cancel();
 //     _closeOverlay();
 //     _searchController.removeListener(_onExternalSearch);
 //     if (_ownsController) _searchController.dispose();
@@ -250,13 +265,13 @@
 //   }
 //
 //   Future<void> _prefetchAllCategories(InitialDataModel model) async {
-//     for (final cat in model.categories) {
-//       if (!mounted) return;
-//       if (!_catCache.containsKey(cat.categoryId)) {
-//         await _fetchCatDetail(cat.categoryId);
-//         await Future.delayed(const Duration(milliseconds: 300));
-//       }
-//     }
+//     final toFetch = model.categories
+//         .where((cat) => !_catCache.containsKey(cat.categoryId))
+//         .toList();
+//     if (toFetch.isEmpty || !mounted) return;
+//     await Future.wait(
+//       toFetch.map((cat) => _fetchCatDetail(cat.categoryId)),
+//     );
 //   }
 //
 //   Future<void> refresh() async { await _onRefresh(); }
@@ -278,7 +293,11 @@
 //           final sMap     = s as Map<String, dynamic>;
 //           final subProds = <_SubProduct>[];
 //           for (final p in (sMap['products'] as List? ?? [])) {
-//             final prod = _SubProduct.fromJson(p as Map<String, dynamic>);
+//             final prod = _SubProduct.fromJson(
+//               p as Map<String, dynamic>,
+//               categoryId: catId,
+//               subCategoryId: sMap['category_id']?.toString() ?? '',
+//             );
 //             if (prod != null) subProds.add(prod);
 //           }
 //           childSubs.add(_ChildSub(
@@ -290,7 +309,10 @@
 //         }
 //         final directProds = <_SubProduct>[];
 //         for (final p in rawProds) {
-//           final prod = _SubProduct.fromJson(p as Map<String, dynamic>);
+//           final prod = _SubProduct.fromJson(
+//             p as Map<String, dynamic>,
+//             categoryId: catId,
+//           );
 //           if (prod != null) directProds.add(prod);
 //         }
 //         setState(() {
@@ -326,7 +348,11 @@
 //           final sMap     = s as Map<String, dynamic>;
 //           final subProds = <_SubProduct>[];
 //           for (final p in (sMap['products'] as List? ?? [])) {
-//             final prod = _SubProduct.fromJson(p as Map<String, dynamic>);
+//             final prod = _SubProduct.fromJson(
+//               p as Map<String, dynamic>,
+//               categoryId: _selectedCatId.isNotEmpty ? _selectedCatId : subId,
+//               subCategoryId: sMap['category_id']?.toString() ?? subId,
+//             );
 //             if (prod != null) subProds.add(prod);
 //           }
 //           childSubs.add(_ChildSub(
@@ -338,7 +364,11 @@
 //         }
 //         final directProds = <_SubProduct>[];
 //         for (final p in rawProds) {
-//           final prod = _SubProduct.fromJson(p as Map<String, dynamic>);
+//           final prod = _SubProduct.fromJson(
+//             p as Map<String, dynamic>,
+//             categoryId: _selectedCatId.isNotEmpty ? _selectedCatId : subId,
+//             subCategoryId: subId,
+//           );
 //           if (prod != null) directProds.add(prod);
 //         }
 //         setState(() {
@@ -357,16 +387,23 @@
 //   }
 //
 //   // ── Search ────────────────────────────────────────────────────────────────
-//   void _runSearch(String query) {
+//   Future<void> _runSearch(String query) async {
 //     setState(() {});
 //     if (query.trim().isEmpty) { _closeOverlay(); return; }
 //     final q       = query.toLowerCase();
 //     final results = <_SearchResult>[];
 //
 //     for (final cat in _data?.categories ?? []) {
+//       // ── ensure this category's products are loaded before searching it ──
+//       if (!_catCache.containsKey(cat.categoryId)) {
+//         await _fetchCatDetail(cat.categoryId);
+//       }
+//       if (!mounted) return;
+//
 //       if (cat.name.toLowerCase().contains(q)) {
 //         results.add(_SearchResult(
 //           type:     _SearchType.category,
+//           id:       cat.categoryId,
 //           label:    cat.name,
 //           subtitle: 'Category',
 //           imageUrl: cat.imageUrl,
@@ -379,10 +416,29 @@
 //       }
 //       final catDetail = _catCache[cat.categoryId];
 //       if (catDetail != null) {
+//         // ── products directly under the category (no subcategory) ──
+//         for (final p in catDetail.directProducts) {
+//           if (p.name.toLowerCase().contains(q)) {
+//             results.add(_SearchResult(
+//               type:     _SearchType.product,
+//               id:       p.productId,
+//               label:    p.name,
+//               subtitle: '₹${p.price.toInt()} · ${cat.name}',
+//               imageUrl: p.imageUrl,
+//               onTap: () {
+//                 _closeOverlay(); _searchController.clear();
+//                 Navigator.push(context, MaterialPageRoute(
+//                   builder: (_) => ProductDetailScreen(product: p.toProduct()),
+//                 ));
+//               },
+//             ));
+//           }
+//         }
 //         for (final sub in catDetail.childSubs) {
 //           if (sub.name.toLowerCase().contains(q)) {
 //             results.add(_SearchResult(
 //               type:     _SearchType.subcategory,
+//               id:       sub.categoryId,
 //               label:    sub.name,
 //               subtitle: 'in ${cat.name}',
 //               imageUrl: sub.imageUrl,
@@ -399,6 +455,7 @@
 //             if (p.name.toLowerCase().contains(q)) {
 //               results.add(_SearchResult(
 //                 type:     _SearchType.product,
+//                 id:       p.productId,
 //                 label:    p.name,
 //                 subtitle: '₹${p.price.toInt()} · ${sub.name}',
 //                 imageUrl: p.imageUrl,
@@ -418,6 +475,7 @@
 //       if (p.name.toLowerCase().contains(q)) {
 //         results.add(_SearchResult(
 //           type:     _SearchType.product,
+//           id:       p.productId,
 //           label:    p.name,
 //           subtitle: '₹${p.retailPrice.toInt()} · Featured',
 //           imageUrl: p.imageUrl,
@@ -434,6 +492,7 @@
 //       if (offer.name.toLowerCase().contains(q)) {
 //         results.add(_SearchResult(
 //           type:     _SearchType.offer,
+//           id:       offer.categoryId,
 //           label:    offer.name,
 //           subtitle: '${offer.products.length} products · Special Offer',
 //           imageUrl: '',
@@ -452,6 +511,7 @@
 //         if (p.name.toLowerCase().contains(q)) {
 //           results.add(_SearchResult(
 //             type:     _SearchType.product,
+//             id:       p.productId,
 //             label:    p.name,
 //             subtitle: '₹${p.retailPrice.toInt()} · ${offer.name}',
 //             imageUrl: p.imageUrl,
@@ -465,7 +525,19 @@
 //         }
 //       }
 //     }
-//     setState(() => _searchResults = results.take(30).toList());
+//     if (!mounted) return;
+//     // ── dedupe: keep only the first occurrence of each type+id ──
+//     final seen = <String>{};
+//     final deduped = <_SearchResult>[];
+//     for (final r in results) {
+//       final key = '${r.type}-${r.id}';
+//       if (seen.add(key)) deduped.add(r);
+//     }
+//     setState(() {
+//       final products = deduped.where((r) => r.type == _SearchType.product).toList();
+//       final others   = deduped.where((r) => r.type != _SearchType.product).toList();
+//       _searchResults = [...products.take(20), ...others.take(10)];
+//     });
 //     _showOverlay();
 //   }
 //
@@ -1223,7 +1295,11 @@
 //         final sMap     = s as Map<String, dynamic>;
 //         final subProds = <_SubProduct>[];
 //         for (final p in (sMap['products'] as List? ?? [])) {
-//           final prod = _SubProduct.fromJson(p as Map<String, dynamic>);
+//           final prod = _SubProduct.fromJson(
+//             p as Map<String, dynamic>,
+//             categoryId: categoryId,
+//             subCategoryId: sMap['category_id']?.toString() ?? '',
+//           );
 //           if (prod != null) subProds.add(prod);
 //         }
 //         childSubs.add(_ChildSub(
@@ -1236,7 +1312,10 @@
 //
 //       final directProds = <_SubProduct>[];
 //       for (final p in rawProds) {
-//         final prod = _SubProduct.fromJson(p as Map<String, dynamic>);
+//         final prod = _SubProduct.fromJson(
+//           p as Map<String, dynamic>,
+//           categoryId: categoryId,
+//         );
 //         if (prod != null) directProds.add(prod);
 //       }
 //       _catCache[categoryId] =
@@ -1621,6 +1700,8 @@
 //   final int              qty;
 //   final String           sku;
 //   final String           unit;
+//   final String           category;
+//   final String           subCategory;
 //   final List<ProductPiece> pieces;
 //
 //   const _SubProduct({
@@ -1632,10 +1713,16 @@
 //     required this.qty,
 //     required this.sku,
 //     required this.unit,
+//     required this.category,
+//     required this.subCategory,
 //     required this.pieces,
 //   });
 //
-//   static _SubProduct? fromJson(Map<String, dynamic> j) {
+//   static _SubProduct? fromJson(
+//       Map<String, dynamic> j, {
+//         String categoryId = '',
+//         String subCategoryId = '',
+//       }) {
 //     try {
 //       final piecesList = (j['pieces'] as List? ?? [])
 //           .map((e) => e as Map<String, dynamic>)
@@ -1738,6 +1825,14 @@
 //         qty:       qty,
 //         sku:       j['sku']?.toString() ?? '',
 //         unit:      rawUnit,
+//         category:  j['category']?.toString() ??
+//             j['category_id']?.toString() ??
+//             categoryId,
+//         subCategory: j['subCategory']?.toString() ??
+//             j['sub_category']?.toString() ??
+//             j['subcategory_id']?.toString() ??
+//             j['sub_category_id']?.toString() ??
+//             subCategoryId,
 //         pieces: (j['pieces'] as List? ?? []).map((e) {
 //           final pm = e as Map<String, dynamic>;
 //           final pp =
@@ -1807,7 +1902,8 @@
 //     originalPrice:      wholesale > 0 ? wholesale : price,
 //     image:              imageUrl,
 //     imageUrl:           imageUrl,
-//     category:           '',
+//     category:           subCategory.isNotEmpty ? subCategory : category,
+//     subCategory:        '',
 //     weight:             unit,
 //     sku:                sku,
 //     discountPercentage: discountPercent.toDouble(),
@@ -2121,10 +2217,13 @@
 //           }
 //           final hasItems = totalQty > 0;
 //           return GestureDetector(
-//             onTap: () => handleAddToCart(
+//             onTap: () async {
+//               await addPieceProductWithCategoryCheck(
 //                 context: context,
 //                 product: widget.product,
-//                 pieces:  widget.pieces),
+//                 pieces: widget.pieces,
+//               );
+//             },
 //             child: Container(
 //               width:     double.infinity,
 //               height:    34,
@@ -2152,7 +2251,12 @@
 //         final qty = cart.getPieceQuantity(widget.product.id);
 //         if (qty == 0) {
 //           return GestureDetector(
-//             onTap: () => cart.addItem(widget.product),
+//             onTap: () async {
+//               await addProductWithCategoryCheck(
+//                 context: context,
+//                 product: widget.product,
+//               );
+//             },
 //             child: Container(
 //               width:     double.infinity,
 //               height:    34,
@@ -2218,7 +2322,7 @@
 //                           fontWeight: FontWeight.bold)),
 //                 ),
 //               GestureDetector(
-//                 onTap: () {
+//                 onTap: () async {
 //                   final stock = widget.product.quantity > 0
 //                       ? widget.product.quantity
 //                       : widget.product.posQuantity;
@@ -2226,7 +2330,10 @@
 //                     _showStockDialog(stock);
 //                     return;
 //                   }
-//                   cart.addItem(widget.product);
+//                   await addProductWithCategoryCheck(
+//                     context: context,
+//                     product: widget.product,
+//                   );
 //                 },
 //                 child: const SizedBox(
 //                     width:  34,
@@ -2325,9 +2432,16 @@
 //         final raw      = result['data'] as Map<String, dynamic>? ?? {};
 //         final rawProds = raw['products'] as List? ?? [];
 //         final freshProds = <_SubProduct>[];
+//         final existingCategory = _currentProducts.isNotEmpty
+//             ? _currentProducts.first.category
+//             : '';
+//
 //         for (final p in rawProds) {
-//           final prod =
-//           _SubProduct.fromJson(p as Map<String, dynamic>);
+//           final prod = _SubProduct.fromJson(
+//             p as Map<String, dynamic>,
+//             categoryId: existingCategory.isNotEmpty ? existingCategory : fetchId,
+//             subCategoryId: _selectedSubId == '__direct__' ? '' : fetchId,
+//           );
 //           if (prod != null) freshProds.add(prod);
 //         }
 //         final idx =
@@ -2637,12 +2751,14 @@
 //
 // class _SearchResult {
 //   final _SearchType  type;
+//   final String       id;
 //   final String       label;
 //   final String       subtitle;
 //   final String       imageUrl;
 //   final VoidCallback onTap;
 //   const _SearchResult({
 //     required this.type,
+//     required this.id,
 //     required this.label,
 //     required this.subtitle,
 //     required this.imageUrl,
@@ -2830,6 +2946,7 @@ import '../services/api_server.dart';
 import '../services/banner_service.dart';
 import '../services/home_banner_service.dart';
 import '../services/session_manager.dart';
+import '../utils/cart_add_helper.dart';
 import '../widgets/floating_cart.dart';
 import '../widgets/piece_selector_sheet.dart';
 import 'offer_products_screen.dart';
@@ -3104,7 +3221,11 @@ class _MtlTabBodyState extends State<MtlTabBody> {
           final sMap     = s as Map<String, dynamic>;
           final subProds = <_SubProduct>[];
           for (final p in (sMap['products'] as List? ?? [])) {
-            final prod = _SubProduct.fromJson(p as Map<String, dynamic>);
+            final prod = _SubProduct.fromJson(
+              p as Map<String, dynamic>,
+              categoryId: catId,
+              subCategoryId: sMap['category_id']?.toString() ?? '',
+            );
             if (prod != null) subProds.add(prod);
           }
           childSubs.add(_ChildSub(
@@ -3116,7 +3237,10 @@ class _MtlTabBodyState extends State<MtlTabBody> {
         }
         final directProds = <_SubProduct>[];
         for (final p in rawProds) {
-          final prod = _SubProduct.fromJson(p as Map<String, dynamic>);
+          final prod = _SubProduct.fromJson(
+            p as Map<String, dynamic>,
+            categoryId: catId,
+          );
           if (prod != null) directProds.add(prod);
         }
         setState(() {
@@ -3152,7 +3276,11 @@ class _MtlTabBodyState extends State<MtlTabBody> {
           final sMap     = s as Map<String, dynamic>;
           final subProds = <_SubProduct>[];
           for (final p in (sMap['products'] as List? ?? [])) {
-            final prod = _SubProduct.fromJson(p as Map<String, dynamic>);
+            final prod = _SubProduct.fromJson(
+              p as Map<String, dynamic>,
+              categoryId: _selectedCatId.isNotEmpty ? _selectedCatId : subId,
+              subCategoryId: sMap['category_id']?.toString() ?? subId,
+            );
             if (prod != null) subProds.add(prod);
           }
           childSubs.add(_ChildSub(
@@ -3164,7 +3292,11 @@ class _MtlTabBodyState extends State<MtlTabBody> {
         }
         final directProds = <_SubProduct>[];
         for (final p in rawProds) {
-          final prod = _SubProduct.fromJson(p as Map<String, dynamic>);
+          final prod = _SubProduct.fromJson(
+            p as Map<String, dynamic>,
+            categoryId: _selectedCatId.isNotEmpty ? _selectedCatId : subId,
+            subCategoryId: subId,
+          );
           if (prod != null) directProds.add(prod);
         }
         setState(() {
@@ -3503,7 +3635,7 @@ class _MtlTabBodyState extends State<MtlTabBody> {
         children: [
           // ── Header row ─────────────────────────────────────────────
           const Text(
-            'Shop by Categories',
+            'Order by Restaurant',
             style: TextStyle(
                 fontSize:   15,
                 fontWeight: FontWeight.w700,
@@ -3668,12 +3800,27 @@ class _MtlTabBodyState extends State<MtlTabBody> {
               mainAxisSize:       MainAxisSize.min,
               children: [
                 // ── Header row ──────────────────────────────────────
-                Text(
-                  _selectedCategory?.name ?? 'Subcategories',
-                  style: const TextStyle(
-                      fontSize:   15,
-                      fontWeight: FontWeight.w700,
-                      color:      _kTextPrimary),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _selectedCategory?.name ?? '',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: _kTextPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      "Categories",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: _kTextPrimary,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 // ── 5-column subcategory grid ────────────────────────
@@ -4091,7 +4238,11 @@ class _MtlTabBodyState extends State<MtlTabBody> {
         final sMap     = s as Map<String, dynamic>;
         final subProds = <_SubProduct>[];
         for (final p in (sMap['products'] as List? ?? [])) {
-          final prod = _SubProduct.fromJson(p as Map<String, dynamic>);
+          final prod = _SubProduct.fromJson(
+            p as Map<String, dynamic>,
+            categoryId: categoryId,
+            subCategoryId: sMap['category_id']?.toString() ?? '',
+          );
           if (prod != null) subProds.add(prod);
         }
         childSubs.add(_ChildSub(
@@ -4104,7 +4255,10 @@ class _MtlTabBodyState extends State<MtlTabBody> {
 
       final directProds = <_SubProduct>[];
       for (final p in rawProds) {
-        final prod = _SubProduct.fromJson(p as Map<String, dynamic>);
+        final prod = _SubProduct.fromJson(
+          p as Map<String, dynamic>,
+          categoryId: categoryId,
+        );
         if (prod != null) directProds.add(prod);
       }
       _catCache[categoryId] =
@@ -4467,10 +4621,6 @@ class _ChildSub {
     required this.image,
     required this.products,
   });
-  // String get imageUrl {
-  //   if (image.isEmpty || image == 'no_image.png') return '';
-  //   return image.startsWith('http') ? image : '$_kImgBase$image';
-  // }
   String get imageUrl {
     if (image.isEmpty) return '';
     if (image == 'no_image.png') return '';
@@ -4489,6 +4639,8 @@ class _SubProduct {
   final int              qty;
   final String           sku;
   final String           unit;
+  final String           category;
+  final String           subCategory;
   final List<ProductPiece> pieces;
 
   const _SubProduct({
@@ -4500,10 +4652,23 @@ class _SubProduct {
     required this.qty,
     required this.sku,
     required this.unit,
+    required this.category,
+    required this.subCategory,
     required this.pieces,
   });
 
-  static _SubProduct? fromJson(Map<String, dynamic> j) {
+  // NOTE: `categoryId` / `subCategoryId` are the values the CALLER already
+  // knows (from the API scoping it just fetched) — these are always the
+  // authoritative main-category / subcategory ids. We deliberately do NOT
+  // read a `category`/`category_id` field back out of the product's own
+  // JSON here, because that field is the product's leaf category and was
+  // causing the "Replace Cart Items?" popup to fire between two products
+  // that are really in the same main category but different subcategories.
+  static _SubProduct? fromJson(
+      Map<String, dynamic> j, {
+        String categoryId = '',
+        String subCategoryId = '',
+      }) {
     try {
       final piecesList = (j['pieces'] as List? ?? [])
           .map((e) => e as Map<String, dynamic>)
@@ -4606,6 +4771,8 @@ class _SubProduct {
         qty:       qty,
         sku:       j['sku']?.toString() ?? '',
         unit:      rawUnit,
+        category:    categoryId,
+        subCategory: subCategoryId,
         pieces: (j['pieces'] as List? ?? []).map((e) {
           final pm = e as Map<String, dynamic>;
           final pp =
@@ -4675,7 +4842,8 @@ class _SubProduct {
     originalPrice:      wholesale > 0 ? wholesale : price,
     image:              imageUrl,
     imageUrl:           imageUrl,
-    category:           '',
+    category:           category,
+    subCategory:        '',
     weight:             unit,
     sku:                sku,
     discountPercentage: discountPercent.toDouble(),
@@ -4989,10 +5157,13 @@ class _CartBtnState extends State<_CartBtn> {
           }
           final hasItems = totalQty > 0;
           return GestureDetector(
-            onTap: () => handleAddToCart(
+            onTap: () async {
+              await addPieceProductWithCategoryCheck(
                 context: context,
                 product: widget.product,
-                pieces:  widget.pieces),
+                pieces: widget.pieces,
+              );
+            },
             child: Container(
               width:     double.infinity,
               height:    34,
@@ -5020,7 +5191,12 @@ class _CartBtnState extends State<_CartBtn> {
         final qty = cart.getPieceQuantity(widget.product.id);
         if (qty == 0) {
           return GestureDetector(
-            onTap: () => cart.addItem(widget.product),
+            onTap: () async {
+              await addProductWithCategoryCheck(
+                context: context,
+                product: widget.product,
+              );
+            },
             child: Container(
               width:     double.infinity,
               height:    34,
@@ -5086,7 +5262,7 @@ class _CartBtnState extends State<_CartBtn> {
                           fontWeight: FontWeight.bold)),
                 ),
               GestureDetector(
-                onTap: () {
+                onTap: () async {
                   final stock = widget.product.quantity > 0
                       ? widget.product.quantity
                       : widget.product.posQuantity;
@@ -5094,7 +5270,10 @@ class _CartBtnState extends State<_CartBtn> {
                     _showStockDialog(stock);
                     return;
                   }
-                  cart.addItem(widget.product);
+                  await addProductWithCategoryCheck(
+                    context: context,
+                    product: widget.product,
+                  );
                 },
                 child: const SizedBox(
                     width:  34,
@@ -5193,9 +5372,16 @@ class _CategoryFullPageState extends State<_CategoryFullPage> {
         final raw      = result['data'] as Map<String, dynamic>? ?? {};
         final rawProds = raw['products'] as List? ?? [];
         final freshProds = <_SubProduct>[];
+        final existingCategory = _currentProducts.isNotEmpty
+            ? _currentProducts.first.category
+            : '';
+
         for (final p in rawProds) {
-          final prod =
-          _SubProduct.fromJson(p as Map<String, dynamic>);
+          final prod = _SubProduct.fromJson(
+            p as Map<String, dynamic>,
+            categoryId: existingCategory.isNotEmpty ? existingCategory : fetchId,
+            subCategoryId: _selectedSubId == '__direct__' ? '' : fetchId,
+          );
           if (prod != null) freshProds.add(prod);
         }
         final idx =

@@ -77,6 +77,10 @@ class HomeTabState extends State<HomeTab> {
     _searchFocus.unfocus();
   }
 
+  /// Public entry point so other widgets (e.g. ConnectivityGate in
+  /// HomeScreen) can trigger a silent reload without a pull-to-refresh.
+  Future<void> refresh() => _onRefresh();
+
   Future<void> _loadProfileImage() async {
     try {
       final result = await ProfileGetApiService.getProfile();
@@ -190,7 +194,8 @@ class HomeTabState extends State<HomeTab> {
   // ── BUILD ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return
+      Scaffold(
       backgroundColor: const Color(0xFFFFFFFF),
       body: Stack(
         children: [
@@ -207,20 +212,12 @@ class HomeTabState extends State<HomeTab> {
               ScrollViewKeyboardDismissBehavior.onDrag,
               slivers: [
                 SliverToBoxAdapter(child: _buildAddressBar()),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: _buildQuickTabBar(),
-                  ),
-                ),
-                // if (_activeTab == QuickTab.mtl)
-                //   SliverPersistentHeader(
-                //     pinned: true,
-                //     delegate: _SearchBarDelegate(
-                //       child: _buildSearchBar(),
-                //       isTablet: isTablet,
-                //     ),
+                // SliverToBoxAdapter(
+                //   child: Padding(
+                //     padding: const EdgeInsets.only(bottom: 8),
+                //     child: _buildQuickTabBar(),
                 //   ),
+                // ),
                 if (_activeTab == QuickTab.mtl)
                   SliverPersistentHeader(
                     pinned: true,

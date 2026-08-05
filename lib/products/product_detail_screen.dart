@@ -1,5 +1,7 @@
 
 
+
+
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -12,6 +14,7 @@ import '../model/product_model.dart';
 import '../services/api_config_service.dart';
 import '../services/similar_product_service.dart';
 import '../services/session_manager.dart';
+import '../utils/cart_add_helper.dart';
 import '../utils/stock_resolver.dart';
 import '../widgets/cart_action_button.dart';
 import '../widgets/floating_cart.dart';
@@ -868,10 +871,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ),
                   ),
                   if (inCart)
-                    // _DetailStepperButton(
-                    //     product: _selectedPiece != null
-                    //         ? Product(
-                    //       id: '${_product.id}_piece_${_selectedPiece!.rowId}',
+                  // _DetailStepperButton(
+                  //     product: _selectedPiece != null
+                  //         ? Product(
+                  //       id: '${_product.id}_piece_${_selectedPiece!.rowId}',
                     _DetailStepperButton(
                         product: _selectedPiece != null
                             ? Product(
@@ -892,17 +895,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         qty: qty,
                         cart: cart)
                   else
-                    // _DetailAddButton(
-          //                     //     product: _selectedPiece != null
-          //                     //         ? Product(
-          //                     //       id: '${_product.id}_piece_${_selectedPiece!.rowId}',
+                  // _DetailAddButton(
+                  //                     //     product: _selectedPiece != null
+                  //                     //         ? Product(
+                  //                     //       id: '${_product.id}_piece_${_selectedPiece!.rowId}',
                     _DetailAddButton(
                         product: _selectedPiece != null
                             ? Product(
                           id: '${_product.id}_piece_${_selectedPiece!.pieceId}',
-          name: '${_product.name} – ${_selectedPiece!.piece}',
-          price: _selectedPiece!.displayPrice,
-          originalPrice: double.tryParse(_selectedPiece!.price) ?? _selectedPiece!.displayPrice,
+                          name: '${_product.name} – ${_selectedPiece!.piece}',
+                          price: _selectedPiece!.displayPrice,
+                          originalPrice: double.tryParse(_selectedPiece!.price) ?? _selectedPiece!.displayPrice,
                           image: _product.image,
                           imageUrl: _product.imageUrl,
                           category: _product.category,
@@ -1387,7 +1390,12 @@ class _SimilarAddButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-    onTap: () => cart.addItem(product),
+    onTap: () async {
+      await addProductWithCategoryCheck(
+        context: context,
+        product: product,
+      );
+    },
     child: Container(
       width: double.infinity,
       height: 36,
@@ -1437,7 +1445,12 @@ class _SimilarStepper extends StatelessWidget {
                 fontSize: 13,
                 fontWeight: FontWeight.bold)),
         GestureDetector(
-          onTap: () => cart.addItem(product),
+          onTap: () async {
+            await addProductWithCategoryCheck(
+              context: context,
+              product: product,
+            );
+          },
           child: const SizedBox(
               width: 32,
               height: 36,
@@ -1501,11 +1514,13 @@ class _PiecesAddButton extends StatelessWidget {
         hasItems ? const Color(0xFF388E3C) : AppColors.buttonPrimary;
 
         return GestureDetector(
-          onTap: () => handleAddToCart(
-            context: context,
-            product: product,
-            pieces: product.pieces,
-          ),
+          onTap: () async {
+            await addPieceProductWithCategoryCheck(
+              context: context,
+              product: product,
+              pieces: product.pieces,
+            );
+          },
           child: Container(
             width: double.infinity,
             height: 36,
@@ -1724,9 +1739,16 @@ class _DetailAddButton extends StatelessWidget {
 
     // qty == 1: plain ADD TO CART button
     return ElevatedButton(
-      onPressed: () {
+      onPressed: () async {
         for (int i = 0; i < qty; i++) {
-          cart.addItem(product);
+          final added = await addProductWithCategoryCheck(
+            context: context,
+            product: product,
+          );
+
+          if (!added) {
+            break;
+          }
         }
       },
       style: ElevatedButton.styleFrom(

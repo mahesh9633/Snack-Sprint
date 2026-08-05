@@ -7,6 +7,7 @@ import 'package:mtl_groceriesapp/model/cart_model.dart';
 
 import '../config/app_color.dart';
 import '../services/store_profile_cache.dart';
+import '../widgets/connectivity_gate.dart';
 import 'categories_screen.dart';
 import 'home_tab.dart';
 import 'profile_screen.dart';
@@ -36,6 +37,10 @@ class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<HomeTabState> _homeTabKey = GlobalKey<HomeTabState>();
   final GlobalKey<ProfileScreenState> _profileKey =
   GlobalKey<ProfileScreenState>();
+  final GlobalKey<CategoriesScreenState> _categoriesKey =
+  GlobalKey<CategoriesScreenState>();
+  final GlobalKey<TrendingScreenState> _trendingKey =
+  GlobalKey<TrendingScreenState>();
 
   late final List<Widget> _screens;
 
@@ -52,8 +57,8 @@ class _HomeScreenState extends State<HomeScreen> {
         mobile: widget.telephone,
         authToken: widget.authToken,
       ),
-      const CategoriesScreen(),
-      const TrendingScreen(),
+      CategoriesScreen(key: _categoriesKey),
+      TrendingScreen(key: _trendingKey),
       ProfileScreen(key: _profileKey),
     ];
 
@@ -122,9 +127,16 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       },
       child: Scaffold(
-        body: IndexedStack(
-          index: _selectedNavIndex,
-          children: _screens,
+        body: ConnectivityGate(
+          onReconnected: () {
+            _homeTabKey.currentState?.refresh();
+            _categoriesKey.currentState?.refresh();
+            _trendingKey.currentState?.refresh();
+          },
+          child: IndexedStack(
+            index: _selectedNavIndex,
+            children: _screens,
+          ),
         ),
         bottomNavigationBar: _buildBottomNav(),
       ),
@@ -152,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Row(
             children: [
               _buildNavItem(Icons.home, 'Home', 0),
-              _buildNavItem(Icons.grid_view, 'Categories', 1),
+              _buildNavItem(Icons.grid_view, 'Restaurants', 1),
               _buildNavItem(Icons.trending_up, 'Trending', 2),
               _buildNavItem(Icons.person, 'Profile', 3),
             ],
