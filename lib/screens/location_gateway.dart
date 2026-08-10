@@ -137,7 +137,7 @@ class _LocationGatewayState extends State<LocationGateway> {
                         color: AppColors.buttonPrimary, size: 24),
                   ),
                   const SizedBox(width: 12),
-                  const Text('Smile Basket',
+                  const Text('Snack Sprint',
                       style: TextStyle(
                           fontSize:   26,
                           fontWeight: FontWeight.bold,

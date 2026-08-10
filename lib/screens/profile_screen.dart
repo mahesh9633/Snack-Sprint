@@ -30,14 +30,14 @@ class ProfileScreen extends StatefulWidget {
 
 class ProfileScreenState extends State<ProfileScreen> {
   String  _telephone        = '';
-  String  _displayName      = 'Smile Basket user';
+  String  _displayName      = 'Snack Sprint user';
   int     _addressCount     = 0;
   String? _profileImagePath;
   String? _serverImageUrl;
   String  _contact          = '';
   int     _rewardPoints     = 0;
 
-  // ── Theme: Smile Basket Blue / Cream ───────────────────────────────────────────────
+  // ── Theme: Snack Sprint Blue / Cream ───────────────────────────────────────────────
   static const Color _primaryBlue  = AppColors.primaryBlue;
   static const Color _accentBlue   = AppColors.primaryBlue;
   static const Color _scaffoldBg   = AppColors.scaffoldBg;
@@ -81,10 +81,10 @@ class ProfileScreenState extends State<ProfileScreen> {
     if (mounted) {
       setState(() {
         _telephone        = phone;
-        if (_displayName.isEmpty || _displayName == 'Smile Basket user') {
+        if (_displayName.isEmpty || _displayName == 'Snack Sprint user') {
           _displayName = (savedName != null && savedName.isNotEmpty)
               ? savedName
-              : 'Smile Basket user';
+              : 'Snack Sprint user';
         }
         _profileImagePath = (savedImage != null && savedImage.isNotEmpty)
             ? savedImage
@@ -110,7 +110,7 @@ class ProfileScreenState extends State<ProfileScreen> {
         if (mounted) {
           setState(() {
             _telephone      = telephone;
-            _displayName    = fullName.isNotEmpty ? fullName : 'Smile Basket user';
+            _displayName    = fullName.isNotEmpty ? fullName : 'Snack Sprint user';
             _serverImageUrl = imgUrl.isNotEmpty ? imgUrl : null;
             _contact        = contact;
           });
@@ -492,7 +492,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                       Text('App version 1.0.0',
                           style: TextStyle(color: Colors.grey[500], fontSize: 12)),
                       const SizedBox(height: 2),
-                      Text('Smile Basket Groceries',
+                      Text('Snack Sprint Groceries',
                           style: TextStyle(color: Colors.grey[400], fontSize: 11)),
                     ]),
                   ),

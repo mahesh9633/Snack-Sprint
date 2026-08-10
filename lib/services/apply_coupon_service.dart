@@ -11,13 +11,15 @@ class CouponModel {
   final String type;
 
   final double discount;
-  final double total;        // % cap (for type P) — "total" field from API
-  final double minimumTotal; // min cart value required
+  final double total;
+  final double minimumTotal;
   final String dateStart;
   final String dateEnd;
-  final int    usesTotal;    // 0 = unlimited
-  final int    usesCustomer; // 0 = unlimited per customer
+  final int    usesTotal;
+  final int    usesCustomer;
   final bool   status;
+  final double discountAmount; // NEW: authoritative amount from backend
+  final double finalTotal;     // NEW: authoritative final total from backend
 
   const CouponModel({
     required this.couponId,
@@ -32,6 +34,8 @@ class CouponModel {
     required this.usesTotal,
     required this.usesCustomer,
     required this.status,
+    this.discountAmount = 0,
+    this.finalTotal = 0,
   });
 
   // ── Parse from API JSON ───────────────────────────────────────────────────
@@ -49,6 +53,8 @@ class CouponModel {
       usesTotal:    int.tryParse(json['uses_total']?.toString()    ?? '0') ?? 0,
       usesCustomer: int.tryParse(json['uses_customer']?.toString() ?? '0') ?? 0,
       status:       json['status']?.toString() == '1',
+      discountAmount: double.tryParse(json['discount_amount']?.toString() ?? '0') ?? 0,
+      finalTotal:     double.tryParse(json['final_total']?.toString()     ?? '0') ?? 0,
     );
   }
 
@@ -79,7 +85,9 @@ class CouponModel {
     return true;
   }
 
-  // ── Discount calculation ──────────────────────────────────────────────────
+  // ── Discount calculation (PREVIEW ONLY — used for the "Save ₹X" badge
+  // in the coupon list; the actual applied amount always comes from the
+  // backend's discount_amount, see _applySuccess in payment_method_screen) ──
   double computeDiscount(double cartTotal) {
     if (!isEligible(cartTotal)) return 0;
     double disc;
@@ -89,6 +97,8 @@ class CouponModel {
       if (total > 0 && disc > total) disc = total;
     } else {
       disc = discount;
+      // Flat discount cannot exceed cart total (matches backend)
+      if (disc > cartTotal) disc = cartTotal;
     }
     return disc;
   }

@@ -159,9 +159,10 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       return;
     }
 
-    final coupon   = result.coupon!;
-    final discount = coupon.computeDiscount(cartTotal);
-    _applySuccess(coupon.code, discount);
+    final coupon = result.coupon!;
+    // Trust the backend's own discount_amount — it already applied the
+    // percentage/flat cap and any business rules, don't recompute client-side.
+    _applySuccess(coupon.code, coupon.discountAmount);
   }
 
   void _applySuccess(String code, double discount) {
@@ -235,17 +236,21 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       return;
     }
 
+    // _AllCouponsScreen now calls the applyCoupon API itself when the user
+    // taps a card, and only pops once the backend confirms success — so
+    // `selected` here is already backend-validated with a real discountAmount.
     final selected = await Navigator.push<CouponModel>(
       context,
       MaterialPageRoute(builder: (_) => _AllCouponsScreen(
         coupons:   result.coupons,
         cartTotal: cartTotal,
+        token:     token,
       )),
     );
 
     if (selected != null) {
       _couponController.text = selected.code;
-      _applySuccess(selected.code, selected.computeDiscount(cartTotal));
+      _applySuccess(selected.code, selected.discountAmount);
     }
   }
 
@@ -1382,17 +1387,52 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
   }
 }
 
-class _AllCouponsScreen extends StatelessWidget {
+class _AllCouponsScreen extends StatefulWidget {
   final List<CouponModel> coupons;
   final double            cartTotal;
+  final String            token;
 
   const _AllCouponsScreen({
     required this.coupons,
     required this.cartTotal,
+    required this.token,
   });
 
   @override
+  State<_AllCouponsScreen> createState() => _AllCouponsScreenState();
+}
+
+class _AllCouponsScreenState extends State<_AllCouponsScreen> {
+  String? _applyingCode; // code currently being validated against backend
+
+  Future<void> _applyCoupon(CouponModel coupon) async {
+    setState(() => _applyingCode = coupon.code);
+
+    final result = await CouponApiService.applyCoupon(
+      token:      widget.token,
+      couponCode: coupon.code,
+      grandTotal: widget.cartTotal,
+    );
+
+    if (!mounted) return;
+    setState(() => _applyingCode = null);
+
+    if (!result.success) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(result.error.isNotEmpty ? result.error : 'Could not apply coupon'),
+        backgroundColor: Colors.red,
+      ));
+      return;
+    }
+
+    // Backend confirmed — pop back with the validated coupon (has discountAmount).
+    Navigator.pop(context, result.coupon);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final cartTotal = widget.cartTotal;
+    final coupons   = widget.coupons;
     final eligible = coupons.where((c) => c.isEligible(cartTotal)).toList();
     final blocked  = coupons.where((c) => !c.isEligible(cartTotal)).toList();
     final sorted   = [...eligible, ...blocked];
@@ -1412,6 +1452,7 @@ class _AllCouponsScreen extends StatelessWidget {
                 fontWeight: FontWeight.bold,
                 fontSize: 18)),
         bottom: PreferredSize(
+
           preferredSize: const Size.fromHeight(1),
           child: Container(height: 1, color: Colors.grey[200]),
         ),
@@ -1502,8 +1543,9 @@ class _AllCouponsScreen extends StatelessWidget {
                   isEligible: isElg,
                   discount:   disc,
                   cartTotal:  cartTotal,
-                  onTap:      isElg
-                      ? () => Navigator.pop(context, coupon)
+                  isApplying: _applyingCode == coupon.code,
+                  onTap:      isElg && _applyingCode == null
+                      ? () => _applyCoupon(coupon)
                       : null,
                 );
               },
@@ -1519,6 +1561,7 @@ class _CouponCard extends StatelessWidget {
   final bool          isEligible;
   final double        discount;
   final double        cartTotal;
+  final bool          isApplying;
   final VoidCallback? onTap;
 
   const _CouponCard({
@@ -1526,6 +1569,7 @@ class _CouponCard extends StatelessWidget {
     required this.isEligible,
     required this.discount,
     required this.cartTotal,
+    this.isApplying = false,
     this.onTap,
   });
 
@@ -1667,10 +1711,11 @@ class _CouponCard extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: onTap,
+                        onPressed: isApplying ? null : onTap,
                         style: ElevatedButton.styleFrom(
                           // backgroundColor: const Color(0xFFFF0080),
                           backgroundColor: AppColors.buttonPrimary,
+                          disabledBackgroundColor: AppColors.buttonPrimaryDisabled,
                           padding: const EdgeInsets.symmetric(
                               vertical: 12),
                           shape: RoundedRectangleBorder(
@@ -1678,7 +1723,13 @@ class _CouponCard extends StatelessWidget {
                               BorderRadius.circular(8)),
                           elevation: 0,
                         ),
-                        child: Text(
+                        child: isApplying
+                            ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2))
+                            : Text(
                             'Apply  •  Save ₹${discount.toStringAsFixed(0)}',
                             style: const TextStyle(
                                 color: Colors.white,

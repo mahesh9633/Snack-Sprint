@@ -68,7 +68,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  // ── Outlined "Smile Basket" ──
+                  // ── Outlined "Snack Sprint" ──
                   Stack(
                     children: [
                       Text(
@@ -82,7 +82,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                         ),
                       ),
                       const Text(
-                        'Smile Basket',
+                        'Snack Sprint',
                         style: TextStyle(color: Colors.black, fontSize: 14),
                       ),
                     ],
@@ -183,7 +183,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
 
             _sectionTitle('1. Overview & Data Fiduciary'),
             _bodyText(
-              'Smile Basket ("we", "us", or "our"), operating at '
+              'Snack Sprint ("we", "us", or "our"), operating at '
                   'http://dbmarts/privacy, is the Data Fiduciary under the '
                   'Digital Personal Data Protection (DPDP) Act, 2023. Our sole '
                   'purpose for collecting personal data is to identify the '
@@ -654,12 +654,12 @@ class PrivacyPolicyScreen extends StatelessWidget {
         const Divider(height: 16, color: AppColors.divider),
         const _ContactRow(
           icon: Icons.person_outline,
-          text: 'Name: [Smile Basket]',
+          text: 'Name: [Snack Sprint]',
         ),
         const SizedBox(height: 6),
         const _ContactRow(
           icon: Icons.business_outlined,
-          text: 'Smile Basket',
+          text: 'Snack Sprint',
         ),
         const SizedBox(height: 6),
         const _ContactRow(
@@ -782,7 +782,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: const [
         Text(
-          'Smile Basket',
+          'Snack Sprint',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 15,
