@@ -7,7 +7,6 @@ import '../model/cart_model.dart';
 import '../model/product_model.dart';
 import '../services/api_config_service.dart';
 import '../products/product_detail_screen.dart';
-import '../utils/cart_add_helper.dart';
 import '../widgets/floating_cart.dart';
 import '../widgets/piece_selector_sheet.dart';
 import '../widgets/refreshable_screen.dart';
@@ -415,13 +414,11 @@ class _WishlistCard extends StatelessWidget {
                         hasItems ? AppColors.freshGreen : AppColors.border;
 
                         return GestureDetector(
-                          onTap: () async {
-                            await addPieceProductWithCategoryCheck(
-                              context: context,
-                              product: product,
-                              pieces: product.pieces,
-                            );
-                          },
+                          onTap: () => handleAddToCart(
+                            context: context,
+                            product: product,
+                            pieces:  product.pieces,
+                          ),
                           child: Container(
                             width: 90,
                             height: 40,
@@ -478,13 +475,7 @@ class _WishlistCard extends StatelessWidget {
                       final int qty = cart.getQuantity(product);
                       if (qty == 0) {
                         return GestureDetector(
-                          // onTap: () => cart.addItem(product),
-                          onTap: () async {
-                            await addProductWithCategoryCheck(
-                              context: context,
-                              product: product,
-                            );
-                          },
+                          onTap: () => cart.addItem(product),
                           child: Container(
                             width: 90,
                             height: 40,
@@ -651,14 +642,8 @@ class _WishlistCard extends StatelessWidget {
   final hasItems = totalQty > 0;
   final Color accent = hasItems ? AppColors.freshGreen : AppColors.primaryBlue;
   return GestureDetector(
-    onTap: () async {
-      await addPieceProductWithCategoryCheck(
-        context: context,
-        product: product,
-        pieces: product.pieces,
-      );
-    },
-    child: Container(
+  onTap: () => handleAddToCart(context: context, product: product, pieces: product.pieces),
+  child: Container(
   width: 90, height: 40,
   alignment: Alignment.center,
   decoration: BoxDecoration(color: AppColors.cardWhite, border: Border.all(color: accent, width: 1.2), borderRadius: BorderRadius.circular(8)),
@@ -683,14 +668,8 @@ class _WishlistCard extends StatelessWidget {
   builder: (context, cart, _) {
   final qty = cart.getQuantity(product);
   if (qty == 0) {
-    return GestureDetector(
-      onTap: () async {
-        await addProductWithCategoryCheck(
-          context: context,
-          product: product,
-        );
-      },
-
+  return GestureDetector(
+  onTap: () => cart.addItem(product),
   child: Container(
   width: 90, height: 40,
   alignment: Alignment.center,
@@ -740,7 +719,7 @@ class _WishlistCard extends StatelessWidget {
   child: Text('$qty', style: const TextStyle(color: AppColors.textLight, fontSize: 12, fontWeight: FontWeight.bold)),
   ),
   GestureDetector(
-  onTap: () async {
+  onTap: () {
   final stock = product.quantity > 0 ? product.quantity : product.posQuantity;
   if (stock > 0 && qty >= stock) {
   showDialog(
@@ -775,13 +754,8 @@ class _WishlistCard extends StatelessWidget {
   );
   return;
   }
-  // cart.addItem(product);
-  await addProductWithCategoryCheck(
-    context: context,
-    product: product,
-  );
+  cart.addItem(product);
   },
-
   child: const SizedBox(width: 22, height: 32, child: Icon(Icons.add, color: AppColors.textLight, size: 14)),
   ),
   ],

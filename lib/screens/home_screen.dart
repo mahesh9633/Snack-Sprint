@@ -164,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Row(
             children: [
               _buildNavItem(Icons.home, 'Home', 0),
-              _buildNavItem(Icons.grid_view, 'Restaurants', 1),
+              _buildNavItem(Icons.grid_view, 'Categories', 1),
               _buildNavItem(Icons.trending_up, 'Trending', 2),
               _buildNavItem(Icons.person, 'Profile', 3),
             ],

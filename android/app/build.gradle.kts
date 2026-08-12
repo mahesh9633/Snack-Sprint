@@ -18,7 +18,7 @@ plugins {
 }
 
 android {
-    namespace = "com.dbm.mtl_groceriesapp"
+    namespace = "com.example.snacksprint"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "27.0.12077973"
 
@@ -33,7 +33,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.dbm.mtl_groceriesapp"
+        applicationId = "com.example.snacksprint"
         minSdk = 24
         targetSdk = 35
         versionCode = flutter.versionCode

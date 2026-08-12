@@ -26,10 +26,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for macos - '
@@ -53,10 +50,18 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAj6hLV9xuysFcGQuUSE-33gmkG91MfsfU',
-    appId: '1:419832461325:android:d6639c0c91e80074abfd44',
-    messagingSenderId: '419832461325',
-    projectId: 'smile-basket',
-    storageBucket: 'smile-basket.firebasestorage.app',
+    apiKey: 'AIzaSyCdLiSXrKr5I-w2iF-PrpTrckoTxOUq61I',
+    appId: '1:226368414992:android:adf9a7c5947a7e71c1f195',
+    messagingSenderId: '226368414992',
+    projectId: 'snack-sprint-ef267',
+    storageBucket: 'snack-sprint-ef267.firebasestorage.app',
+  );
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyA9ZDme7MgQH6ddXO1ZK8Oe8Hlm-CLnBzM',
+    appId: '1:226368414992:ios:5204ab3b83910e4bc1f195',
+    messagingSenderId: '226368414992',
+    projectId: 'snack-sprint-ef267',
+    storageBucket: 'snack-sprint-ef267.firebasestorage.app',
+    iosBundleId: 'com.example.snacksprint',
   );
 }

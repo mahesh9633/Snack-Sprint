@@ -1,4 +1,4 @@
-package com.dbm.mtl_groceriesapp
+package com.example.snacksprint
 
 import android.os.Bundle
 import androidx.core.view.WindowCompat

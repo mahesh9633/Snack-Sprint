@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "419832461325",
-    "project_id": "smile-basket",
-    "storage_bucket": "smile-basket.firebasestorage.app"
+    "project_number": "226368414992",
+    "project_id": "snack-sprint-ef267",
+    "storage_bucket": "snack-sprint-ef267.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:419832461325:android:d6639c0c91e80074abfd44",
+        "mobilesdk_app_id": "1:226368414992:android:adf9a7c5947a7e71c1f195",
         "android_client_info": {
-          "package_name": "com.dbm.mtl_groceriesapp"
+          "package_name": "com.example.snacksprint"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAj6hLV9xuysFcGQuUSE-33gmkG91MfsfU"
+          "current_key": "AIzaSyCdLiSXrKr5I-w2iF-PrpTrckoTxOUq61I"
         }
       ],
       "services": {
