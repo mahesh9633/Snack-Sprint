@@ -1074,10 +1074,10 @@ class _CartControlState extends State<_CartControl> {
               children: [
                 const Icon(Icons.info_outline, color: AppColors.buttonPrimary, size: 36),
                 const SizedBox(height: 12),
-                Text(
-                  'Only $stock item${stock == 1 ? '' : 's'} available',
+                const Text(
+                  'Stock Limit Reached',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
                 ),
                 const SizedBox(height: 16),
                 GestureDetector(
@@ -1198,7 +1198,7 @@ class _CartControlState extends State<_CartControl> {
         decoration: BoxDecoration(
             color: Colors.grey[200],
             borderRadius: BorderRadius.circular(6)),
-        child: Text('Out of Stock',
+        child: Text('Not Available',
             style: TextStyle(
                 color: Colors.grey[500], fontSize: 10,
                 fontWeight: FontWeight.w600)),
@@ -1293,9 +1293,9 @@ class _CartControlState extends State<_CartControl> {
                             const Icon(Icons.info_outline,
                                 color: AppColors.buttonPrimary, size: 36),
                             const SizedBox(height: 12),
-                            Text('Only $stock item${stock == 1 ? '' : 's'} available',
+                            const Text('Stock Limit Reached',
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(fontSize: 15,
+                                style: TextStyle(fontSize: 15,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.black87)),
                             const SizedBox(height: 16),

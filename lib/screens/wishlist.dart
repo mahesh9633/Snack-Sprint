@@ -373,7 +373,7 @@ class _WishlistCard extends StatelessWidget {
                             color: Colors.grey[200],
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Text('Out of\nStock',
+                          child: Text('Not\nAvailable',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                   color: Colors.grey[500],
@@ -582,8 +582,8 @@ class _WishlistCard extends StatelessWidget {
   children: [
   const Icon(Icons.info_outline, color: AppColors.primaryBlue, size: 36),
   const SizedBox(height: 12),
-   Text(
-  'Only $stock item(s) available',
+   const Text(
+  'Stock Limit Reached',
   textAlign: TextAlign.center,
   style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textDark),
   ),
@@ -616,7 +616,7 @@ class _WishlistCard extends StatelessWidget {
   width: 90, height: 38,
   alignment: Alignment.center,
   decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(8)),
-  child: Text('Out of\nStock',
+  child: Text('Not\nAvailable',
   textAlign: TextAlign.center,
   style: TextStyle(color: Colors.grey[500], fontSize: 9, fontWeight: FontWeight.w600)),
   );
@@ -736,9 +736,9 @@ class _WishlistCard extends StatelessWidget {
   child: Column(mainAxisSize: MainAxisSize.min, children: [
   const Icon(Icons.info_outline, color: AppColors.primaryBlue, size: 36),
   const SizedBox(height: 12),
-  Text('Only $stock item(s) available',
+  const Text('Stock Limit Reached',
   textAlign: TextAlign.center,
-  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textDark)),
+  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textDark)),
   const SizedBox(height: 16),
   GestureDetector(
   onTap: () => Navigator.pop(context),

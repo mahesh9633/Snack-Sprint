@@ -1947,7 +1947,7 @@ class _MtlProductCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(
                                 color: Colors.red.shade200)),
-                        child: const Text('Out of Stock',
+                        child: const Text('Not Available',
                             style: TextStyle(
                                 color:      Colors.red,
                                 fontSize:   9,
@@ -2112,10 +2112,10 @@ class _CartBtnState extends State<_CartBtn> {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             const Icon(Icons.info_outline, color: _kGreen, size: 36),
             const SizedBox(height: 12),
-            Text(
-              'Only $stock item${stock == 1 ? '' : 's'} available',
+            const Text(
+              'Stock Limit Reached',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 15, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 16),
@@ -2150,7 +2150,7 @@ class _CartBtnState extends State<_CartBtn> {
             color:        Colors.grey.shade100,
             borderRadius: BorderRadius.circular(7),
             border: Border.all(color: Colors.grey.shade200)),
-        child: const Text('Out of Stock',
+        child: const Text('Not Available',
             style: TextStyle(
                 fontSize:   10,
                 color:      Colors.red,

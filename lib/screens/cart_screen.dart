@@ -247,7 +247,7 @@ class _CartScreenState extends State<CartScreen> {
                 ..clearSnackBars()
                 ..showSnackBar(SnackBar(
                   content: Text(
-                      '${freshProduct.name} is out of stock and was removed from your cart'),
+                      '${freshProduct.name} is not available and was removed from your cart'),
                   duration: const Duration(seconds: 3),
                   backgroundColor: Colors.red.shade400,
                   behavior: SnackBarBehavior.floating,
@@ -275,14 +275,11 @@ class _CartScreenState extends State<CartScreen> {
             if (qtyClamped && mounted) {
               ScaffoldMessenger.of(context)
                 ..clearSnackBars()
-                ..showSnackBar(SnackBar(
-                  content: Text(
-                      'Only $newQty ${freshProduct.name} available — quantity updated'),
-                  duration: const Duration(seconds: 3),
+                ..showSnackBar(const SnackBar(
+                  content: Text('Stock Limit Reached'),
+                  duration: Duration(seconds: 3),
                   backgroundColor: AppColors.error,
                   behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
                 ));
             }
           }
@@ -447,8 +444,8 @@ class _CartScreenState extends State<CartScreen> {
         builder: (_) => AddressSelectionScreen(
           token: token,
           customerId: customerId,
-          deliveryFee: deliveryFee,
-          finalTotal: finalTotal,
+          // deliveryFee: deliveryFee,
+          // finalTotal: finalTotal,
         ),
       ),
     );
@@ -929,13 +926,11 @@ class _CartScreenState extends State<CartScreen> {
                                                       if (stock > 0 && item.quantity >= stock) {
                                                         ScaffoldMessenger.of(context)
                                                           ..clearSnackBars()
-                                                          ..showSnackBar(SnackBar(
-                                                            content: Text('Only $stock quantity available'),
-                                                            duration: const Duration(seconds: 2),
+                                                          ..showSnackBar(const SnackBar(
+                                                            content: Text('Stock Limit Reached'),
+                                                            duration: Duration(seconds: 2),
                                                             backgroundColor: AppColors.error,
                                                             behavior: SnackBarBehavior.floating,
-                                                            shape: RoundedRectangleBorder(
-                                                                borderRadius: BorderRadius.circular(10)),
                                                           ));
                                                         return;
                                                       }
@@ -985,17 +980,17 @@ class _CartScreenState extends State<CartScreen> {
                                 label: 'Items total',
                                 value:
                                 '₹${cart.totalPrice.toStringAsFixed(0)}'),
-                            _BillRow(
-                                label: 'Delivery fee',
-                                value:
-                                '₹${_deliveryFee.toStringAsFixed(0)}',
-                                valueColor: _deliveryFee == 0
-                                    ? AppColors.priceGreen
-                                    : null),
-                            const _BillRow(
-                                label: 'Handling fee',
-                                value: '₹0',
-                                valueColor: AppColors.priceGreen),
+                            // _BillRow(
+                            //     label: 'Delivery fee',
+                            //     value:
+                            //     '₹${_deliveryFee.toStringAsFixed(0)}',
+                            //     valueColor: _deliveryFee == 0
+                            //         ? AppColors.priceGreen
+                            //         : null),
+                            // const _BillRow(
+                            //     label: 'Handling fee',
+                            //     value: '₹0',
+                            //     valueColor: AppColors.priceGreen),
                             Divider(
                                 color: AppColors.divider, height: 20),
                             _BillRow(

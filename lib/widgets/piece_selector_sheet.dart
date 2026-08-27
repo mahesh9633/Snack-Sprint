@@ -456,10 +456,10 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
               const Icon(Icons.info_outline,
                   color: AppColors.primaryBlue, size: 36),
               const SizedBox(height: 12),
-              Text(
-                'Only $stock item${stock == 1 ? '' : 's'} available',
+              const Text(
+                'Stock Limit Reached',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 15, fontWeight: FontWeight.w600,
                     color: AppColors.textDark),
               ),
@@ -563,7 +563,7 @@ class _PieceCartBtnState extends State<_PieceCartBtn> {
                       width: 1.5),
                 ),
                 child: Text(
-                    isOutOfStock ? 'Out of Stock' : 'ADD',
+                    isOutOfStock ? 'Not Available' : 'ADD',
                     style: TextStyle(
                         color:         isOutOfStock
                             ? Colors.red

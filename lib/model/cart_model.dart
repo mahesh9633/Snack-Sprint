@@ -264,7 +264,7 @@
 //
 //     if (stock <= 0) {
 //       onStockLimitReached?.call(
-//         'Product is currently out of stock',
+//         'Product is currently not available',
 //       );
 //       return;
 //     }
@@ -317,7 +317,7 @@
 //
 //     if (stock <= 0) {
 //       onStockLimitReached?.call(
-//         'Product is currently out of stock',
+//         'Product is currently not available',
 //       );
 //       return;
 //     }
@@ -471,7 +471,7 @@
 //
 //     if (stock <= 0) {
 //       onStockLimitReached?.call(
-//         'Product is currently out of stock',
+//         'Product is currently not available',
 //       );
 //       return;
 //     }
@@ -787,15 +787,14 @@ class CartModel extends ChangeNotifier {
 
     if (stock <= 0) {
       onStockLimitReached?.call(
-        'Product is currently out of stock',
+        'Product is currently not available',
       );
       return;
     }
 
     if (currentQty >= stock) {
       onStockLimitReached?.call(
-        'Only $stock item${stock == 1 ? '' : 's'} '
-            'available in stock',
+        'Stock Limit Reached',
       );
       return;
     }
@@ -840,15 +839,14 @@ class CartModel extends ChangeNotifier {
 
     if (stock <= 0) {
       onStockLimitReached?.call(
-        'Product is currently out of stock',
+        'Product is currently not available',
       );
       return;
     }
 
     if (item.quantity >= stock) {
       onStockLimitReached?.call(
-        'Only $stock item${stock == 1 ? '' : 's'} '
-            'available in stock',
+        'Stock Limit Reached',
       );
       return;
     }
@@ -892,8 +890,7 @@ class CartModel extends ChangeNotifier {
 
     if (stock > 0 && qty > stock) {
       onStockLimitReached?.call(
-        'Only $stock item${stock == 1 ? '' : 's'} '
-            'available in stock',
+        'Stock Limit Reached',
       );
 
       qty = stock;
@@ -994,7 +991,7 @@ class CartModel extends ChangeNotifier {
 
     if (stock <= 0) {
       onStockLimitReached?.call(
-        'Product is currently out of stock',
+        'Product is currently not available',
       );
       return;
     }
@@ -1009,8 +1006,7 @@ class CartModel extends ChangeNotifier {
       safeQuantity = stock;
 
       onStockLimitReached?.call(
-        'Only $stock item${stock == 1 ? '' : 's'} '
-            'available in stock',
+        'Stock Limit Reached',
       );
     }
 

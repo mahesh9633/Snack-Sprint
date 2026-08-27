@@ -11,6 +11,8 @@ class GetAddressApi {
 
   static Future<List<AddressModel>> getAddresses({
     required String token,
+
+
   }) async {
     try {
       final uri = Uri.parse('$_baseUrl?route=$_route&token=$token');
@@ -26,7 +28,7 @@ class GetAddressApi {
       if (status != 'success') return [];
 
       final list = data['data'] as List? ?? [];
-
+      debugPrint('🔵 RAW ADDRESS LIST: $list');
       return list.map((e) {
         final m          = e as Map<String, dynamic>;
         final addressId  = m['address_id']?.toString() ?? '';
@@ -45,6 +47,26 @@ class GetAddressApi {
         final isDefault  = m['default']?.toString() == '1';
         final tracking   = m['tracking']?.toString() ?? '';
 
+        // ✅ Parse lat/lng from dedicated columns first.
+        final rawLat = m['latitude']?.toString()  ?? '';
+        final rawLng = m['longitude']?.toString() ?? '';
+        double? lat  = rawLat.isNotEmpty ? double.tryParse(rawLat) : null;
+        double? lng  = rawLng.isNotEmpty ? double.tryParse(rawLng) : null;
+
+        // ✅ FALLBACK — older addresses saved before GPS capture have empty
+        // latitude/longitude columns, but often still have coordinates
+        // embedded in the Google Maps `tracking` link. Extract them from
+        // there if the dedicated columns are missing.
+        if (lat == null || lng == null) {
+          final trackingUrl = m['tracking']?.toString() ?? '';
+          final match = RegExp(r'destination=(-?\d+\.\d+),(-?\d+\.\d+)')
+              .firstMatch(trackingUrl);
+          if (match != null) {
+            lat = double.tryParse(match.group(1)!);
+            lng = double.tryParse(match.group(2)!);
+          }
+        }
+
         final knownLabels = ['Home', 'Office', 'Other'];
         final name = knownLabels.contains(company) ? company : 'Home';
 
@@ -59,6 +81,8 @@ class GetAddressApi {
           state:        '',
           pinCode:      postcode,
           isDefault:    isDefault,
+          latitude:     lat,   // ✅ NEW
+          longitude:    lng,   // ✅ NEW
           tracking:     tracking.isNotEmpty ? tracking : null,
         );
       }).toList();

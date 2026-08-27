@@ -98,7 +98,7 @@ class ProductCard extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(6),
                                 border: Border.all(color: Colors.red.shade200),
                               ),
-                              child: const Text('Out of Stock',
+                              child: const Text('Not Available',
                                   style: TextStyle(
                                       color: Colors.red, fontSize: 9, fontWeight: FontWeight.bold)),
                             ),

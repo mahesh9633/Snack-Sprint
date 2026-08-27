@@ -1,7 +1,3 @@
-
-
-
-
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -186,7 +182,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               return '${ApiConfig.imageBase}$raw';
             },
           );
-
+          debugPrint('DEBUG is_veg raw: ${apiProduct['is_veg']} | parsed isVeg: ${full.isVeg}');
           // ── Product-level quantity via the SHARED resolver, so this
           //    screen agrees with Home/Categories/Trending on stock ──
           final int productLevelQty = resolveProductQuantity(apiProduct);
@@ -286,7 +282,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ..clearSnackBars()
                     ..showSnackBar(SnackBar(
                         content: Text(
-                            '${existing.product.name} is out of stock and was removed from your cart'),
+                            '${existing.product.name} is not available and was removed from your cart'),
                         duration: const Duration(seconds: 3),
                         backgroundColor: Colors.red.shade400,
                         behavior: SnackBarBehavior.floating,
@@ -534,8 +530,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   color: Colors.white,
                                   border: Border.all(
                                     color: _product.isVeg
-                                        ? const Color(0xFF0C831F)
-                                        : const Color(0xFFB85C00),
+                                        ? const Color(0xFF4CAF50)
+                                        : const Color(0xFFF44336),
                                     width: 1.5,
                                   ),
                                   borderRadius: BorderRadius.circular(3),
@@ -546,8 +542,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     height: 10,
                                     decoration: BoxDecoration(
                                       color: _product.isVeg
-                                          ? const Color(0xFF0C831F)
-                                          : const Color(0xFFB85C00),
+                                          ? const Color(0xFF4CAF50)
+                                          : const Color(0xFFF44336),
                                       shape: BoxShape.circle,
                                     ),
                                   ),
@@ -1241,7 +1237,7 @@ class _SimilarProductCard extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(color: Colors.red.shade200),
                                 ),
-                                child: const Text('Out of Stock',
+                                child: const Text('Not Available',
                                     style: TextStyle(
                                         color: Colors.red,
                                         fontSize: 9,
@@ -1374,7 +1370,7 @@ class _OutOfStockButton extends StatelessWidget {
     decoration: BoxDecoration(
         color: Colors.grey[200],
         borderRadius: BorderRadius.circular(6)),
-    child: const Text('Out of Stock',
+    child: const Text('Not Available',
         style: TextStyle(
             fontSize: 11,
             color: Colors.red,
@@ -1732,7 +1728,7 @@ class _DetailAddButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        child: const Text('OUT OF STOCK',
+        child: const Text('NOT AVAILABLE',
             style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
       );
     }
@@ -1974,7 +1970,7 @@ class _DetailStepperButtonState extends State<_DetailStepperButton> {
       ScaffoldMessenger.of(context)
         ..clearSnackBars()
         ..showSnackBar(SnackBar(
-          content: Text('Only $stock quantity available'),
+          content: const Text('Stock Limit Reached'),
           duration: const Duration(seconds: 2),
           backgroundColor:AppColors.error,
           behavior: SnackBarBehavior.floating,
@@ -2008,7 +2004,7 @@ class _DetailStepperButtonState extends State<_DetailStepperButton> {
               const Icon(Icons.info_outline, color: Colors.red, size: 36),
               const SizedBox(height: 12),
               const Text(
-                'This item just went out of stock',
+                'This item is not available',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     fontSize: 15, fontWeight: FontWeight.w600,
@@ -2109,7 +2105,7 @@ class _DetailStepperButtonState extends State<_DetailStepperButton> {
               ScaffoldMessenger.of(context)
                 ..clearSnackBars()
                 ..showSnackBar(SnackBar(
-                  content: Text('Only $stock quantity available'),
+                  content: const Text('Stock Limit Reached'),
                   duration: const Duration(seconds: 2),
                   backgroundColor: AppColors.error,
                   behavior: SnackBarBehavior.floating,
