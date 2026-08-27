@@ -129,16 +129,16 @@ class _OrderCard extends StatelessWidget {
   Color _statusColor(String status) {
     switch (status.toLowerCase()) {
       case 'complete':
-      case 'completed':    return Colors.green;
+      case 'completed':    return AppColors.success;
       case 'canceled':
-      case 'cancelled':    return Colors.red;
-      case 'processing':   return Colors.orange;
-      case 'pending':      return Colors.amber;
-      case 'returned':     return Colors.indigo;
-      case 'order placed': return Colors.blue;
+      case 'cancelled':    return AppColors.error;
+      case 'processing':   return AppColors.warning;
+      case 'pending':      return AppColors.warning;
+      case 'returned':     return AppColors.primaryBlue;
+      case 'order placed': return AppColors.primaryBlue;
       case 'packed':       return Colors.teal;
-      case 'shipped':      return Colors.indigo;
-      case 'delivered':    return Colors.green;
+      case 'shipped':      return AppColors.primaryBlue;
+      case 'delivered':    return AppColors.success;
       default:             return Colors.blueGrey;
     }
   }
@@ -335,13 +335,13 @@ class _OrderCard extends StatelessWidget {
                       ),
                       if (showDeliveryTime) ...[
                         const Spacer(),
-                        const Icon(Icons.schedule, size: 12, color: Colors.deepOrange),
+                        const Icon(Icons.schedule, size: 12, color: AppColors.primaryOrange),
                         const SizedBox(width: 3),
                         Text(
                           'Delivery in ${invoice!.deliveryTime}',
                           style: const TextStyle(
                             fontSize: 11,
-                            color: Colors.deepOrange,
+                            color: AppColors.primaryOrange,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -451,17 +451,17 @@ class _OrderCard extends StatelessWidget {
                           children: [
                             Row(children: [
                               const Icon(Icons.local_offer_outlined,
-                                  size: 13, color: Colors.green),
+                                  size: 13, color: AppColors.success),
                               const SizedBox(width: 4),
                               Text(
                                 coupon.isNotEmpty ? 'Coupon ($coupon)' : 'Discount',
                                 style: const TextStyle(
-                                    fontSize: 12, color: Colors.green),
+                                    fontSize: 12, color: AppColors.success),
                               ),
                             ]),
                             Text('- ₹${discount.toStringAsFixed(2)}',
                                 style: const TextStyle(
-                                    fontSize: 12, color: Colors.green)),
+                                    fontSize: 12, color: AppColors.success)),
                           ],
                         ),
                       ],
@@ -486,7 +486,7 @@ class _OrderCard extends StatelessWidget {
                       ],
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 5),
-                        child: Divider(height: 1, color: Color(0xFFEEEEEE)),
+                        child: Divider(height: 1, color: AppColors.divider),
                       ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,

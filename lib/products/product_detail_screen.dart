@@ -509,7 +509,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 10, vertical: 5),
                                   decoration: BoxDecoration(
-                                      color: const Color(0xFF0C831F),
+                                      color: AppColors.priceGreen,
                                       borderRadius: BorderRadius.circular(6)),
                                   child: Text(
                                       '${discountPct.toInt()}% OFF',
@@ -571,18 +571,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
-                                      color: const Color(0xFFFFF3E0),
+                                      color: AppColors.warningLight,
                                       borderRadius: BorderRadius.circular(6)),
-                                  child: Row(
+                                  child: const Row(
                                     mainAxisSize: MainAxisSize.min,
-                                    children: const [
+                                    children: [
                                       Icon(Icons.card_giftcard,
                                           size: 13,
-                                          color: Color(0xFFFF6B00)),
+                                          color: AppColors.primaryOrange),
                                       SizedBox(width: 4),
                                       Text('Combo Deal',
                                           style: TextStyle(
-                                              color: Color(0xFFFF6B00),
+                                              color: AppColors.primaryOrange,
                                               fontSize: 11,
                                               fontWeight: FontWeight.bold)),
                                     ],
@@ -639,7 +639,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 10, vertical: 4),
                                     decoration: BoxDecoration(
-                                        color: const Color(0xFF0C831F),
+                                        color: AppColors.priceGreen,
                                         borderRadius: BorderRadius.circular(6)),
                                     child: Text(
                                         '₹${_displayPrice.toStringAsFixed(0)}',
@@ -664,7 +664,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     Text(
                                         '₹${((_selectedPiece != null ? (double.tryParse(_selectedPiece!.price) ?? 0) : _product.originalPrice) - _displayPrice).toStringAsFixed(0)} OFF',
                                         style: const TextStyle(
-                                            color: Color(0xFF0C831F),
+                                            color: AppColors.priceGreen,
                                             fontSize: 14,
                                             fontWeight: FontWeight.bold)),
                                   ],
@@ -857,7 +857,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF0C831F)),
+                              color: AppColors.priceGreen),
                         ),
                         if (effectiveQty > 1)
                           Text('₹${_displayPrice.toStringAsFixed(0)} × $effectiveQty',
@@ -1107,7 +1107,7 @@ class _SimilarProductsSection extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(children: [
                 const Icon(Icons.auto_awesome,
-                    size: 18, color: Color(0xFFB85C00)),
+                    size: 18, color: AppColors.primaryOrange),
                 const SizedBox(width: 6),
                 const Text('Similar Products',
                     style: TextStyle(
@@ -1651,7 +1651,7 @@ class _HighlightChip extends StatelessWidget {
       border: Border.all(color: Colors.grey.shade300),
     ),
     child: Row(mainAxisSize: MainAxisSize.min, children: [
-      const Icon(Icons.check_circle, size: 14, color: Color(0xFF0C831F)),
+      const Icon(Icons.check_circle, size: 14, color: AppColors.priceGreen),
       const SizedBox(width: 4),
       Text(text,
           style: const TextStyle(
@@ -1884,7 +1884,7 @@ class _PiecesSelector extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: (effectiveStockMap[p.pieceId] ?? p.stock) == 0 ? Colors.grey : const Color(0xFF0C831F),
+                                color: (effectiveStockMap[p.pieceId] ?? p.stock) == 0 ? Colors.grey : AppColors.priceGreen,
                               ),
                             ),
                             if (p.hasDiscount) ...[

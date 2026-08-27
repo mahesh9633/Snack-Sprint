@@ -116,7 +116,7 @@ void main() async {
             const SizedBox(width: 8),
             Expanded(child: Text(message)),
           ]),
-          backgroundColor: Colors.red[600],
+          backgroundColor: AppColors.error,
           duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -155,7 +155,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       scaffoldMessengerKey: scaffoldMessengerKey,
-      title: 'Smile Basket',
+      title: 'Snack Sprint',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         scaffoldBackgroundColor: AppColors.scaffoldBg,
@@ -163,6 +163,9 @@ class MyApp extends StatelessWidget {
           seedColor: AppColors.primaryBlue,
           primary: AppColors.primaryBlue,
           secondary: AppColors.primaryOrange,
+          onPrimary: Colors.white,
+          onSecondary: AppColors.textDark,
+          surface: AppColors.cardWhite,
           brightness: Brightness.light,
         ).copyWith(
           surface: AppColors.cardWhite,
@@ -170,14 +173,61 @@ class MyApp extends StatelessWidget {
         ),
         textTheme: GoogleFonts.poppinsTextTheme(),
         appBarTheme: const AppBarTheme(
-          backgroundColor: AppColors.cardWhite,
-          foregroundColor: AppColors.primaryBlue,
+          backgroundColor: AppColors.appBarBg,
+          foregroundColor: AppColors.appBarText,
           elevation: 0,
+          iconTheme: IconThemeData(color: AppColors.appBarIcon),
           systemOverlayStyle: SystemUiOverlayStyle(
             statusBarColor: Colors.transparent,
             statusBarIconBrightness: Brightness.dark,
             systemNavigationBarColor: Colors.transparent,
           ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.buttonPrimary,
+            foregroundColor: AppColors.buttonPrimaryText,
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.buttonPrimary,
+            side: const BorderSide(color: AppColors.buttonPrimary),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: AppColors.cardWhite,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: AppColors.border),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: AppColors.border),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
+          ),
+        ),
+        checkboxTheme: CheckboxThemeData(
+          fillColor: WidgetStateProperty.resolveWith<Color?>((states) {
+            if (states.contains(WidgetState.selected)) return AppColors.primaryBlue;
+            return null;
+          }),
+        ),
+        radioTheme: RadioThemeData(
+          fillColor: WidgetStateProperty.resolveWith<Color?>((states) {
+            if (states.contains(WidgetState.selected)) return AppColors.primaryBlue;
+            return null;
+          }),
+        ),
+        progressIndicatorTheme: const ProgressIndicatorThemeData(
+          color: AppColors.loader,
         ),
       ),
       home: const SplashScreen(),
@@ -358,7 +408,7 @@ class MyApp extends StatelessWidget {
 //               ),
 //             ],
 //           ),
-//           backgroundColor: Colors.red[600],
+//           backgroundColor: AppColors.error,
 //           duration: const Duration(seconds: 2),
 //           behavior: SnackBarBehavior.floating,
 //           shape: RoundedRectangleBorder(

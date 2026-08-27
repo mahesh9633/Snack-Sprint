@@ -206,7 +206,7 @@ class _WishlistCard extends StatelessWidget {
                       loadingBuilder: (_, child, prog) =>
                       prog == null
                           ? child
-                          : Container(color: const Color(0xFFF0E9DC)),
+                          : Container(color: AppColors.sidebarBg),
                       errorBuilder: (_, __, ___) => _placeholder(),
                     )
                         : _placeholder(),
@@ -338,7 +338,7 @@ class _WishlistCard extends StatelessWidget {
                                     Navigator.pop(context, true),
                                 child: const Text('Remove',
                                     style: TextStyle(
-                                        color: Colors.red,
+                                        color: AppColors.error,
                                         fontWeight: FontWeight.bold)),
                               ),
                             ],
@@ -351,11 +351,11 @@ class _WishlistCard extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(7),
                         decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.08),
+                          color: AppColors.error.withOpacity(0.08),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.favorite,
-                            color: Colors.red, size: 18),
+                            color: AppColors.error, size: 18),
                       ),
                     ),
                   ),

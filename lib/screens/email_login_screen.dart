@@ -157,7 +157,7 @@
 //                   Expanded(
 //                     child: Text(
 //                       _errorMessage,
-//                       style: TextStyle(color: Colors.red[600], fontSize: 13),
+//                       style: const TextStyle(color: AppColors.error, fontSize: 13),
 //                     ),
 //                   ),
 //                 ]),
@@ -361,7 +361,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                       fontWeight: FontWeight.normal,
                     ),
                     prefixIcon: const Icon(Icons.alternate_email,
-                        color: Color(0xFF6B7280)),
+                        color: AppColors.textGrey),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide.none,
@@ -429,7 +429,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF6B7280),
+                          color: AppColors.textGrey,
                         ),
                       ),
                     ),
@@ -455,7 +455,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                   Expanded(
                     child: Text(
                       _errorMessage,
-                      style: TextStyle(color: Colors.red[600], fontSize: 13),
+                      style: const TextStyle(color: AppColors.error, fontSize: 13),
                     ),
                   ),
                 ]),

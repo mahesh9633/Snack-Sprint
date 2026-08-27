@@ -332,14 +332,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
       delivery     = takeawayAmt;
     }
 
-    const purple      = PdfColor(0.722, 0.361, 0.000);   // #B85C00
-    const purpleLight = PdfColor(0.996, 0.945, 0.878);   // #FFF1E0
-    const purpleBg    = PdfColor(1.000, 0.973, 0.941);   // #FFF8F0
-    const green       = PdfColor(0.133, 0.545, 0.133);   // green700
-    const greenLight  = PdfColor(0.878, 0.973, 0.878);   // green100
-    const orange      = PdfColor(1.000, 0.596, 0.000);   // orange
-    const red         = PdfColor(0.863, 0.078, 0.235);   // red
-    const blue        = PdfColor(0.098, 0.463, 0.824);   // blue
+    const purple      = PdfColor(0.478, 0.122, 0.169);   // #7A1F2B (Burgundy)
+    const purpleLight = PdfColor(1.0, 0.973, 0.910);   // #FFF8E8 (Cream)
+    const purpleBg    = PdfColor(1.0, 0.973, 0.910);   // #FFF8E8 (Cream)
+    const green       = PdfColor(0.247, 0.490, 0.227);   // #3F7D3A (Success Green)
+    const greenLight  = PdfColor(0.910, 0.953, 0.898);   // #E8F3E5 (Light Success)
+    const orange      = PdfColor(0.773, 0.541, 0.133);   // #C58A22 (Gold)
+    const red         = PdfColor(0.776, 0.157, 0.157);   // #C62828 (Error Red)
+    const blue        = PdfColor(0.478, 0.122, 0.169);   // #7A1F2B (Burgundy)
     const grey600     = PdfColor(0.420, 0.420, 0.420);
     const grey700     = PdfColor(0.310, 0.310, 0.310);
     const grey400     = PdfColor(0.620, 0.620, 0.620);
@@ -978,20 +978,20 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.orange.shade50,
+        color: AppColors.warningLight,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.orange.shade200),
+        border: Border.all(color: AppColors.warning.withOpacity(0.2)),
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline, color: Colors.orange.shade700, size: 20),
+          Icon(Icons.info_outline, color: AppColors.warning, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               'This order is available for cancellation up to Shipped',
               style: TextStyle(
                   fontSize: 12,
-                  color: Colors.orange.shade800,
+                  color: AppColors.textDark,
                   fontWeight: FontWeight.w500),
             ),
           ),
@@ -1137,7 +1137,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
           _billRow(
             couponCode.isNotEmpty ? 'Coupon ($couponCode)' : 'Discount',
             -discount,
-            color: Colors.green[700],
+            color: AppColors.success,
           ),
         ],
         if (roundoff != 0) ...[
@@ -1225,7 +1225,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
           _infoRow(Icons.local_offer_outlined,
               couponCode.isNotEmpty ? 'Coupon ($couponCode)' : 'Discount',
               '-₹${_fmt(discount)}',
-              valueColor: Colors.green[700]),
+              valueColor: AppColors.success),
         ],
         if (delivery > 0) ...[
           const SizedBox(height: 8),

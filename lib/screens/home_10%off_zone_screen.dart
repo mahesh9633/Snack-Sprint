@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mtl_groceriesapp/screens/see_all.dart';
+import '../config/app_color.dart';
 import '../model/product_model.dart';
 import '../products/product_card.dart';
 import '../services/api_config_service.dart';
@@ -192,7 +193,7 @@ class _SuperMallTabBodyState extends State<SuperMallTabBody> {
         if (_loading)
           const Padding(
             padding: EdgeInsets.all(40),
-            child: Center(child: CircularProgressIndicator(color: Color(0xFF1B5E20))),
+            child: Center(child: CircularProgressIndicator(color: AppColors.primaryBlue)),
           )
         else ...[
           _buildAllProductsHeader(context, featured),
@@ -234,7 +235,7 @@ class _SuperMallTabBodyState extends State<SuperMallTabBody> {
         ),
         child: Row(children: [
           const SizedBox(width: 14),
-          const Icon(Icons.search, color: Color(0xFF1B5E20), size: 20),
+          const Icon(Icons.search, color: AppColors.primaryBlue, size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: TextField(
@@ -242,7 +243,7 @@ class _SuperMallTabBodyState extends State<SuperMallTabBody> {
               onChanged: (v) => setState(() => _searchText = v),
               decoration: InputDecoration(
                 hintText: 'Search in 10% - 40% OFF ZONE…',
-                hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+                hintStyle: TextStyle(color: AppColors.textGrey.withOpacity(0.5), fontSize: 14),
                 border: InputBorder.none,
                 isDense: true, contentPadding: EdgeInsets.zero,
               ),
@@ -251,9 +252,9 @@ class _SuperMallTabBodyState extends State<SuperMallTabBody> {
           if (_searchText.isNotEmpty)
             GestureDetector(
               onTap: () => setState(() { _searchText = ''; _searchCtrl.clear(); }),
-              child: Padding(
-                padding: const EdgeInsets.only(right: 10),
-                child: Icon(Icons.close, size: 18, color: Colors.grey[400]),
+              child: const Padding(
+                padding: EdgeInsets.only(right: 10),
+                child: Icon(Icons.close, size: 18, color: AppColors.primaryBlue),
               ),
             ),
         ]),
@@ -265,7 +266,7 @@ class _SuperMallTabBodyState extends State<SuperMallTabBody> {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF1B5E20), Color(0xFF66BB6A)]),
+        gradient: const LinearGradient(colors: [AppColors.deepBlue, AppColors.gradientTop]),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Stack(children: [
@@ -307,9 +308,9 @@ class _SuperMallTabBodyState extends State<SuperMallTabBody> {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1B5E20).withValues(alpha: 0.07),
+        color: AppColors.primaryBlue.withOpacity(0.07),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF1B5E20).withValues(alpha: 0.2)),
+        border: Border.all(color: AppColors.primaryBlue.withOpacity(0.2)),
       ),
       child: Row(children: [
         Expanded(
@@ -320,7 +321,7 @@ class _SuperMallTabBodyState extends State<SuperMallTabBody> {
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
               Text('All products with 10% to 40% off',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                  style: TextStyle(fontSize: 12, color: AppColors.textGrey)),
             ]),
           ),
         ),
@@ -328,7 +329,7 @@ class _SuperMallTabBodyState extends State<SuperMallTabBody> {
           margin: const EdgeInsets.all(12),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-              color: const Color(0xFF1B5E20), borderRadius: BorderRadius.circular(20)),
+              color: AppColors.primaryBlue, borderRadius: BorderRadius.circular(20)),
           child: const Text('Shop ▶',
               style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
         ),
@@ -345,9 +346,9 @@ class _SuperMallTabBodyState extends State<SuperMallTabBody> {
         TextButton(
           onPressed: () => Navigator.push(context, MaterialPageRoute(
               builder: (_) => SeeAllScreen(title: '10% OFF ZONE', products: featured))),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Text('See all', style: TextStyle(color: Colors.green[700], fontSize: 13)),
-            Icon(Icons.arrow_forward_ios, size: 12, color: Colors.green[700]),
+          child: const Row(mainAxisSize: MainAxisSize.min, children: [
+            Text('See all', style: TextStyle(color: AppColors.primaryBlue, fontSize: 13)),
+            Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.primaryBlue),
           ]),
         ),
       ]),
@@ -377,7 +378,7 @@ class _ProductCardWithBadge extends StatelessWidget {
               padding:
               const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
               decoration: BoxDecoration(
-                color: const Color(0xFF1B5E20).withValues(alpha: 0.90),
+                color: AppColors.primaryBlue.withOpacity(0.90),
                 borderRadius: BorderRadius.circular(6),
               ),
               constraints: const BoxConstraints(maxWidth: 90),

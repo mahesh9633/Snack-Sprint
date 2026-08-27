@@ -346,7 +346,7 @@ class HomeTabState extends State<HomeTab> {
                         width:  36,
                         height: 36,
                         decoration: const BoxDecoration(
-                            color: Color(0xFF25D366),
+                            color: AppColors.freshGreen,
                             shape: BoxShape.circle),
                         child: const Center(
                           child: FaIcon(FontAwesomeIcons.whatsapp,
@@ -365,7 +365,7 @@ class HomeTabState extends State<HomeTab> {
                             style: TextStyle(
                               fontSize: 9,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF25D366),
+                              color: AppColors.freshGreen,
                               height: 1.1,
                             ),
                           ),

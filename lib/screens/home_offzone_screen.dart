@@ -129,7 +129,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
               ?? pMap['quantity']?.toString()
               ?? '';
           int qty;
-          if (stockStatus == 'out of stock' || stockStatus == '0' || stockStatus == 'outofstock') {
+          if (stockStatus == 'Not Available' || stockStatus == '0' || stockStatus == 'Not Available') {
             qty = 0;
           } else if (stockStatus.contains('in stock') || stockStatus == '1' || stockStatus == '2') {
             qty = int.tryParse(rawQty) ?? 1;
@@ -320,7 +320,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
         const Padding(
           padding: EdgeInsets.all(40),
           child: Center(
-              child: CircularProgressIndicator(color: Color(0xFF6366F1))),
+              child: CircularProgressIndicator(color: AppColors.primaryBlue)),
         ),
       );
     } else {
@@ -346,7 +346,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
                       ? 'No products match your filter.'
                       : 'No 50%+ offers right now.\nCheck back soon!',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.black87, fontSize: 14),
+                  style: const TextStyle(color: AppColors.textDark, fontSize: 14),
                 ),
                 if (_selectedCategory != null || _searchText.isNotEmpty)
                   TextButton(
@@ -356,7 +356,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
                       _searchCtrl.clear();
                     }),
                     child: const Text('Clear filters',
-                        style: TextStyle(color: Color(0xFF6366F1))),
+                        style: TextStyle(color: AppColors.primaryBlue)),
                   ),
               ]),
             ),
@@ -402,7 +402,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-            colors: [AppColors.primaryBlue, AppColors.primaryOrange]),
+            colors: [AppColors.deepBlue, AppColors.primaryBlue]),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Stack(children: [
@@ -412,7 +412,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
             width: 120, height: 120,
             decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.08)),
+                color: Colors.white.withOpacity(0.08)),
           ),
         ),
         Padding(
@@ -422,7 +422,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: const Text('LIMITED TIME',
@@ -449,7 +449,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
             const SizedBox(height: 8),
             Text('Half the price, double the joy!',
                 style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.85), fontSize: 14)),
+                    color: Colors.white.withOpacity(0.85), fontSize: 14)),
             const SizedBox(height: 12),
             Container(
               padding:
@@ -459,7 +459,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
                   borderRadius: BorderRadius.circular(20)),
               child: Text('$count Products',
                   style: const TextStyle(
-                      color: Color(0xFF6366F1),
+                      color: AppColors.primaryBlue,
                       fontSize: 13,
                       fontWeight: FontWeight.bold)),
             ),
@@ -479,7 +479,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06), blurRadius: 8)
+                color: Colors.black.withOpacity(0.06), blurRadius: 8)
           ],
         ),
         child: Row(children: [
@@ -492,7 +492,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
               onChanged: (v) => setState(() => _searchText = v),
               decoration: InputDecoration(
                 hintText: 'Search in 50% OFF Zone…',
-                hintStyle: TextStyle(color: Colors.black87, fontSize: 14),
+                hintStyle: TextStyle(color: AppColors.textGrey.withOpacity(0.5), fontSize: 14),
                 border: InputBorder.none,
                 isDense: true,
                 contentPadding: EdgeInsets.zero,
@@ -527,12 +527,12 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
               padding:
               const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                color: AppColors.primaryBlue.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Text('Clear',
                   style: TextStyle(
-                      color: Color(0xFF6366F1),
+                      color: AppColors.primaryBlue,
                       fontSize: 12,
                       fontWeight: FontWeight.bold)),
             ),
@@ -566,13 +566,13 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
               decoration: BoxDecoration(
                 color: isSelected
 
-                    ? const Color(0xFF6366F1)
-                    : const Color(0xFF6366F1).withValues(alpha: 0.07),
+                    ? AppColors.primaryBlue
+                    : AppColors.primaryBlue.withOpacity(0.07),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isSelected
-                      ? const Color(0xFF6366F1)
-                      : const Color(0xFF6366F1).withValues(alpha: 0.25),
+                      ? AppColors.primaryBlue
+                      : AppColors.primaryBlue.withOpacity(0.25),
                 ),
               ),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -582,15 +582,15 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
                         fontWeight: FontWeight.w600,
                         color: isSelected
                             ? Colors.white
-                            : const Color(0xFF6366F1))),
+                            : AppColors.primaryBlue)),
                 const SizedBox(width: 5),
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 6, vertical: 1),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? Colors.white.withValues(alpha: 0.25)
-                        : const Color(0xFF6366F1).withValues(alpha: 0.15),
+                        ? Colors.white.withOpacity(0.25)
+                        : AppColors.primaryBlue.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text('$catCount',
@@ -599,7 +599,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
                           fontWeight: FontWeight.bold,
                           color: isSelected
                               ? Colors.white
-                              : const Color(0xFF6366F1))),
+                              : AppColors.primaryBlue)),
                 ),
               ]),
             ),
@@ -618,7 +618,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
           const Text('All Deals',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,color: AppColors.primaryOrange,)),
           Text('${displayed.length} items with 50%+ off',
-              style: TextStyle(fontSize: 11, color: Colors.black87)),
+              style: const TextStyle(fontSize: 11, color: AppColors.textDark)),
         ]),
         TextButton(
           onPressed: () => Navigator.push(
@@ -626,10 +626,10 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
               MaterialPageRoute(
                   builder: (_) => SeeAllScreen(
                       title: '50% OFF Zone', products: displayed))),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            const Text('See all',
+          child: const Row(mainAxisSize: MainAxisSize.min, children: [
+            Text('See all',
                 style: TextStyle(color: AppColors.primaryOrange, fontSize: 16)),
-            const Icon(Icons.arrow_forward_ios,
+            Icon(Icons.arrow_forward_ios,
                 size: 12, color: AppColors.primaryOrange),
           ]),
         ),
@@ -645,7 +645,7 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
         Container(
           width: 4, height: 20,
           decoration: BoxDecoration(
-              color: const Color(0xFF6366F1),
+              color: AppColors.primaryBlue,
               borderRadius: BorderRadius.circular(2)),
         ),
         const SizedBox(width: 8),
@@ -654,17 +654,17 @@ class _OffZoneTabBodyState extends State<OffZoneTabBody> {
               style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87)),
+                  color: AppColors.textDark)),
         ),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: const Color(0xFF6366F1).withValues(alpha: 0.10),
+            color: AppColors.primaryBlue.withOpacity(0.10),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text('$count items',
               style: const TextStyle(
-                  color: Color(0xFF6366F1),
+                  color: AppColors.primaryBlue,
                   fontSize: 11,
                   fontWeight: FontWeight.bold)),
         ),
@@ -694,7 +694,7 @@ class _ProductCardWithBadge extends StatelessWidget {
               padding:
               const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
               decoration: BoxDecoration(
-                color: const Color(0xFF6366F1).withValues(alpha: 0.90),
+                color: AppColors.primaryBlue.withOpacity(0.90),
                 borderRadius: BorderRadius.circular(6),
               ),
               constraints: const BoxConstraints(maxWidth: 90),

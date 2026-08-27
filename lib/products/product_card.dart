@@ -74,7 +74,7 @@ class ProductCard extends StatelessWidget {
                     ClipRRect(
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
                       child: Container(
-                        color: const Color(0xFFF8F8F8),
+                        color: AppColors.sidebarBg,
                         child: SizedBox(
                           height: imgH,
                           width:  double.infinity,
@@ -214,7 +214,7 @@ class ProductCard extends StatelessWidget {
                           product.category.toUpperCase(),
                           style: const TextStyle(
                             fontSize:      9,
-                            color:         Color(0xFF888888),
+                            color:         AppColors.textMuted,
                             fontWeight:    FontWeight.w600,
                             letterSpacing: 0.3,
                           ),
@@ -274,7 +274,7 @@ class ProductCard extends StatelessWidget {
           decoration: BoxDecoration(
             color:        Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE8E8E8)),
+            border: Border.all(color: AppColors.border),
             boxShadow: [
               BoxShadow(
                 color:      Colors.black.withOpacity(0.04),
@@ -295,7 +295,7 @@ class ProductCard extends StatelessWidget {
                   ClipRRect(
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                     child: Container(
-                      color: const Color(0xFFF8F8F8),
+                      color: AppColors.sidebarBg,
                       child: SizedBox(
                         height: imageHeight > 0 ? imageHeight : 100,
                         width:  double.infinity,
@@ -352,7 +352,7 @@ class ProductCard extends StatelessWidget {
                       Text(product.displayWeight,
                           style: const TextStyle(
                               fontSize: 9,
-                              color: Color(0xFF777777),
+                              color: AppColors.textGrey,
                               fontWeight: FontWeight.w500)),
                     const SizedBox(height: 2),
                     Text(product.name,
@@ -361,7 +361,7 @@ class ProductCard extends StatelessWidget {
                         style: const TextStyle(
                             fontSize:   11,
                             fontWeight: FontWeight.w600,
-                            color:      Color(0xFF1C1C1C),
+                            color:      AppColors.textDark,
                             height:     1.3)),
                     const SizedBox(height: 4),
                     Row(
@@ -370,15 +370,15 @@ class ProductCard extends StatelessWidget {
                             style: const TextStyle(
                                 fontSize:   13,
                                 fontWeight: FontWeight.w800,
-                                color:      Color(0xFF1C1C1C))),
+                                color:      AppColors.textDark))),
                         if (product.originalPrice > product.price) ...[
                           const SizedBox(width: 4),
                           Text('₹${product.originalPrice.toInt()}',
                               style: const TextStyle(
-                                  color:           Color(0xFF999999),
+                                  color:           AppColors.textMuted,
                                   fontSize:        10,
                                   decoration:      TextDecoration.lineThrough,
-                                  decorationColor: Color(0xFF999999)),
+                                  decorationColor: AppColors.textMuted),
                               overflow: TextOverflow.ellipsis,
                               maxLines: 1),
                         ],
@@ -418,7 +418,7 @@ class ProductCard extends StatelessWidget {
         url,
         fit: fit,
         loadingBuilder: (_, child, prog) =>
-        prog == null ? child : Container(color: const Color(0xFFF8F8F8)),
+        prog == null ? child : Container(color: AppColors.sidebarBg),
         errorBuilder: (_, __, ___) => _placeholder(),
       );
     }
@@ -426,7 +426,7 @@ class ProductCard extends StatelessWidget {
   }
 
   Widget _placeholder() => Container(
-    color: const Color(0xFFF8F8F8),
+    color: AppColors.sidebarBg,
     child: Center(
         child: Icon(Icons.image_not_supported_outlined,
             color: Colors.grey.shade300, size: 28)),

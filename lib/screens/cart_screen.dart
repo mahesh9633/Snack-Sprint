@@ -249,7 +249,7 @@ class _CartScreenState extends State<CartScreen> {
                   content: Text(
                       '${freshProduct.name} is not available and was removed from your cart'),
                   duration: const Duration(seconds: 3),
-                  backgroundColor: Colors.red.shade400,
+                  backgroundColor: AppColors.error,
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
@@ -766,7 +766,7 @@ class _CartScreenState extends State<CartScreen> {
                                                   'Qty: $totalUnits units (${item.quantity} × $minQty)',
                                                   style: TextStyle(
                                                       fontSize: screenW * 0.028,
-                                                      color: Colors.orange.shade700,
+                                                      color: AppColors.primaryOrange,
                                                       fontWeight: FontWeight.w500),
                                                 );
                                               }),

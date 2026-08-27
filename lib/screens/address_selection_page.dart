@@ -463,6 +463,7 @@ import '../model/cart_model.dart';
 import '../services/get_address_service.dart';
 import '../services/add_address_service.dart';
 import '../services/session_manager.dart';
+import '../services/store_profile_cache.dart';
 import '../widgets/refreshable_screen.dart';
 import 'add_address.dart';
 
@@ -585,14 +586,26 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
     setState(() => _checkingAddressId = null);
 
     if (!result.available) {
-      _showDeliveryUnavailableDialog(result.message); // ❌ stays on this screen
+      _showDeliveryUnavailableDialog(result.message);
       return;
     }
 
-    // ✅ In range — proceed with the real, backend-confirmed delivery fee
+    // ✅ In range — start with the real, backend-confirmed distance-based
+    // delivery fee, then override to FREE if the cart total meets the
+    // store's free-delivery threshold (delivery_order_value — separate
+    // from min_order_value, which is a cart-stage-only check).
     final cart = Provider.of<CartModel>(context, listen: false);
-    final deliveryFee = result.deliveryCharge ?? 0;
-    final finalTotal  = cart.totalPrice + deliveryFee;
+    double deliveryFee = result.deliveryCharge ?? 0;
+
+    final freeDeliveryThreshold = StoreProfileCache.deliveryOrderValue;
+    final qualifiesForFreeDelivery =
+        freeDeliveryThreshold > 0 && cart.totalPrice >= freeDeliveryThreshold;
+
+    if (qualifiesForFreeDelivery) {
+      deliveryFee = 0;
+    }
+
+    final finalTotal = cart.totalPrice + deliveryFee;
 
     Navigator.push(
       context,
@@ -925,8 +938,8 @@ class _AddressCard extends StatelessWidget {
               Container(
                 margin: const EdgeInsets.only(right: 6),
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                decoration: BoxDecoration(color: const Color(0xFFFFF3E0), borderRadius: BorderRadius.circular(8)),
-                child: const Text('Default', style: TextStyle(fontSize: 10, color: Colors.black87, fontWeight: FontWeight.bold)),
+                decoration: BoxDecoration(color: AppColors.warningLight, borderRadius: BorderRadius.circular(8)),
+                child: const Text('Default', style: TextStyle(fontSize: 10, color: AppColors.textDark, fontWeight: FontWeight.bold)),
               ),
             // ✅ NEW — edit icon
             GestureDetector(
@@ -959,10 +972,10 @@ class _AddressCard extends StatelessWidget {
               if (!hasLocation) ...[
                 const SizedBox(height: 6),
                 Row(children: [
-                  Icon(Icons.location_off_rounded, size: 13, color: Colors.orange[700]),
+                  Icon(Icons.location_off_rounded, size: 13, color: AppColors.warning),
                   const SizedBox(width: 4),
-                  Text('Location not pinned',
-                      style: TextStyle(fontSize: 11, color: Colors.orange[700], fontWeight: FontWeight.w500)),
+                  const Text('Location not pinned',
+                      style: TextStyle(fontSize: 11, color: AppColors.warning, fontWeight: FontWeight.w500)),
                 ]),
               ],
 

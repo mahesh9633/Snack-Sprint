@@ -145,11 +145,11 @@ class _SplashScreenState extends State<SplashScreen>
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.creamBackground,
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        color: Colors.white,
+        color: AppColors.creamBackground,
         child: Center(
           child: FadeTransition(
             opacity: _fadeAnim,

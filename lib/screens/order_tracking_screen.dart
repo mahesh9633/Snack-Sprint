@@ -743,7 +743,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                          color: const Color(0xFF388E3C),
+                          color: AppColors.success,
                           borderRadius: BorderRadius.circular(8)),
                       child: Text('₹${sellPrice.toStringAsFixed(0)}',
                           style: const TextStyle(
@@ -763,11 +763,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                            color: const Color(0xFFE8F5E9),
+                            color: AppColors.successLight,
                             borderRadius: BorderRadius.circular(6)),
                         child: Text('$discount% OFF',
                             style: const TextStyle(
-                                color: Color(0xFF2E7D32),
+                                color: AppColors.success,
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold)),
                       ),
@@ -780,7 +780,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                   Text('You save ₹${(rawPrice - specPrice).toStringAsFixed(0)}',
                       style: const TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF388E3C),
+                          color: AppColors.success,
                           fontWeight: FontWeight.w600)),
                 ],
 
@@ -891,7 +891,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                           style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF388E3C))),
+                              color: AppColors.success)),
                       if (hasOffer) ...[
                         const SizedBox(width: 6),
                         Text('₹${rawPrice.toStringAsFixed(0)}',
@@ -904,12 +904,12 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                              color: const Color(0xFFE8F5E9),
+                              color: AppColors.successLight,
                               borderRadius: BorderRadius.circular(4)),
                           child: Text('$discount% OFF',
                               style: const TextStyle(
                                   fontSize: 10,
-                                  color: Color(0xFF2E7D32),
+                                  color: AppColors.success,
                                   fontWeight: FontWeight.bold)),
                         ),
                       ],
@@ -921,7 +921,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                          color: const Color(0xFFFBF0EB),
+                          color: AppColors.primaryBlue.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(6)),
                       child: Text('Qty: $orderedQty',
                           style: const TextStyle(
@@ -1012,7 +1012,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                   style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF388E3C))),
+                      color: AppColors.success)),
             ],
           ),
         ],
@@ -1065,7 +1065,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                 borderRadius: BorderRadius.circular(20)),
             child: const Row(
               children: [
-                Icon(Icons.bolt, color: Colors.amber, size: 14),
+                Icon(Icons.bolt, color: AppColors.primaryOrange, size: 14),
                 SizedBox(width: 8),
                 Text('95% on time',
                     style: TextStyle(color: Colors.white, fontSize: 11)),
@@ -1081,10 +1081,10 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     final isCancelled = _isCancelled;
     final isDisabled  = _isShippedOrBeyond;
 
-    final bannerColor  = isCancelled ? Colors.red.shade50   : Colors.orange.shade50;
-    final borderColor  = isCancelled ? Colors.red.shade200  : Colors.orange.shade200;
-    final iconColor    = isCancelled ? Colors.red           : Colors.orange;
-    final textColor    = isCancelled ? Colors.red.shade800  : Colors.orange.shade800;
+    final bannerColor  = isCancelled ? AppColors.errorLight   : AppColors.warningLight;
+    final borderColor  = isCancelled ? AppColors.error.withOpacity(0.2)  : AppColors.warning.withOpacity(0.2);
+    final iconColor    = isCancelled ? AppColors.error           : AppColors.warning;
+    final textColor    = isCancelled ? AppColors.error           : AppColors.textDark;
     final bannerText   = isCancelled
         ? 'This order has been cancelled'
         : isDisabled
@@ -1375,7 +1375,7 @@ class _ShippingTooltip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.circle, color: Color(0xFF4ADE80), size: 8),
+              const Icon(Icons.circle, color: AppColors.success, size: 8),
               const SizedBox(width: 4),
               Text(label,
                   style: const TextStyle(

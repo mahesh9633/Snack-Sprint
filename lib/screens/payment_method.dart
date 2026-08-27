@@ -498,12 +498,12 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF0FFF4),
+                                color: AppColors.successLight,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.green.shade200, width: 1.5),
+                                border: Border.all(color: AppColors.success.withOpacity(0.2), width: 1.5),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.green.withOpacity(0.06),
+                                    color: AppColors.success.withOpacity(0.06),
                                     blurRadius: 8,
                                     offset: const Offset(0, 2),
                                   ),
@@ -515,11 +515,11 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                                   Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: Colors.green.withOpacity(0.12),
+                                      color: AppColors.success.withOpacity(0.12),
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(Icons.location_on,
-                                        color: Color(0xFF2E7D32), size: 20),
+                                        color: AppColors.success, size: 20),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
@@ -536,14 +536,14 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                                               style: const TextStyle(
                                                 fontSize: 15,
                                                 fontWeight: FontWeight.bold,
-                                                color: Colors.black87,
+                                                color: AppColors.textDark,
                                               ),
                                             ),
                                             Container(
                                               padding: const EdgeInsets.symmetric(
                                                   horizontal: 7, vertical: 2),
                                               decoration: BoxDecoration(
-                                                color: Colors.green,
+                                                color: AppColors.success,
                                                 borderRadius: BorderRadius.circular(10),
                                               ),
                                               child: const Text('Delivering here',
@@ -646,13 +646,13 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                               _summaryRow(
                                   'Delivery',
                                   _deliveryFee == 0 ? 'FREE' : '₹${_deliveryFee.toStringAsFixed(0)}',
-                                  valueColor: _deliveryFee == 0 ? Colors.green : Colors.black),
+                                  valueColor: _deliveryFee == 0 ? AppColors.success : AppColors.textDark),
                               if (_couponApplied) ...[
                                 const SizedBox(height: 6),
                                 _summaryRow(
                                     'Coupon ($_couponCode)',
                                     '- ₹${_couponDiscount.toStringAsFixed(0)}',
-                                    valueColor: Colors.green),
+                                    valueColor: AppColors.success),
                               ],
                               const Divider(height: 16),
                               _summaryRow(
@@ -721,7 +721,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                               style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF000000),
+                                color: AppColors.textDark,
                               ),
                             ),
                           ],
@@ -785,9 +785,9 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
           margin: const EdgeInsets.only(top: 4, bottom: 8),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFFCF0F5),
+            color: AppColors.primaryBlue.withOpacity(0.05),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.buttonPrimary.withOpacity(0.25)),
+            border: Border.all(color: AppColors.primaryBlue.withOpacity(0.25)),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
@@ -833,10 +833,10 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF8B4513).withOpacity(0.3)),
+                      border: Border.all(color: AppColors.accentDark.withOpacity(0.3)),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF8B4513).withOpacity(0.06),
+                          color: AppColors.accentDark.withOpacity(0.06),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -876,7 +876,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                         style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF1B5E20)),
+                            color: AppColors.success),
                       ),
                     ]),
                   ),
@@ -1473,19 +1473,19 @@ class _AllCouponsScreenState extends State<_AllCouponsScreen> {
                 style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF000000))),
+                    color: AppColors.textDark)),
             const Spacer(),
             if (eligible.isNotEmpty)
               Container(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
+                    color: AppColors.success.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(6)),
                 child: Text('${eligible.length} applicable',
                     style: const TextStyle(
                         fontSize: 11,
-                        color: Colors.green,
+                        color: AppColors.success,
                         fontWeight: FontWeight.bold)),
               ),
           ]),
@@ -1640,16 +1640,16 @@ class _CouponCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
+                      color: AppColors.success.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                          color: Colors.green.withOpacity(0.3)),
+                          color: AppColors.success.withOpacity(0.3)),
                     ),
                     child: Text(
                         'Save ₹${discount.toStringAsFixed(0)}',
                         style: const TextStyle(
                             fontSize: 11,
-                            color: Colors.green,
+                            color: AppColors.success,
                             fontWeight: FontWeight.bold)),
                   ),
               ],
@@ -1819,9 +1819,9 @@ class _OrderSuccessScreen extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: const BoxDecoration(
-                            color: Color(0xFFE8F5E9), shape: BoxShape.circle),
+                            color: AppColors.successLight, shape: BoxShape.circle),
                         child: const Icon(Icons.check_circle,
-                            color: Color(0xFF4CAF50), size: 80),
+                            color: AppColors.success, size: 80),
                       ),
                       const SizedBox(height: 20),
                       const Text('Order Placed\nSuccessfully!',
@@ -1836,18 +1836,18 @@ class _OrderSuccessScreen extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 22, vertical: 9),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF8B4513).withOpacity(0.07),
+                            color: AppColors.accentDark.withOpacity(0.07),
                             borderRadius: BorderRadius.circular(30),
                             border: Border.all(
                                 color:
-                                const Color(0xFF8B4513).withOpacity(0.4),
+                                AppColors.accentDark.withOpacity(0.4),
                                 width: 1.2),
                           ),
                           child: Text('Order ID: #$orderId',
                               style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF000000))),
+                                  color: AppColors.textDark)),
                         ),
                       const SizedBox(height: 28),
                       Container(
@@ -1887,7 +1887,7 @@ class _OrderSuccessScreen extends StatelessWidget {
                                                 style: const TextStyle(
                                                     fontSize: 26,
                                                     fontWeight: FontWeight.bold,
-                                                    color: Color(0xFF000000))),
+                                                    color: AppColors.textDark)),
                                           ]),
                                       Container(
                                         padding: const EdgeInsets.symmetric(
@@ -2042,7 +2042,7 @@ class _OrderSuccessScreen extends StatelessWidget {
                                           style: const TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.bold,
-                                              color: Color(0xFF1B5E20))),
+                                              color: AppColors.success)),
                                     ],
                                   ),
                                 ]),
@@ -2059,14 +2059,14 @@ class _OrderSuccessScreen extends StatelessWidget {
                                         Container(
                                           padding: const EdgeInsets.all(6),
                                           decoration: BoxDecoration(
-                                              color: const Color(0xFF0C831F)
+                                              color: AppColors.success
                                                   .withOpacity(0.1),
                                               borderRadius:
                                               BorderRadius.circular(8)),
                                           child: const Icon(
                                               Icons.location_on_outlined,
                                               size: 16,
-                                              color: Color(0xFF0C831F)),
+                                              color: AppColors.success),
                                         ),
                                         const SizedBox(width: 10),
                                         const Text('Delivering to',
@@ -2107,15 +2107,15 @@ class _OrderSuccessScreen extends StatelessWidget {
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF0C831F).withOpacity(0.07),
+                          color: AppColors.success.withOpacity(0.07),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                               color:
-                              const Color(0xFF0C831F).withOpacity(0.2)),
+                              AppColors.success.withOpacity(0.2)),
                         ),
                         child: Row(children: [
                           const Icon(Icons.local_shipping_outlined,
-                              color: Color(0xFF0C831F), size: 26),
+                              color: AppColors.success, size: 26),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -2125,7 +2125,7 @@ class _OrderSuccessScreen extends StatelessWidget {
                                       style: TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.bold,
-                                          color: Color(0xFF0C831F))),
+                                          color: AppColors.success)),
                                   const SizedBox(height: 2),
                                   Text(
                                       'Your order will be delivered soon!',
@@ -2236,7 +2236,7 @@ class _ItemRow extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF3E5D8),
+                      color: AppColors.divider,
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(
                           color: AppColors.floatingCartBg
@@ -2264,7 +2264,7 @@ class _ItemRow extends StatelessWidget {
               style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF1B5E20))),
+                  color: AppColors.success)),
           const SizedBox(height: 2),
           Text('₹${p.price.toStringAsFixed(0)} each',
               style:

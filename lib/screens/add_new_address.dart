@@ -1122,20 +1122,20 @@ class _AddNewAddressScreenState extends State<AddNewAddressScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFFE8F5E9),
+                color: AppColors.successLight,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFF81C784)),
+                border: Border.all(color: AppColors.success.withOpacity(0.3)),
               ),
               child: Row(children: [
                 const Icon(Icons.check_circle,
-                    color: Color(0xFF388E3C), size: 16),
+                    color: AppColors.success, size: 16),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     '$_resolvedArea, $_resolvedCity, $_resolvedState',
                     style: const TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF2E7D32),
+                        color: AppColors.success,
                         fontWeight: FontWeight.w500),
                   ),
                 ),

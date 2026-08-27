@@ -760,11 +760,11 @@ class _MtlTabBodyState extends State<MtlTabBody> {
             height: 65,
             decoration: BoxDecoration(
               color: isSelected
-                  ? _kGreen.withOpacity(0.12)
-                  : const Color(0xFFF5F5F5),
+                  ? AppColors.primaryBlue.withOpacity(0.12)
+                  : AppColors.sidebarBg,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isSelected ? _kGreen : const Color(0xFFE0E0E0),
+                color: isSelected ? AppColors.primaryBlue : AppColors.border,
                 width: isSelected ? 2 : 1,
               ),
             ),
@@ -847,7 +847,7 @@ class _MtlTabBodyState extends State<MtlTabBody> {
           Container(
             margin: const EdgeInsets.only(top: 6),
             height: 8,
-            color:  const Color(0xFFF5F5F5),
+            color:  AppColors.sidebarBg,
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
@@ -1740,9 +1740,9 @@ class _SubProduct {
 
       int qty;
       if (stockStatus.isNotEmpty &&
-          (stockStatus == 'out of stock' ||
+          (stockStatus == 'Not Available' ||
               stockStatus == '0' ||
-              stockStatus == 'outofstock')) {
+              stockStatus == 'Not Available')) {
         qty = 0;
       } else if (stockStatus.isNotEmpty &&
           (stockStatus.contains('in stock') ||
@@ -1907,7 +1907,7 @@ class _MtlProductCard extends StatelessWidget {
             child: Stack(children: [
               Container(
                 decoration: const BoxDecoration(
-                  color: Color(0xFFF8F8F8),
+                  color: AppColors.sidebarBg,
                   borderRadius:
                   BorderRadius.vertical(top: Radius.circular(12)),
                 ),
@@ -1924,7 +1924,7 @@ class _MtlProductCard extends StatelessWidget {
                       loadingBuilder: (_, child, prog) => prog == null
                           ? child
                           : Container(
-                          color: const Color(0xFFF8F8F8)),
+                          color: AppColors.sidebarBg),
                       errorBuilder: (_, __, ___) => _placeholder(),
                     )
                         : _placeholder(),
@@ -1969,7 +1969,7 @@ class _MtlProductCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 5, vertical: 1),
                     decoration: BoxDecoration(
-                        color:        const Color(0xFFF0F0F0),
+                        color:        AppColors.divider,
                         borderRadius: BorderRadius.circular(4)),
                     child: Text(p.unit,
                         style: const TextStyle(
@@ -2417,7 +2417,7 @@ class _CategoryFullPageState extends State<_CategoryFullPage> {
     final hasMore = _visible < prods.length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      backgroundColor: AppColors.scaffoldBg,
       floatingActionButton: const Padding(
         padding: EdgeInsets.only(bottom: 8),
         child: FloatingCartBar(),
@@ -2425,20 +2425,20 @@ class _CategoryFullPageState extends State<_CategoryFullPage> {
       floatingActionButtonLocation:
       FloatingActionButtonLocation.centerFloat,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.cardWhite,
         elevation:       0,
         leading: IconButton(
-          icon:      const Icon(Icons.arrow_back, color: Colors.black),
+          icon:      const Icon(Icons.arrow_back, color: AppColors.textDark),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(widget.parentName,
             style: const TextStyle(
-                color:      _kTextPrimary,
+                color:      AppColors.textDark,
                 fontWeight: FontWeight.w800,
                 fontSize:   17)),
         actions: [
           IconButton(
-            icon:      const Icon(Icons.refresh, color: _kGreen),
+            icon:      const Icon(Icons.refresh, color: AppColors.primaryBlue),
             onPressed: _onRefresh,
           ),
           Container(
@@ -2446,11 +2446,11 @@ class _CategoryFullPageState extends State<_CategoryFullPage> {
             padding: const EdgeInsets.symmetric(
                 horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-                color:        _kLightGreen,
+                color:        AppColors.successLight,
                 borderRadius: BorderRadius.circular(12)),
             child: Text('${prods.length}',
                 style: const TextStyle(
-                    color:      _kGreen,
+                    color:      AppColors.success,
                     fontSize:   12,
                     fontWeight: FontWeight.w700)),
           ),
@@ -2458,7 +2458,7 @@ class _CategoryFullPageState extends State<_CategoryFullPage> {
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Container(
-              height: 1, color: const Color(0xFFEEEEEE)),
+              height: 1, color: AppColors.divider),
         ),
       ),
       body: Row(
@@ -2489,7 +2489,7 @@ class _CategoryFullPageState extends State<_CategoryFullPage> {
               )),
             ]),
           ),
-          Container(width: 1, color: const Color(0xFFEEEEEE)),
+          Container(width: 1, color: AppColors.divider),
           Expanded(
             child: prods.isEmpty
                 ? Center(
@@ -2516,7 +2516,7 @@ class _CategoryFullPageState extends State<_CategoryFullPage> {
                           width: 3,
                           height: 14,
                           decoration: BoxDecoration(
-                              color: _kGreen,
+                              color: AppColors.primaryBlue,
                               borderRadius:
                               BorderRadius.circular(2))),
                       const SizedBox(width: 6),
@@ -2530,12 +2530,12 @@ class _CategoryFullPageState extends State<_CategoryFullPage> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 7, vertical: 3),
                         decoration: BoxDecoration(
-                            color:        _kLightGreen,
+                            color:        AppColors.successLight,
                             borderRadius: BorderRadius.circular(8)),
                         child: Text('${prods.length}',
                             style: const TextStyle(
                                 fontSize:   10,
-                                color:      _kGreen,
+                                color:      AppColors.success,
                                 fontWeight: FontWeight.w700)),
                       ),
                     ]),
@@ -2627,12 +2627,12 @@ class _SidebarItem extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
         decoration: BoxDecoration(
-          color: isSelected ? _kLightGreen : Colors.white,
+          color: isSelected ? AppColors.successLight : AppColors.cardWhite,
           border: Border(
             left: BorderSide(
-                color: isSelected ? _kGreen : Colors.transparent,
+                color: isSelected ? AppColors.primaryBlue : Colors.transparent,
                 width: 3),
-            bottom: const BorderSide(color: Color(0xFFF0F0F0)),
+            bottom: const BorderSide(color: AppColors.divider),
           ),
         ),
         child: Column(
@@ -2643,11 +2643,11 @@ class _SidebarItem extends StatelessWidget {
               height: 52,
               decoration: BoxDecoration(
                 color: isSelected
-                    ? _kGreen.withOpacity(0.08)
-                    : const Color(0xFFF5F5F5),
+                    ? AppColors.primaryBlue.withOpacity(0.08)
+                    : AppColors.sidebarBg,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: isSelected ? _kGreen : const Color(0xFFE0E0E0),
+                  color: isSelected ? AppColors.primaryBlue : AppColors.border,
                   width: isSelected ? 2 : 1,
                 ),
               ),

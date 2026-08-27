@@ -630,7 +630,7 @@ class _TrendingNewDataBannerState extends State<_TrendingNewDataBanner>
         margin: const EdgeInsets.fromLTRB(12, 6, 12, 4),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF7B3F00),AppColors.lightBrown],
+            colors: [AppColors.deepBlue, AppColors.primaryBlue],
           ),
           borderRadius: BorderRadius.circular(10),
           boxShadow: [
@@ -837,7 +837,7 @@ class _MostBoughtCard extends StatelessWidget {
   }
 
   Color get _rankColor {
-    if (rank == 1) return const Color(0xFFFFD700);
+    if (rank == 1) return AppColors.primaryOrange;
     if (rank == 2) return const Color(0xFFC0C0C0);
     if (rank == 3) return const Color(0xFFCD7F32);
     return AppColors.lightBrown;

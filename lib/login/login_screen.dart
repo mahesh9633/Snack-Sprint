@@ -206,7 +206,7 @@
 //                   Expanded(
 //                     child: Text(
 //                       _errorMessage,
-//                       style: TextStyle(color: Colors.red[600], fontSize: 13),
+//                       style: const TextStyle(color: AppColors.error, fontSize: 13),
 //                     ),
 //                   ),
 //                 ]),
@@ -487,11 +487,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             horizontal: 14, vertical: 14),
                         child: const Text(
                           '+91',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             // color: AppColors.appBarText,
-                            color: Color(0xFF6B7280),
+                            color: AppColors.textGrey,
                           ),
                         ),
                       ),
@@ -518,7 +518,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Expanded(
                     child: Text(
                       _errorMessage,
-                      style: TextStyle(color: Colors.red[600], fontSize: 13),
+                      style: const TextStyle(color: AppColors.error, fontSize: 13),
                     ),
                   ),
                 ]),
