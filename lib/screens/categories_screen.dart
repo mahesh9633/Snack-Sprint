@@ -278,7 +278,7 @@
     @override
     Widget build(BuildContext context) {
       return Scaffold(
-        backgroundColor: AppColors.scaffoldBg,
+        backgroundColor: AppColors.cardWhite,
         floatingActionButton: const Padding(
           padding: EdgeInsets.only(bottom: 8),
           child: FloatingCartBar(),

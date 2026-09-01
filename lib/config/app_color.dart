@@ -22,7 +22,7 @@ class AppColors {
   static const Color textLight = Color(0xFFFFFFFF);
 
   static const Color white = Colors.white;
-  static const Color appBarBg = creamBackground;
+  static const Color appBarBg = white;
   static const Color appBarIcon = primaryBlue;             // Burgundy
   static const Color appBarText = textDark;               // Dark Chocolate
 
@@ -53,8 +53,8 @@ class AppColors {
   static const Color sectionHeader = primaryBlue;          // Burgundy
   static const Color priceGreen = freshGreen;
   static const Color accentDark = Color(0xFF5A3525);       // Chocolate
-  static const Color accentLight = Color(0xFFF3D58A);      // Light Gold
-  static const Color sidebarBg = creamBackground;
+  static const Color accentLight = Color(0xFFFFFFFF);      // Light Gold
+  static const Color sidebarBg = Color(0xFFFFFFFF);
   static const Color loader = primaryBlue;
 
   static const Color textPrimary = textDark;

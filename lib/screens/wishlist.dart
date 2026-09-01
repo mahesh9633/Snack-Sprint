@@ -23,7 +23,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: AppColors.cardWhite,
       floatingActionButton: const Padding(
         padding: EdgeInsets.only(bottom: 0),
         child: FloatingCartBar(),
@@ -510,7 +510,7 @@ class _WishlistCard extends StatelessWidget {
   }
 
   Widget _placeholder() => Container(
-    color: AppColors.scaffoldBg,
+    color: AppColors.cardWhite,
     child: const Center(
       child: Icon(Icons.image_not_supported_outlined,
           color: AppColors.primaryBlue, size: 32),

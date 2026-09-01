@@ -287,7 +287,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: AppColors.cardWhite,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,

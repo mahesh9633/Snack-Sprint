@@ -286,6 +286,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         duration: const Duration(seconds: 3),
                         backgroundColor: Colors.red.shade400,
                         behavior: SnackBarBehavior.floating,
+
+
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10))));
                 }

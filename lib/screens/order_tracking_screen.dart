@@ -4,6 +4,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_color.dart';
 import '../model/address_model.dart';
 import '../model/product_model.dart';
@@ -31,6 +32,8 @@ class OrderTrackingScreen extends StatefulWidget {
   final List<Map<String, dynamic>> products;
   final String invoiceNo;
   final String initialOrderStatus;
+  final int? cancellationStatus;      // 0=pending, 1=approved, 2=rejected
+  final String cancellationComment;
 
   const OrderTrackingScreen({
     super.key,
@@ -45,6 +48,8 @@ class OrderTrackingScreen extends StatefulWidget {
     this.products = const [],
     this.invoiceNo = '',
     this.initialOrderStatus = '',
+    this.cancellationStatus,
+    this.cancellationComment = '',
   });
 
   @override
@@ -67,6 +72,16 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
   String _orderStatus = '';
   final Map<String, String> _productImageCache = {};
 
+  // ── Cancellation-request pending state ──────────────────────────────────
+  // The order stays in its normal status until admin approves/rejects the
+  // cancellation request, so we track "customer already asked to cancel"
+  // locally and show a waiting banner instead of the Cancel button.
+  bool _cancelRequestPending = false;
+  String get _cancelPendingPrefsKey => 'cancel_requested_${widget.orderId}';
+
+  bool get _cancelRejected => widget.cancellationStatus == 2;
+  bool get _cancelApprovedByServer => widget.cancellationStatus == 1;
+
   @override
   void initState() {
     super.initState();
@@ -82,9 +97,22 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     );
     _progressAnim = const AlwaysStoppedAnimation(0);
 
+    _loadCancelPendingFlag();
     _fetchTrackOrder();
     if (widget.productId.isNotEmpty) _fetchProductImage();
     _fetchAllProductImages();
+  }
+
+  Future<void> _loadCancelPendingFlag() async {
+    final prefs = await SharedPreferences.getInstance();
+    final pending = prefs.getBool(_cancelPendingPrefsKey) ?? false;
+    if (mounted) setState(() => _cancelRequestPending = pending);
+  }
+
+  Future<void> _clearCancelPendingFlag() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_cancelPendingPrefsKey);
+    if (mounted) setState(() => _cancelRequestPending = false);
   }
 
   // ── Fetch live tracking steps ───────────────────────────────────────────
@@ -133,6 +161,12 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
           }
         }
       });
+
+      // Server has a definitive answer now (approved or rejected) —
+      // the local "just requested" flag is no longer needed either way.
+      if (widget.cancellationStatus != null && _cancelRequestPending) {
+        _clearCancelPendingFlag();
+      }
 
       _animController.forward();
     } else {
@@ -353,15 +387,22 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     setState(() => _cancelling = false);
 
     if (result.success) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_cancelPendingPrefsKey, true);
+      if (mounted) setState(() => _cancelRequestPending = true);
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Order cancelled successfully'),
-          backgroundColor: Colors.green,
+          content: Text('Cancellation request submitted. Waiting for admin approval.'),
+          backgroundColor: Colors.orange,
           behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
+          duration: Duration(seconds: 3),
         ),
       );
-      Navigator.pop(context, true);
+      // Don't pop — let the customer see the pending banner instead of
+      // immediately leaving, since the order isn't actually cancelled yet.
+      _fetchTrackOrder();
     } else {
       final msg = result.message.toLowerCase();
       final alreadyCancelled = msg.contains('already cancel') ||
@@ -953,10 +994,13 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
   );
 
   Widget _buildOrderTotalsRow(Map<String, dynamic> details) {
-    final subTotal   = double.tryParse(details['sub_total']?.toString()   ?? '0') ?? 0;
-    final discount   = double.tryParse(details['discount']?.toString()    ?? '0') ?? 0;
-    final tax        = double.tryParse(details['total_tax']?.toString()   ?? '0') ?? 0;
-    final grandTotal = double.tryParse(details['grand_total']?.toString() ?? '0') ?? 0;
+    final subTotal      = double.tryParse(details['sub_total']?.toString()   ?? '0') ?? 0;
+    final discount       = double.tryParse(details['discount']?.toString()    ?? '0') ?? 0;
+    final tax            = double.tryParse(details['total_tax']?.toString()   ?? '0') ?? 0;
+    final rawGrandTotal  = double.tryParse(details['grand_total']?.toString() ?? '0') ?? 0;
+    final advanceUsed    = double.tryParse(details['advance_used']?.toString() ?? '0') ?? 0;
+    final paidByWallet   = rawGrandTotal <= 0 && advanceUsed > 0;
+    final grandTotal     = paidByWallet ? advanceUsed : rawGrandTotal;
     final coupon     = details['coupon']?.toString() ?? '';
     final delivery   = double.tryParse(details['takeaway_amount']?.toString() ?? '0') ?? 0.0;
 
@@ -1000,6 +1044,13 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
             color: Colors.grey[700],
             icon: Icons.local_shipping_outlined,
           ),
+        if (advanceUsed > 0 && !paidByWallet)
+          row(
+            'Wallet Used',
+            '₹${advanceUsed.toStringAsFixed(0)}',
+            color: const Color(0xFF6A1B9A),
+            icon: Icons.account_balance_wallet,
+          ),
         if (grandTotal > 0) ...[
           const Divider(height: 10),
           Row(
@@ -1009,10 +1060,12 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                   style: TextStyle(
                       fontSize: 13, fontWeight: FontWeight.bold)),
               Text('₹${grandTotal.toStringAsFixed(2)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.success)),
+                      color: paidByWallet
+                          ? const Color(0xFF6A1B9A)
+                          : AppColors.success)),
             ],
           ),
         ],
@@ -1076,21 +1129,51 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       ),
     );
   }
-
   Widget _buildCancellationBanner() {
     final isCancelled = _isCancelled;
     final isDisabled  = _isShippedOrBeyond;
+    final isRejected   = _cancelRejected && !isCancelled;
+    final isPending    = _cancelRequestPending && !isCancelled && !isRejected;
 
-    final bannerColor  = isCancelled ? AppColors.errorLight   : AppColors.warningLight;
-    final borderColor  = isCancelled ? AppColors.error.withOpacity(0.2)  : AppColors.warning.withOpacity(0.2);
-    final iconColor    = isCancelled ? AppColors.error           : AppColors.warning;
-    final textColor    = isCancelled ? AppColors.error           : AppColors.textDark;
+    final bannerColor  = isCancelled
+        ? AppColors.errorLight
+        : isRejected
+        ? Colors.red.shade50
+        : isPending
+        ? AppColors.info.withOpacity(0.08)
+        : AppColors.warningLight;
+    final borderColor  = isCancelled
+        ? AppColors.error.withOpacity(0.2)
+        : isRejected
+        ? Colors.red.shade100
+        : isPending
+        ? AppColors.info.withOpacity(0.3)
+        : AppColors.warning.withOpacity(0.2);
+    final iconColor    = isCancelled
+        ? AppColors.error
+        : isRejected
+        ? Colors.red
+        : isPending
+        ? AppColors.info
+        : AppColors.warning;
+    final textColor    = isCancelled
+        ? AppColors.error
+        : isRejected
+        ? Colors.red.shade700
+        : isPending
+        ? AppColors.info
+        : AppColors.textDark;
     final bannerText   = isCancelled
         ? 'This order has been cancelled'
+        : isRejected
+        ? (widget.cancellationComment.isNotEmpty
+        ? 'Cancellation rejected: ${widget.cancellationComment}'
+        : 'Your cancellation request was rejected.')
+        : isPending
+        ? 'Cancellation requested — waiting for admin approval'
         : isDisabled
         ? 'Cancellation not available after Shipped'
         : 'This product is available for cancellation up to Shipped';
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -1101,7 +1184,13 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       child: Row(
         children: [
           Icon(
-            isCancelled ? Icons.cancel_outlined : Icons.info_outline,
+            isCancelled
+                ? Icons.cancel_outlined
+                : isRejected
+                ? Icons.block
+                : isPending
+                ? Icons.hourglass_top
+                : Icons.info_outline,
             color: iconColor,
             size: 20,
           ),
@@ -1134,21 +1223,48 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                       fontSize: 12,
                       fontWeight: FontWeight.bold)),
             )
-          else
-            GestureDetector(
-              onTap: isDisabled ? null : _cancelOrder,
-              child: Container(
+          else if (isPending)
+              Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                    color: isDisabled ? Colors.grey.shade300 : AppColors.error,
+                    color: AppColors.info.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8)),
-                child: Text('Cancel',
+                child: const Text('Pending',
                     style: TextStyle(
-                        color: isDisabled ? Colors.grey : Colors.white,
+                        color: AppColors.info,
                         fontSize: 12,
                         fontWeight: FontWeight.bold)),
+              )
+            else if (isRejected)
+                GestureDetector(
+                  onTap: _cancelOrder,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(8)),
+                    child: const Text('Request Again',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold)),
+                  ),
+                )
+              else
+                GestureDetector(
+                  onTap: isDisabled ? null : _cancelOrder,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                      color: isDisabled ? Colors.grey.shade300 : AppColors.error,
+                      borderRadius: BorderRadius.circular(8)),
+                  child: Text('Cancel',
+                      style: TextStyle(
+                          color: isDisabled ? Colors.grey : Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold)),
+                ),
               ),
-            ),
         ],
       ),
     );

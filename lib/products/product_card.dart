@@ -370,7 +370,7 @@ class ProductCard extends StatelessWidget {
                             style: const TextStyle(
                                 fontSize:   13,
                                 fontWeight: FontWeight.w800,
-                                color:      AppColors.textDark))),
+                                color:      AppColors.textDark)),
                         if (product.originalPrice > product.price) ...[
                           const SizedBox(width: 4),
                           Text('₹${product.originalPrice.toInt()}',

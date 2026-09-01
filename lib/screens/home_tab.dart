@@ -385,7 +385,7 @@ class HomeTabState extends State<HomeTab> {
     final double tabWidth = isTablet ? 120 : 76;
 
     // ── DBM tab colors ─────────────────────────────────────────────────────
-    const Color dbmSelectedBg       = AppColors.primaryBlue;
+    const Color dbmSelectedBg       = AppColors.cardWhite;
     const Color dbmUnselectedBg     = AppColors.cardWhite;
     const Color dbmSelectedText     = AppColors.textLight;
     const Color dbmUnselectedText   = AppColors.primaryBlue;
@@ -528,8 +528,8 @@ class HomeTabState extends State<HomeTab> {
           color: isSelected ? selectedColor : unselectedBg,         // ← bg color
           borderRadius: BorderRadius.circular(10),                   // ← corner shape
           border: Border.all(
-              color: isSelected ? selectedColor : borderColor,       // ← border color
-              width: 1.5),                                           // ← border width
+              color: (isSelected && imageAsset == null) ? selectedColor : borderColor,  // ← border color
+              width: 1.5),                                           // ← border width                                          // ← border width
           boxShadow: isSelected
               ? [BoxShadow(
               color: selectedColor.withValues(alpha: 0.35),

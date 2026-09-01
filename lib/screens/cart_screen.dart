@@ -175,6 +175,7 @@ class _CartScreenState extends State<CartScreen> {
   double _deliveryOrderValue = StoreProfileCache.deliveryOrderValue;
   double _deliveryFee = 0;
   double _finalTotal = 0;
+  bool _isStoreOpen = true;
 
   Timer? _autoRefreshTimer;
   static const Duration _kCartRefreshInterval = Duration(seconds: 5);
@@ -314,10 +315,12 @@ class _CartScreenState extends State<CartScreen> {
         final minStr          = data['min_order_value']?.toString() ?? '0';
         final feeStr          = data['delivery_fee']?.toString() ?? '0';
         final deliveryOrderStr = data['delivery_order_value']?.toString() ?? '0';
+        final statusStr       = data['status']?.toString() ?? '1';
 
         final freshMinOrder      = double.tryParse(minStr) ?? 0;
         final freshDeliveryFee   = double.tryParse(feeStr) ?? 0;
         final freshDeliveryOrder = double.tryParse(deliveryOrderStr) ?? 0;
+        final freshIsOpen        = statusStr == '1';
 
         StoreProfileCache.minOrderValue      = freshMinOrder;
         StoreProfileCache.deliveryFee        = freshDeliveryFee;
@@ -329,6 +332,7 @@ class _CartScreenState extends State<CartScreen> {
             _minOrderValue      = freshMinOrder;
             _storeDeliveryFee   = freshDeliveryFee;
             _deliveryOrderValue = freshDeliveryOrder;
+            _isStoreOpen        = freshIsOpen;
           });
           final cart = Provider.of<CartModel>(context, listen: false);
           _recalculateTotals(cart.totalPrice);
@@ -389,9 +393,54 @@ class _CartScreenState extends State<CartScreen> {
       Navigator.of(context).popUntil((route) => route.isFirst);
     }
   }
-
   Future<void> _handleProceed(
       BuildContext context, double totalPrice) async {
+    if (!_isStoreOpen) {
+      final dialogW = MediaQuery.of(context).size.width;
+      await showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16)),
+          insetPadding: EdgeInsets.symmetric(
+              horizontal: dialogW * 0.06, vertical: 24),
+          title: Row(
+            children: [
+              const Icon(Icons.storefront_outlined, color: Colors.red),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Restaurant Closed',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: dialogW * 0.055),
+                  softWrap: true,
+                  overflow: TextOverflow.visible,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'This restaurant is currently closed and not accepting orders. Please try again later.',
+            style: TextStyle(fontSize: dialogW * 0.037),
+          ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.buttonPrimary,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK',
+                  style: TextStyle(color: AppColors.buttonPrimaryText)),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     if (_minOrderValue > 0 && totalPrice < _minOrderValue) {
       await showDialog(
         context: context,
@@ -458,7 +507,7 @@ class _CartScreenState extends State<CartScreen> {
     final screenH = MediaQuery.of(context).size.height;
 
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: AppColors.cardWhite,
       appBar: AppBar(
         backgroundColor: AppColors.cardWhite,
         elevation: 0,

@@ -671,7 +671,7 @@ class _OtpScreenState extends State<OtpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: AppColors.cardWhite,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,

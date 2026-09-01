@@ -40,7 +40,7 @@ class ProfileScreenState extends State<ProfileScreen> {
   // ── Theme: Snack Sprint Blue / Cream ───────────────────────────────────────────────
   static const Color _primaryBlue  = AppColors.primaryBlue;
   static const Color _accentBlue   = AppColors.primaryBlue;
-  static const Color _scaffoldBg   = AppColors.scaffoldBg;
+  static const Color _scaffoldBg   = AppColors.cardWhite;
   static const Color _cardBg       = AppColors.cardWhite;
 
   String _kName(String phone)  => 'profile_name_$phone';

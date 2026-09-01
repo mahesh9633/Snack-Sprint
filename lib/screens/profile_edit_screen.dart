@@ -370,7 +370,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: AppColors.cardWhite,
       appBar: AppBar(
         backgroundColor: AppColors.cardWhite,
         elevation: 0,
