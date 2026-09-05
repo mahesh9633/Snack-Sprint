@@ -1,5 +1,3 @@
-//
-//
 // import 'dart:convert';
 // import 'package:flutter/foundation.dart';
 // import 'package:http/http.dart' as http;
@@ -22,6 +20,7 @@
 //     double                deliveryCharge   = 0.0,
 //     String?               screenshotBase64,
 //     String                utrNumber        = '',
+//     double                walletAmountUsed = 0.0,
 //   }) async {
 //     final token = await SessionManager.getToken();
 //     final customerIdStr = await SessionManager.getCustomerId();
@@ -69,9 +68,20 @@
 //       };
 //     }).toList();
 //
-//     final subtotal      = cart.totalPrice;
-//     final grandTotal     = subtotal - couponDiscount + deliveryCharge;
-//     final numberOfItems  = cart.items.values.fold<int>(0, (s, i) => s + i.quantity);
+//     final subtotal = cart.totalPrice;
+//
+//     // Grand total BEFORE wallet is applied (subtotal - coupon + delivery).
+//     final grandTotal = subtotal - couponDiscount + deliveryCharge;
+//
+//     // Wallet can never cover more than the grand total, and can't go negative.
+//     final walletApplied = walletAmountUsed <= 0
+//         ? 0.0
+//         : (walletAmountUsed > grandTotal ? grandTotal : walletAmountUsed);
+//
+//     // What the customer actually pays via COD/UPI after wallet is applied.
+//     final payableAmount = grandTotal - walletApplied;
+//
+//     final numberOfItems = cart.items.values.fold<int>(0, (s, i) => s + i.quantity);
 //
 //     // Matches PHP: $invoiceInfo = $get($orderDetails, "InvoiceInfo", []);
 //     final invoiceInfo = {
@@ -85,6 +95,8 @@
 //       'InvoiceNumber':       '',
 //       'Coupon':              couponCode,
 //       'CouponAmount':        couponDiscount.round(),
+//       // ── Wallet discount reflected in the invoice breakdown ─────────────
+//       'WalletDiscount':      walletApplied.round(),
 //     };
 //
 //     // Matches PHP: $orderDetails = $get($post, "orderDetails", []);
@@ -104,14 +116,20 @@
 //       'Payment_zone':      address.state,
 //
 //       'PaymentThrough':    paymentMethod,
-//       'CashAmount':        paymentMethod == 'COD' ? grandTotal.round() : 0,
-//       'UPIAmount':         paymentMethod == 'UPI' ? grandTotal.round() : 0,
+//       // ── Cash/UPI amount now reflects the amount payable AFTER wallet
+//       // has been applied — not the full grand total ─────────────────────
+//       'CashAmount':        paymentMethod == 'COD' ? payableAmount.round() : 0,
+//       'UPIAmount':         paymentMethod == 'UPI' ? payableAmount.round() : 0,
 //       'TakeawayAmount':    deliveryCharge.round(),
 //
 //       if (screenshotBase64 != null && screenshotBase64.isNotEmpty)
 //         'UPIImage': screenshotBase64,
 //
-//       'TotalReceivedAmount':     grandTotal.round(),
+//       // ── Wallet — backend reads this exact key as "AdvanceUsed" to
+// // determine how much to debit from the customer's wallet balance ──
+//       'AdvanceUsed': walletApplied.round(),
+//
+//       'TotalReceivedAmount':     payableAmount.round(),
 //       'PendingAmount':           0,
 //       'ReturnableBalance':       0,
 //       'SaveReturnableAsAdvance': false,
@@ -142,6 +160,7 @@
 //       print('placeOrder → Payment_address_1: ${address.addressLine1}');
 //       print('placeOrder → Payment_city: ${address.city}');
 //       print('placeOrder → tracking: ${address.tracking}');
+//       print('placeOrder → walletApplied: $walletApplied, payableAmount: $payableAmount');
 //       print('placeOrder → full body: $jsonBody');
 //     }
 //
@@ -187,7 +206,6 @@
 //   }
 // }
 
-
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -208,9 +226,22 @@ class OrderApiService {
     String                couponCode       = '',
     double                couponDiscount   = 0.0,
     double                deliveryCharge   = 0.0,
+    double                walletAmountUsed = 0.0,
+
+    // ── Legacy UPI-proof fields — kept optional for backward compatibility
+    // with any other caller still using the screenshot flow. Not used by
+    // the new EasyUpiPaymentService flow.
     String?               screenshotBase64,
     String                utrNumber        = '',
-    double                walletAmountUsed = 0.0,
+
+    // ── New: UPI transaction fields from EasyUpiPaymentService ─────────
+    // Populated only when paymentMethod is a UPI method and the payment
+    // actually went through the easy_upi_payment plugin.
+    String                transactionId    = '',
+    String                transactionRefId = '',
+    String                approvalRefNo    = '',
+    String                responseCode     = '',
+    double                paymentAmount    = 0.0,
   }) async {
     final token = await SessionManager.getToken();
     final customerIdStr = await SessionManager.getCustomerId();
@@ -273,6 +304,8 @@ class OrderApiService {
 
     final numberOfItems = cart.items.values.fold<int>(0, (s, i) => s + i.quantity);
 
+    final isUpi = paymentMethod.toUpperCase().contains('UPI');
+
     // Matches PHP: $invoiceInfo = $get($orderDetails, "InvoiceInfo", []);
     final invoiceInfo = {
       'SUBTotal':            subtotal.round(),
@@ -309,14 +342,25 @@ class OrderApiService {
       // ── Cash/UPI amount now reflects the amount payable AFTER wallet
       // has been applied — not the full grand total ─────────────────────
       'CashAmount':        paymentMethod == 'COD' ? payableAmount.round() : 0,
-      'UPIAmount':         paymentMethod == 'UPI' ? payableAmount.round() : 0,
+      'UPIAmount':         isUpi ? payableAmount.round() : 0,
       'TakeawayAmount':    deliveryCharge.round(),
 
       if (screenshotBase64 != null && screenshotBase64.isNotEmpty)
         'UPIImage': screenshotBase64,
 
+      // ── UPI transaction proof from EasyUpiPaymentService — read by
+      // PHP addorder() into $transaction_id / $transaction_ref_id /
+      // $approval_ref_no / $upi_response_code and saved on order_invoice.
+      if (transactionId.isNotEmpty)    'TransactionId':    transactionId,
+      if (transactionRefId.isNotEmpty) 'TransactionRefId': transactionRefId,
+      if (approvalRefNo.isNotEmpty)    'ApprovalRefNo':    approvalRefNo,
+      if (responseCode.isNotEmpty)     'UPIResponseCode':  responseCode,
+      if (paymentAmount > 0)           'UPIPaymentAmount': paymentAmount.round(),
+
+      if (utrNumber.isNotEmpty) 'UTRNumber': utrNumber,
+
       // ── Wallet — backend reads this exact key as "AdvanceUsed" to
-// determine how much to debit from the customer's wallet balance ──
+      // determine how much to debit from the customer's wallet balance ──
       'AdvanceUsed': walletApplied.round(),
 
       'TotalReceivedAmount':     payableAmount.round(),
@@ -351,6 +395,10 @@ class OrderApiService {
       print('placeOrder → Payment_city: ${address.city}');
       print('placeOrder → tracking: ${address.tracking}');
       print('placeOrder → walletApplied: $walletApplied, payableAmount: $payableAmount');
+      if (isUpi) {
+        print('placeOrder → transactionId: $transactionId, responseCode: $responseCode, '
+            'approvalRefNo: $approvalRefNo, paymentAmount: $paymentAmount');
+      }
       print('placeOrder → full body: $jsonBody');
     }
 
@@ -362,10 +410,6 @@ class OrderApiService {
       ).timeout(const Duration(seconds: 30));
 
       final rawBody = response.body.trim();
-
-      if (kDebugMode) {
-
-      }
 
       if (response.statusCode == 200) {
         if (!rawBody.startsWith('{') && !rawBody.startsWith('[')) {

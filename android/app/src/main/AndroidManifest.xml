@@ -82,11 +82,18 @@
         </intent>
         <package android:name="com.whatsapp" />
         <package android:name="com.whatsapp.w4b" />
-        <!-- ADD THIS for UPI -->
+
+        <!-- UPI apps -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="upi" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="upi" android:host="pay" />
         </intent>
+        <package android:name="com.google.android.apps.nfc.payment" />
+        <package android:name="com.phonepe.app" />
+        <package android:name="net.one97.paytm" />
+        <package android:name="in.org.npci.upiapp" />
     </queries>
 
 </manifest>
